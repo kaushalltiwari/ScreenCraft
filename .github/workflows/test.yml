@@ -1,0 +1,47 @@
+name: Test Build
+
+on:
+  push:
+    branches: [ installer-setup ]
+  pull_request:
+    branches: [ main, installer-setup ]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Test Windows build
+      if: matrix.os == 'windows-latest'
+      run: npm run build:win
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ELECTRON_BUILDER_CACHE: false
+      
+    - name: Test macOS build
+      if: matrix.os == 'macos-latest'
+      run: npm run build:mac
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+        ELECTRON_BUILDER_CACHE: false
