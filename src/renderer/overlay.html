@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screenshot Overlay</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.3);
+            cursor: crosshair;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Selection rectangle */
+        .selection-rectangle {
+            position: absolute;
+            border: 2px solid #fff;
+            background: rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+            display: none;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Selection handles removed - not implemented in current version */
+
+        /* Coordinates display */
+        .coordinates-display {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+
+
+        /* Instructions overlay */
+        .instructions {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            z-index: 1002;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .instructions.fade-out {
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        /* Status indicator */
+        .status-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 1003;
+            backdrop-filter: blur(10px);
+        }
+
+        /* Hide when not selecting */
+        body.selecting .selection-rectangle {
+            display: block;
+        }
+        
+        body.selecting .coordinates-display {
+            display: block;
+        }
+
+        /* Selected state styling - hide during capture to prevent border artifacts */
+        body.selected .selection-rectangle {
+            display: none;
+        }
+
+        /* Capturing state - hide all overlays during screenshot */
+        body.capturing {
+            background: transparent;
+        }
+
+        body.capturing .selection-rectangle,
+        body.capturing .coordinates-display,
+        body.capturing .instructions,
+        body.capturing .status-indicator {
+            display: none !important;
+            visibility: hidden !important;
+        }
+
+
+        /* Animations */
+        .selection-rectangle {
+            transition: all 0.1s ease;
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="instructions" id="instructions">
+        Click and drag to select area • <kbd>Esc</kbd> to cancel
+    </div>
+
+    <div class="selection-rectangle" id="selectionRect">
+        <!-- Selection handles removed - not implemented in current version -->
+    </div>
+
+    <div class="coordinates-display" id="coordinatesDisplay">
+        0, 0 (0 × 0)
+    </div>
+
+
+    <div class="status-indicator" id="statusIndicator">
+        Ready to capture
+    </div>
+
+    <script>
+        // Selection state management
+        let isSelecting = false;
+        let isSelected = false;
+        let isResizing = false;
+        let startX = 0;
+        let startY = 0;
+        let currentX = 0;
+        let currentY = 0;
+        let selectionData = null;
+
+        // DOM elements
+        const selectionRect = document.getElementById('selectionRect');
+        const coordinatesDisplay = document.getElementById('coordinatesDisplay');
+        const instructions = document.getElementById('instructions');
+        const statusIndicator = document.getElementById('statusIndicator');
+
+        // Initialize overlay
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Screenshot overlay loaded');
+            
+            // Hide instructions after timeout
+            setTimeout(() => {
+                instructions.classList.add('fade-out');
+                setTimeout(() => instructions.style.display = 'none', 500);
+            }, 3000); // Using CONSTANTS.TIMEOUTS.INSTRUCTIONS_FADE (constants not available in renderer)
+            
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Mouse events for selection
+            document.addEventListener('mousedown', handleMouseDown);
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+
+            // Keyboard events
+            document.addEventListener('keydown', handleKeyDown);
+
+
+            // Selection handle events removed - not implemented in current version
+        }
+
+        function handleMouseDown(e) {
+            if (isSelected) {
+                return; // Don't start new selection if already selected
+            }
+
+            isSelecting = true;
+            document.body.classList.add('selecting');
+            
+            startX = e.clientX;
+            startY = e.clientY;
+            currentX = e.clientX;
+            currentY = e.clientY;
+
+            updateSelection();
+            updateCoordinatesDisplay();
+        }
+
+        function handleMouseMove(e) {
+            if (!isSelecting) return;
+
+            currentX = e.clientX;
+            currentY = e.clientY;
+
+            updateSelection();
+            updateCoordinatesDisplay();
+        }
+
+        function handleMouseUp(e) {
+            if (!isSelecting) return;
+
+            isSelecting = false;
+            isSelected = true;
+            
+            document.body.classList.remove('selecting');
+            document.body.classList.add('selected');
+
+            // Calculate final selection
+            const rect = calculateSelectionRect();
+            if (rect.width >= 10 && rect.height >= 10) { // Using CONSTANTS.FILES.MIN_SELECTION_SIZE (constants not available in renderer)
+                selectionData = { ...rect, screenIndex: 0 };
+                statusIndicator.textContent = 'Processing screenshot...';
+                
+                // Immediately capture the screenshot
+                handleCapture();
+            } else {
+                // Selection too small, reset
+                resetSelection();
+            }
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === 'Escape') {
+                handleCancel();
+            }
+        }
+
+        function updateSelection() {
+            const rect = calculateSelectionRect();
+            
+            selectionRect.style.left = rect.x + 'px';
+            selectionRect.style.top = rect.y + 'px';
+            selectionRect.style.width = rect.width + 'px';
+            selectionRect.style.height = rect.height + 'px';
+        }
+
+        function updateCoordinatesDisplay() {
+            const rect = calculateSelectionRect();
+            
+            coordinatesDisplay.textContent = `${rect.x}, ${rect.y} (${rect.width} × ${rect.height})`;
+            
+            // Position coordinates display near cursor but avoid edges
+            let displayX = currentX + 10;
+            let displayY = currentY - 30;
+            
+            if (displayX + 120 > window.innerWidth) displayX = currentX - 130;
+            if (displayY < 10) displayY = currentY + 20;
+            
+            coordinatesDisplay.style.left = displayX + 'px';
+            coordinatesDisplay.style.top = displayY + 'px';
+        }
+
+        function calculateSelectionRect() {
+            const x = Math.min(startX, currentX);
+            const y = Math.min(startY, currentY);
+            const width = Math.abs(currentX - startX);
+            const height = Math.abs(currentY - startY);
+            
+            return { x, y, width, height };
+        }
+
+
+        function resetSelection() {
+            isSelecting = false;
+            isSelected = false;
+            selectionData = null;
+            
+            document.body.classList.remove('selecting', 'selected');
+            statusIndicator.textContent = 'Ready to capture';
+        }
+
+        // Capture handler
+        async function handleCapture() {
+            if (!selectionData) return;
+            
+            // Hide all overlays before capturing to prevent artifacts
+            document.body.classList.add('capturing');
+            
+            // Small delay to ensure overlay is hidden
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            statusIndicator.textContent = 'Processing screenshot...';
+            
+            try {
+                const result = await window.electronAPI.processSelection(selectionData);
+                
+                if (result.success) {
+                    statusIndicator.textContent = 'Opening preview...';
+                    // Close overlay - preview window will open
+                    setTimeout(() => window.electronAPI.closeOverlay(), 500);
+                } else {
+                    statusIndicator.textContent = 'Failed to process screenshot';
+                    // Remove capturing state on failure
+                    document.body.classList.remove('capturing');
+                }
+            } catch (error) {
+                console.error('Capture failed:', error);
+                statusIndicator.textContent = 'Error: ' + error.message;
+                // Remove capturing state on error
+                document.body.classList.remove('capturing');
+            }
+        }
+
+        function handleCancel() {
+            window.electronAPI.closeOverlay();
+        }
+
+
+        // Listen for screen data from main process
+        window.electronAPI.onScreensData((data) => {
+            console.log('Received screens data:', data);
+            // TODO: Use screen data for multi-monitor support
+        });
+    </script>
+</body>
+</html>

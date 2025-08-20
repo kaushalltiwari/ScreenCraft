@@ -1,0 +1,44 @@
+/**
+ * Shared constants for the screenshot application
+ * Centralizes magic numbers, strings, and configuration values
+ */
+
+const CONSTANTS = {
+  WINDOW: {
+    PREVIEW_MAX_WIDTH: 800,
+    PREVIEW_MAX_HEIGHT: 600,
+    PREVIEW_WIDTH_PADDING: 100,
+    PREVIEW_HEIGHT_PADDING: 150
+  },
+
+  TIMEOUTS: {
+    INSTRUCTIONS_FADE: 3000,
+    STATUS_MESSAGE: 2000, 
+    CAPTURE_DELAY: 100,
+    OVERLAY_CLOSE_DELAY: 500,
+    PREVIEW_CLOSE_DELAY: 1500
+  },
+
+  FILES: {
+    SCREENSHOT_PREFIX: 'screenshot-',
+    EXTENSION: '.png',
+    MIN_SELECTION_SIZE: 10,
+    UUID_SLICE_LENGTH: 8
+  },
+
+  UI: {
+    COORDINATES_OFFSET_X: 10,
+    COORDINATES_OFFSET_Y: 30,
+    COORDINATES_EDGE_BUFFER: 120,
+    COORDINATES_TOP_BUFFER: 10,
+    COORDINATES_BOTTOM_OFFSET: 20
+  },
+
+  STYLES: {
+    SELECTION_BORDER_WIDTH: 2,
+    HANDLE_SIZE: 8,
+    OVERLAY_ALPHA: 0.3
+  }
+};
+
+module.exports = CONSTANTS;

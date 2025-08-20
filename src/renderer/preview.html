@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screenshot Preview</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f0f0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: visible;
+            min-height: 100vh;
+        }
+
+        /* Header with title and metadata */
+        .header {
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+            flex-grow: 0;
+        }
+
+        .title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+
+        .metadata {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            gap: 16px;
+        }
+
+        /* Image container */
+        .image-container {
+            flex: 1 1 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #f8f8f8;
+            position: relative;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .screenshot-image {
+            max-width: 100%;
+            max-height: 100%;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            background: white;
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Action buttons toolbar */
+        .toolbar {
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            padding: 16px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            padding: 10px 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 120px;
+            justify-content: center;
+            background: white;
+            color: #333;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-copy-image {
+            color: #4CAF50;
+            border-color: #4CAF50;
+        }
+
+        .btn-copy-image:hover {
+            background: #f1f8e9;
+        }
+
+        .btn-copy-path {
+            color: #2196F3;
+            border-color: #2196F3;
+        }
+
+        .btn-copy-path:hover {
+            background: #e3f2fd;
+        }
+
+        .btn-save {
+            color: #FF9800;
+            border-color: #FF9800;
+        }
+
+        .btn-save:hover {
+            background: #fff3e0;
+        }
+
+        /* Status message */
+        .status {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .status.show {
+            opacity: 1;
+        }
+
+        /* Error state */
+        .error {
+            color: #f44336;
+            text-align: center;
+            padding: 20px;
+        }
+
+        /* Responsive design */
+        @media (max-width: 600px) {
+            .toolbar {
+                flex-wrap: wrap;
+            }
+            
+            .action-btn {
+                flex: 1;
+                min-width: auto;
+            }
+            
+            .metadata {
+                flex-direction: column;
+                gap: 4px;
+                text-align: right;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">Screenshot Preview</div>
+        <div class="metadata" id="metadata">
+            <span id="dimensions">Loading...</span>
+            <span id="fileSize">Loading...</span>
+            <span id="timestamp">Loading...</span>
+        </div>
+    </div>
+
+    <div class="image-container" id="imageContainer">
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+            <div>Loading screenshot...</div>
+        </div>
+        <img class="screenshot-image" id="screenshotImage" style="display: none;" />
+        <div class="error" id="error" style="display: none;">
+            Failed to load screenshot
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <button class="action-btn btn-copy-image" id="copyImageBtn">
+            📋 Copy Image
+        </button>
+        <button class="action-btn btn-copy-path" id="copyPathBtn">
+            📁 Copy Path
+        </button>
+        <button class="action-btn btn-save" id="saveBtn">
+            💾 Save As...
+        </button>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <script>
+        let screenshotData = null;
+
+        // DOM elements
+        const loading = document.getElementById('loading');
+        const screenshotImage = document.getElementById('screenshotImage');
+        const error = document.getElementById('error');
+        const metadata = document.getElementById('metadata');
+        const dimensions = document.getElementById('dimensions');
+        const fileSize = document.getElementById('fileSize');
+        const timestamp = document.getElementById('timestamp');
+        const status = document.getElementById('status');
+
+        // Action buttons
+        const copyImageBtn = document.getElementById('copyImageBtn');
+        const copyPathBtn = document.getElementById('copyPathBtn');
+        const saveBtn = document.getElementById('saveBtn');
+
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            console.log('Setting up event listeners for buttons:', {
+                copyImageBtn: !!copyImageBtn,
+                copyPathBtn: !!copyPathBtn, 
+                saveBtn: !!saveBtn
+            });
+
+            // Action button events
+            if (copyImageBtn) copyImageBtn.addEventListener('click', () => handleAction('copy-image'));
+            if (copyPathBtn) copyPathBtn.addEventListener('click', () => handleAction('copy-path'));
+            if (saveBtn) saveBtn.addEventListener('click', () => handleAction('save'));
+
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    window.electronAPI.closePreview();
+                } else if (e.ctrlKey || e.metaKey) {
+                    switch (e.key) {
+                        case 'c':
+                            e.preventDefault();
+                            handleAction('copy-image');
+                            break;
+                        case 's':
+                            e.preventDefault();
+                            handleAction('save');
+                            break;
+                    }
+                }
+            });
+        }
+
+        function showStatus(message) {
+            status.textContent = message;
+            status.classList.add('show');
+            setTimeout(() => {
+                status.classList.remove('show');
+            }, 2000);
+        }
+
+        async function handleAction(action) {
+            if (!screenshotData) {
+                showStatus('No screenshot data available');
+                return;
+            }
+
+            try {
+                const result = await window.electronAPI.previewAction({
+                    action: action,
+                    filePath: screenshotData.filePath
+                });
+
+                if (result.success) {
+                    showStatus(result.message);
+                    
+                    // Close preview after successful save action
+                    if (action === 'save') {
+                        setTimeout(() => {
+                            window.electronAPI.closePreview();
+                        }, 1500);
+                    }
+                } else {
+                    showStatus('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Action failed:', error);
+                showStatus('Action failed: ' + error.message);
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString();
+        }
+
+
+        // Listen for screenshot data from main process
+        window.electronAPI.onScreenshotData((data) => {
+            screenshotData = data;
+            loadScreenshot(data);
+        });
+
+        function loadScreenshot(data) {
+            try {
+                console.log('Loading screenshot data:', data);
+
+                // Update metadata
+                dimensions.textContent = `${data.dimensions.width} × ${data.dimensions.height}`;
+                fileSize.textContent = formatFileSize(data.fileSize);
+                timestamp.textContent = formatTimestamp(data.timestamp);
+
+                // Load image
+                screenshotImage.src = `file://${data.filePath}`;
+                
+                screenshotImage.onload = () => {
+                    loading.style.display = 'none';
+                    screenshotImage.style.display = 'block';
+                };
+
+                screenshotImage.onerror = () => {
+                    loading.style.display = 'none';
+                    error.style.display = 'block';
+                };
+
+            } catch (err) {
+                console.error('Failed to load screenshot:', err);
+                loading.style.display = 'none';
+                error.style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
