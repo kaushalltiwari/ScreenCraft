@@ -37,9 +37,10 @@ To build installers, you need to add the following icon files to the /assets fol
 
 ## How to Create Icons:
 1. Design a 1024x1024 PNG image of your app icon
-2. Use online tools like:
-   - https://icoconvert.com/ (for .ico)
-   - https://iconverticons.com/ (for .icns)
+2. Use online conversion tools such as:
+   - Icon conversion websites for .ico format
+   - Icon conversion websites for .icns format
+   - Local tools like GIMP, ImageMagick, or iconutil (macOS)
 3. Save icons as 'icon.ico' and 'icon.icns' in /assets folder
 
 ## Temporary Solution:
