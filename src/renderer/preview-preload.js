@@ -12,6 +12,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('close-preview');
   },
 
+  // Get information about all open preview windows
+  getOpenWindows: async () => {
+    return await ipcRenderer.invoke('get-open-windows');
+  },
 
   // Listen for screenshot data from main process
   onScreenshotData: (callback) => {

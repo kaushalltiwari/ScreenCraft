@@ -213,6 +213,7 @@
             <span id="dimensions">Loading...</span>
             <span id="fileSize">Loading...</span>
             <span id="timestamp">Loading...</span>
+            <span id="windowInfo" style="color: #9C27B0; font-weight: 500;">Loading...</span>
         </div>
     </div>
 
@@ -252,6 +253,7 @@
         const dimensions = document.getElementById('dimensions');
         const fileSize = document.getElementById('fileSize');
         const timestamp = document.getElementById('timestamp');
+        const windowInfo = document.getElementById('windowInfo');
         const status = document.getElementById('status');
 
         // Action buttons
@@ -348,6 +350,25 @@
             return date.toLocaleTimeString();
         }
 
+        async function updateWindowInfo(data) {
+            try {
+                const openWindows = await window.electronAPI.getOpenWindows();
+                const currentWindowId = data.windowId;
+                const currentScreenshotId = data.screenshotId;
+                
+                if (openWindows.length > 1) {
+                    windowInfo.textContent = `${currentScreenshotId} (${openWindows.length} open)`;
+                    windowInfo.title = `${openWindows.length} preview windows currently open. This is ${currentScreenshotId}.`;
+                } else {
+                    windowInfo.textContent = currentScreenshotId;
+                    windowInfo.title = 'Screenshot ID';
+                }
+            } catch (error) {
+                console.error('Failed to update window info:', error);
+                windowInfo.textContent = data.screenshotId || 'Unknown';
+            }
+        }
+
 
         // Listen for screenshot data from main process
         window.electronAPI.onScreenshotData((data) => {
@@ -355,7 +376,7 @@
             loadScreenshot(data);
         });
 
-        function loadScreenshot(data) {
+        async function loadScreenshot(data) {
             try {
                 console.log('Loading screenshot data:', data);
 
@@ -363,6 +384,9 @@
                 dimensions.textContent = `${data.dimensions.width} × ${data.dimensions.height}`;
                 fileSize.textContent = formatFileSize(data.fileSize);
                 timestamp.textContent = formatTimestamp(data.timestamp);
+
+                // Update window info and show multiple windows count
+                await updateWindowInfo(data);
 
                 // Load image
                 screenshotImage.src = `file://${data.filePath}`;

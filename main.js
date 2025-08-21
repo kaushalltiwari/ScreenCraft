@@ -14,9 +14,9 @@ log.transports.console.level = 'debug';
 class ScreenCaptureApp {
   constructor() {
     this.tray = null;
-    this.previewWindow = null;
+    this.previewWindows = new Map(); // Map of windowId -> {window, screenshotPath, screenshotId}
     this.isQuitting = false;
-    this.currentScreenshotPath = null;
+    this.screenshotCounter = 0;
     
     // Initialize modular components
     this.screenCaptureManager = new ScreenCaptureManager();
@@ -67,15 +67,12 @@ class ScreenCaptureApp {
   }
 
   createPreviewWindow(screenshotData) {
-    if (this.previewWindow) {
-      this.previewWindow.close();
-    }
-
-    // Store current screenshot file path for cleanup
-    this.currentScreenshotPath = screenshotData.filePath;
-
+    // Generate unique screenshot ID
+    this.screenshotCounter++;
+    const screenshotId = `screenshot-${this.screenshotCounter}`;
+    
     // Create preview window similar to Snipping Tool
-    this.previewWindow = new BrowserWindow({
+    const previewWindow = new BrowserWindow({
       width: Math.min(CONSTANTS.WINDOW.PREVIEW_MAX_WIDTH, screenshotData.dimensions.width + CONSTANTS.WINDOW.PREVIEW_WIDTH_PADDING),
       height: Math.min(CONSTANTS.WINDOW.PREVIEW_MAX_HEIGHT, screenshotData.dimensions.height + CONSTANTS.WINDOW.PREVIEW_HEIGHT_PADDING),
       show: false,
@@ -86,7 +83,7 @@ class ScreenCaptureApp {
       resizable: true,
       maximizable: true,
       minimizable: true,
-      title: 'Screenshot Preview',
+      title: `Screenshot Preview #${this.screenshotCounter}`,
       webPreferences: {
         contextIsolation: true,
         enableRemoteModule: false,
@@ -95,31 +92,44 @@ class ScreenCaptureApp {
       }
     });
 
-    this.previewWindow.loadFile(path.join(__dirname, 'src', 'renderer', 'preview.html'));
+    // Store window reference with metadata
+    const windowId = previewWindow.id;
+    this.previewWindows.set(windowId, {
+      window: previewWindow,
+      screenshotPath: screenshotData.filePath,
+      screenshotId: screenshotId
+    });
+
+    previewWindow.loadFile(path.join(__dirname, 'src', 'renderer', 'preview.html'));
 
     // Handle window close - automatically clean up temporary file
-    this.previewWindow.on('close', async () => {
-      if (this.currentScreenshotPath) {
+    previewWindow.on('close', async () => {
+      const windowData = this.previewWindows.get(windowId);
+      if (windowData && windowData.screenshotPath) {
         try {
-          await this.fileManager.deleteFile(this.currentScreenshotPath);
-          log.info('Temporary screenshot file automatically cleaned up on window close');
+          await this.fileManager.deleteFile(windowData.screenshotPath);
+          log.info(`Temporary screenshot file automatically cleaned up for window #${this.screenshotCounter}`);
         } catch (error) {
           log.warn('Failed to clean up temporary screenshot file:', error.message);
         }
-        this.currentScreenshotPath = null;
       }
-      this.previewWindow = null;
+      this.previewWindows.delete(windowId);
     });
 
     // Send screenshot data once window is ready
-    this.previewWindow.webContents.once('dom-ready', () => {
-      this.previewWindow.webContents.send('screenshot-data', screenshotData);
-      this.previewWindow.show();
-      this.previewWindow.focus();
+    previewWindow.webContents.once('dom-ready', () => {
+      const enhancedScreenshotData = {
+        ...screenshotData,
+        screenshotId: screenshotId,
+        windowId: windowId
+      };
+      previewWindow.webContents.send('screenshot-data', enhancedScreenshotData);
+      previewWindow.show();
+      previewWindow.focus();
     });
 
-    log.info('Preview window created');
-    return this.previewWindow;
+    log.info(`Preview window #${this.screenshotCounter} created with ID: ${windowId}`);
+    return previewWindow;
   }
 
   setupTray() {
@@ -223,13 +233,16 @@ class ScreenCaptureApp {
 
     // Handle preview window actions
     ipcMain.handle('preview-action', async (event, actionData) => {
-      return await this.handlePreviewAction(actionData);
+      const windowId = BrowserWindow.fromWebContents(event.sender)?.id;
+      return await this.handlePreviewAction(actionData, windowId);
     });
 
     // Handle preview window close
-    ipcMain.handle('close-preview', () => {
-      if (this.previewWindow) {
-        this.previewWindow.close();
+    ipcMain.handle('close-preview', (event) => {
+      const windowId = BrowserWindow.fromWebContents(event.sender)?.id;
+      if (windowId && this.previewWindows.has(windowId)) {
+        const windowData = this.previewWindows.get(windowId);
+        windowData.window.close();
       }
     });
 
@@ -240,6 +253,19 @@ class ScreenCaptureApp {
       app.quit();
     });
 
+    // Handle get open windows info
+    ipcMain.handle('get-open-windows', () => {
+      const windowsInfo = [];
+      for (const [windowId, windowData] of this.previewWindows.entries()) {
+        windowsInfo.push({
+          windowId: windowId,
+          screenshotId: windowData.screenshotId,
+          title: windowData.window.getTitle()
+        });
+      }
+      return windowsInfo;
+    });
+
     log.info('IPC handlers setup complete');
   }
 
@@ -247,10 +273,7 @@ class ScreenCaptureApp {
     log.info('Screenshot triggered - starting capture process');
     
     try {
-      // Close any existing preview window
-      if (this.previewWindow) {
-        this.previewWindow.close();
-      }
+      // Don't close existing preview windows - allow multiple screenshots
       
       // Start screen capture with overlay
       const success = await this.screenCaptureManager.startCapture();
@@ -318,9 +341,10 @@ class ScreenCaptureApp {
   }
 
   // New handlers for preview window actions
-  async handlePreviewAction(actionData) {
+  async handlePreviewAction(actionData, windowId) {
     try {
       const { action, filePath } = actionData;
+      const windowData = this.previewWindows.get(windowId);
       
       switch (action) {
         case 'copy-image':
@@ -340,11 +364,11 @@ class ScreenCaptureApp {
           // Save to permanent location
           const saveResult = await this.fileManager.saveToLocation(filePath);
           if (saveResult.success) {
-            // Clear current screenshot path since it's now saved permanently
-            if (this.currentScreenshotPath === filePath) {
-              this.currentScreenshotPath = null;
+            // Clear screenshot path from window data since it's now saved permanently
+            if (windowData && windowData.screenshotPath === filePath) {
+              windowData.screenshotPath = null;
             }
-            log.info('Screenshot saved permanently');
+            log.info(`Screenshot saved permanently for window ${windowId}`);
             return { 
               success: true, 
               message: 'Screenshot saved successfully',
@@ -388,6 +412,19 @@ app.on('will-quit', async () => {
   try {
     // Cleanup components
     if (screenshotApp) {
+      // Clean up all preview windows and their temporary files
+      for (const [windowId, windowData] of screenshotApp.previewWindows.entries()) {
+        if (windowData.screenshotPath) {
+          try {
+            await screenshotApp.fileManager.deleteFile(windowData.screenshotPath);
+            log.info(`Cleaned up temporary file for window ${windowId}`);
+          } catch (error) {
+            log.warn(`Failed to clean up temporary file for window ${windowId}:`, error.message);
+          }
+        }
+      }
+      screenshotApp.previewWindows.clear();
+      
       if (screenshotApp.screenCaptureManager) {
         screenshotApp.screenCaptureManager.dispose();
       }
@@ -401,7 +438,7 @@ app.on('will-quit', async () => {
       globalShortcut.unregisterAll();
     }
     
-    log.info('App shutting down, components cleaned up');
+    log.info('App shutting down, components and multiple windows cleaned up');
   } catch (error) {
     log.error('Error during app shutdown:', error);
   }
