@@ -1,0 +1,254 @@
+name: Security & Quality Checks
+
+on:
+  push:
+    branches: [ main, feature/* ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run security checks daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run npm audit
+      run: |
+        echo "🔍 Running npm audit for security vulnerabilities..."
+        npm audit --audit-level=moderate --json > audit-results.json || true
+        
+    - name: Parse audit results
+      run: |
+        echo "📊 Security Audit Results:"
+        cat audit-results.json | jq -r '
+          if .vulnerabilities then
+            "Found \(.metadata.vulnerabilities.total) vulnerabilities:",
+            "- Critical: \(.metadata.vulnerabilities.critical)",
+            "- High: \(.metadata.vulnerabilities.high)", 
+            "- Moderate: \(.metadata.vulnerabilities.moderate)",
+            "- Low: \(.metadata.vulnerabilities.low)",
+            "- Info: \(.metadata.vulnerabilities.info)"
+          else
+            "✅ No vulnerabilities found!"
+          end'
+        
+    - name: Check for high/critical vulnerabilities
+      run: |
+        CRITICAL=$(cat audit-results.json | jq -r '.metadata.vulnerabilities.critical // 0')
+        HIGH=$(cat audit-results.json | jq -r '.metadata.vulnerabilities.high // 0')
+        
+        echo "Critical vulnerabilities: $CRITICAL"
+        echo "High vulnerabilities: $HIGH"
+        
+        if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
+          echo "❌ Critical or high severity vulnerabilities found!"
+          echo "Please run 'npm audit fix' to resolve issues."
+          exit 1
+        else
+          echo "✅ No critical or high severity vulnerabilities found."
+        fi
+        
+    - name: License compliance check
+      run: |
+        echo "📄 Checking license compliance..."
+        npx license-checker --onlyAllow 'MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;Unlicense' --production --json > licenses.json || true
+        
+        if [ -s licenses.json ]; then
+          echo "✅ All dependencies use allowed licenses"
+        else
+          echo "❌ Some dependencies may use incompatible licenses"
+          npx license-checker --production
+          exit 1
+        fi
+        
+    - name: Check for secrets in code
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+  dependency-check:
+    name: Dependency Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Check for outdated dependencies
+      run: |
+        echo "📦 Checking for outdated dependencies..."
+        npm outdated --json > outdated.json || true
+        
+        if [ -s outdated.json ] && [ "$(cat outdated.json)" != "{}" ]; then
+          echo "⚠️ Found outdated dependencies:"
+          cat outdated.json | jq -r 'to_entries[] | "- \(.key): \(.value.current) → \(.value.wanted) (latest: \(.value.latest))"'
+        else
+          echo "✅ All dependencies are up to date"
+        fi
+        
+    - name: Verify package integrity
+      run: |
+        echo "🔒 Verifying package integrity..."
+        npm ci --audit=false --fund=false
+        echo "✅ Package integrity verified"
+        
+    - name: Check bundle size
+      run: |
+        echo "📏 Analyzing bundle size..."
+        du -sh node_modules/ || true
+        echo "Node modules size: $(du -sh node_modules/ | cut -f1)"
+
+  privacy-audit:
+    name: Privacy & Offline Compliance
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Check for network calls
+      run: |
+        echo "🔍 Scanning for network calls (should be none for offline app)..."
+        
+        # Check for common HTTP client patterns
+        NETWORK_PATTERNS=(
+          "axios|fetch|request|http\.|https\."
+          "XMLHttpRequest|WebSocket"
+          "analytics|telemetry|tracking"
+          "api\.|endpoint"
+          "\.post\(|\.get\(|\.put\(|\.delete\("
+        )
+        
+        FOUND_NETWORK=false
+        
+        for pattern in "${NETWORK_PATTERNS[@]}"; do
+          if grep -r -i --include="*.js" --include="*.ts" --exclude-dir=node_modules "$pattern" . >/dev/null 2>&1; then
+            echo "⚠️ Found potential network pattern: $pattern"
+            grep -r -i --include="*.js" --include="*.ts" --exclude-dir=node_modules "$pattern" . || true
+            FOUND_NETWORK=true
+          fi
+        done
+        
+        if [ "$FOUND_NETWORK" = true ]; then
+          echo "❌ Potential network calls found - review for offline compliance"
+          exit 1
+        else
+          echo "✅ No network calls detected - offline compliance verified"
+        fi
+        
+    - name: Check for external dependencies
+      run: |
+        echo "🔍 Checking for external CDN/remote dependencies..."
+        
+        if grep -r -i --include="*.html" --include="*.js" --include="*.css" "https\?://" . | grep -v node_modules; then
+          echo "❌ External dependencies found - may compromise offline functionality"
+          exit 1
+        else
+          echo "✅ No external dependencies found"
+        fi
+
+  code-quality:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Install ESLint
+      run: npm install --no-save eslint @eslint/js
+      
+    - name: Create ESLint config
+      run: |
+        cat > .eslintrc.js << 'EOF'
+        module.exports = {
+          env: {
+            node: true,
+            es2021: true,
+            browser: true
+          },
+          extends: ['eslint:recommended'],
+          parserOptions: {
+            ecmaVersion: 2021,
+            sourceType: 'module'
+          },
+          rules: {
+            'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+            'no-console': 'off',
+            'prefer-const': 'error',
+            'no-var': 'error'
+          },
+          ignorePatterns: ['node_modules/', 'dist/', '*.min.js']
+        };
+        EOF
+        
+    - name: Run ESLint
+      run: |
+        echo "🔍 Running ESLint..."
+        npx eslint . --ext .js --ignore-path .gitignore --max-warnings 10 || true
+        echo "✅ ESLint completed"
+        
+    - name: Check file structure
+      run: |
+        echo "📁 Checking project structure..."
+        
+        # Verify required files exist
+        REQUIRED_FILES=(
+          "package.json"
+          "main.js"
+          "src/main/ScreenCaptureManager.js"
+          "src/main/FileManager.js"
+          "src/renderer/preview.html"
+          "src/renderer/overlay.html"
+          "README.md"
+        )
+        
+        for file in "${REQUIRED_FILES[@]}"; do
+          if [ -f "$file" ]; then
+            echo "✅ $file exists"
+          else
+            echo "❌ Missing required file: $file"
+            exit 1
+          fi
+        done

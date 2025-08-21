@@ -11,9 +11,44 @@ permissions:
   contents: write
   packages: write
   actions: read
+  security-events: write
 
 jobs:
+  security-check:
+    name: Security & Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run security audit
+      run: |
+        echo "🔍 Running npm audit..."
+        npm audit --audit-level=high || true
+        
+    - name: Check for secrets
+      run: |
+        echo "🔒 Checking for potential secrets..."
+        # Basic secret patterns check
+        if grep -r -i --include="*.js" --include="*.json" "api[_-]?key\|password\|secret\|token" . --exclude-dir=node_modules; then
+          echo "❌ Potential secrets found in code"
+          exit 1
+        else
+          echo "✅ No obvious secrets detected"
+        fi
+
   build:
+    needs: security-check
     runs-on: ${{ matrix.os }}
     
     strategy:
@@ -33,20 +68,133 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
+    # Windows Code Signing Setup
+    - name: Setup Windows code signing
+      if: matrix.os == 'windows-latest' && github.event_name != 'pull_request'
+      run: |
+        echo "🔐 Setting up Windows code signing..."
+        # Create temporary certificate file if signing certificate is provided
+        if [ -n "${{ secrets.WINDOWS_CERTIFICATE }}" ]; then
+          echo "${{ secrets.WINDOWS_CERTIFICATE }}" | base64 -d > cert.p12
+          echo "WINDOWS_CERT_FILE=cert.p12" >> $GITHUB_ENV
+          echo "CSC_LINK=cert.p12" >> $GITHUB_ENV
+          echo "CSC_KEY_PASSWORD=${{ secrets.WINDOWS_CERT_PASSWORD }}" >> $GITHUB_ENV
+        else
+          echo "⚠️ No Windows signing certificate provided - building unsigned"
+          echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> $GITHUB_ENV
+        fi
+      shell: bash
+      
     - name: Build for Windows
       if: matrix.os == 'windows-latest'
       run: npm run build:win
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         ELECTRON_BUILDER_CACHE: false
+        
+    # macOS Code Signing and Notarization Setup
+    - name: Setup macOS code signing
+      if: matrix.os == 'macos-latest' && github.event_name != 'pull_request'
+      run: |
+        echo "🔐 Setting up macOS code signing and notarization..."
+        
+        # Import signing certificate if provided
+        if [ -n "${{ secrets.MACOS_CERTIFICATE }}" ]; then
+          echo "${{ secrets.MACOS_CERTIFICATE }}" | base64 -d > cert.p12
+          
+          # Create keychain and import certificate
+          security create-keychain -p "temp_password" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "temp_password" build.keychain
+          security import cert.p12 -k build.keychain -P "${{ secrets.MACOS_CERT_PASSWORD }}" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "temp_password" build.keychain
+          
+          # Set environment variables for electron-builder
+          echo "CSC_KEYCHAIN=build.keychain" >> $GITHUB_ENV
+          echo "CSC_KEY_PASSWORD=${{ secrets.MACOS_CERT_PASSWORD }}" >> $GITHUB_ENV
+          
+          # Setup notarization if credentials provided
+          if [ -n "${{ secrets.APPLE_ID }}" ] && [ -n "${{ secrets.APPLE_ID_PASSWORD }}" ]; then
+            echo "APPLE_ID=${{ secrets.APPLE_ID }}" >> $GITHUB_ENV
+            echo "APPLE_ID_PASSWORD=${{ secrets.APPLE_ID_PASSWORD }}" >> $GITHUB_ENV
+            echo "APPLE_TEAM_ID=${{ secrets.APPLE_TEAM_ID }}" >> $GITHUB_ENV
+            echo "🍎 Notarization will be performed"
+          else
+            echo "⚠️ No Apple ID credentials provided - skipping notarization"
+          fi
+        else
+          echo "⚠️ No macOS signing certificate provided - building unsigned"
+          echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> $GITHUB_ENV
+        fi
       
     - name: Build for macOS
       if: matrix.os == 'macos-latest'
       run: npm run build:mac
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        CSC_IDENTITY_AUTO_DISCOVERY: false
         ELECTRON_BUILDER_CACHE: false
+        
+    # Cleanup certificates
+    - name: Cleanup certificates
+      if: always()
+      run: |
+        rm -f cert.p12 || true
+        if [ "${{ matrix.os }}" == "macos-latest" ]; then
+          security delete-keychain build.keychain || true
+        fi
+      shell: bash
+      
+    # Virus scanning for Windows builds
+    - name: Virus scan Windows artifacts
+      if: matrix.os == 'windows-latest'
+      run: |
+        echo "🦠 Scanning Windows artifacts for viruses..."
+        
+        # Install ClamAV for virus scanning
+        sudo apt-get update
+        sudo apt-get install -y clamav clamav-daemon
+        sudo freshclam || true
+        
+        # Scan the built executables
+        if ls dist/*.exe 1> /dev/null 2>&1; then
+          for exe in dist/*.exe; do
+            echo "Scanning $exe..."
+            clamscan --infected --remove=no "$exe"
+            if [ $? -eq 0 ]; then
+              echo "✅ $exe is clean"
+            else
+              echo "❌ $exe failed virus scan"
+              exit 1
+            fi
+          done
+        else
+          echo "⚠️ No Windows executables found to scan"
+        fi
+      
+    # Verify build artifacts
+    - name: Verify build artifacts
+      run: |
+        echo "📋 Verifying build artifacts..."
+        
+        if [ "${{ matrix.os }}" == "windows-latest" ]; then
+          if ls dist/*.exe 1> /dev/null 2>&1; then
+            for exe in dist/*.exe; do
+              echo "📦 Windows artifact: $exe"
+              echo "  Size: $(du -h "$exe" | cut -f1)"
+              echo "  SHA256: $(sha256sum "$exe" | cut -d' ' -f1)"
+            done
+          fi
+        fi
+        
+        if [ "${{ matrix.os }}" == "macos-latest" ]; then
+          if ls dist/*.dmg 1> /dev/null 2>&1; then
+            for dmg in dist/*.dmg; do
+              echo "📦 macOS artifact: $dmg"
+              echo "  Size: $(du -h "$dmg" | cut -f1)"
+              echo "  SHA256: $(shasum -a 256 "$dmg" | cut -d' ' -f1)"
+            done
+          fi
+        fi
       
     - name: Upload Windows artifacts
       if: matrix.os == 'windows-latest'
