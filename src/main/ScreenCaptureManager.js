@@ -161,12 +161,8 @@ class ScreenCaptureManager {
       this.isCapturing = false;
     });
 
-    // Hide other windows during capture
-    BrowserWindow.getAllWindows().forEach(window => {
-      if (window !== this.overlayWindow) {
-        window.hide();
-      }
-    });
+    // Don't hide preview windows - only hide non-preview windows if needed
+    // Note: Preview windows should remain visible behind the overlay
 
     log.info('Overlay window created and positioned');
   }
@@ -184,12 +180,7 @@ class ScreenCaptureManager {
     this.isCapturing = false;
     this.capturedScreens = null;
     
-    // Restore other windows
-    BrowserWindow.getAllWindows().forEach(window => {
-      if (window.isVisible() === false && window !== this.overlayWindow) {
-        // Don't auto-show main window, let user control it
-      }
-    });
+    // No need to restore windows since we don't hide them anymore
   }
 
   /**
