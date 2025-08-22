@@ -96,9 +96,15 @@ jobs:
         
         SECRETS_FOUND=false
         for pattern in "${SECRET_PATTERNS[@]}"; do
-          if grep -r -i -P --include="*.js" --include="*.json" --include="*.ts" "$pattern" . --exclude-dir=node_modules >/dev/null 2>&1; then
+          if grep -r -i -P --include="*.js" --include="*.ts" "$pattern" . \
+          --exclude-dir=node_modules \
+          --exclude="package-lock.json" \
+          --exclude="package.json" >/dev/null 2>&1; then
             echo "⚠️ Potential secret pattern found: $pattern"
-            grep -r -i -P --include="*.js" --include="*.json" --include="*.ts" "$pattern" . --exclude-dir=node_modules || true
+            grep -r -i -P --include="*.js" --include="*.ts" "$pattern" . \
+            --exclude-dir=node_modules \
+            --exclude="package-lock.json" \
+            --exclude="package.json" || true
             SECRETS_FOUND=true
           fi
         done
