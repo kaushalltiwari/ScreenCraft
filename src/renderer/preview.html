@@ -674,31 +674,18 @@
         function startDrawing(e) {
             if (!borderMode) return;
             
-            // Get toolbar height to avoid drawing over it
-            const toolbar = document.querySelector('.top-toolbar');
-            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
-            
-            // Don't start drawing in toolbar area
-            if (e.clientY < toolbarHeight) {
-                return;
-            }
-            
             isDrawing = true;
-            // Use direct window coordinates (canvas is full viewport) but exclude toolbar
+            // Use direct window coordinates (canvas is full viewport)
             startX = Math.max(0, Math.min(canvas.width, e.clientX));
-            startY = Math.max(toolbarHeight, Math.min(canvas.height, e.clientY));
+            startY = Math.max(0, Math.min(canvas.height, e.clientY));
         }
 
         function draw(e) {
             if (!borderMode || !isDrawing) return;
             
-            // Get toolbar height to avoid drawing over it
-            const toolbar = document.querySelector('.top-toolbar');
-            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
-            
-            // Use direct window coordinates and constrain to window bounds (excluding toolbar)
+            // Use direct window coordinates and constrain to window bounds
             const currentX = Math.max(0, Math.min(canvas.width, e.clientX));
-            const currentY = Math.max(toolbarHeight, Math.min(canvas.height, e.clientY));
+            const currentY = Math.max(0, Math.min(canvas.height, e.clientY));
             
             // Clear and redraw all borders
             redrawCanvas();
@@ -712,13 +699,9 @@
             
             isDrawing = false;
             
-            // Get toolbar height to avoid drawing over it
-            const toolbar = document.querySelector('.top-toolbar');
-            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
-            
-            // Use direct window coordinates and constrain to window bounds (excluding toolbar)
+            // Use direct window coordinates and constrain to window bounds
             const endX = Math.max(0, Math.min(canvas.width, e.clientX));
-            const endY = Math.max(toolbarHeight, Math.min(canvas.height, e.clientY));
+            const endY = Math.max(0, Math.min(canvas.height, e.clientY));
             
             const width = Math.abs(endX - startX);
             const height = Math.abs(endY - startY);
@@ -734,8 +717,9 @@
                 });
                 
                 redrawCanvas();
-                showStatus(`Border added (${borders.length} total)`);
+                showStatus(`Border added (${borders.length} total). Click Borders again or press Escape to exit border mode.`);
             }
+            // Note: borderMode stays active so user can draw multiple borders
         }
 
         function drawBorder(x, y, width, height, color, isPreview = false) {
