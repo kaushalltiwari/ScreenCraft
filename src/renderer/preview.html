@@ -62,6 +62,11 @@
             overflow: hidden;
         }
 
+        .image-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
         .screenshot-image {
             max-width: 100%;
             max-height: 100%;
@@ -69,6 +74,21 @@
             border-radius: 6px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             background: white;
+            display: block;
+        }
+
+        .annotation-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            border-radius: 6px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .annotation-canvas.drawing {
+            pointer-events: all;
+            cursor: crosshair;
         }
 
         /* Loading state */
@@ -92,6 +112,88 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* Border annotation toolbar */
+        .border-toolbar {
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            padding: 12px 16px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+        }
+
+        .border-toolbar.active {
+            display: flex;
+        }
+
+        .border-options {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .border-colors {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .color-option {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 1px #ddd, 0 2px 4px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 2px #2196F3, 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .color-option.active {
+            box-shadow: 0 0 0 3px #2196F3, 0 4px 8px rgba(0, 0, 0, 0.2);
+            transform: scale(1.05);
+        }
+
+        .color-option.red { background-color: #f44336; }
+        .color-option.blue { background-color: #2196F3; }
+        .color-option.green { background-color: #4CAF50; }
+        .color-option.orange { background-color: #FF9800; }
+        .color-option.purple { background-color: #9C27B0; }
+
+        .border-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .border-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .border-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .border-btn.active {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
         }
 
         /* Action buttons toolbar */
@@ -159,6 +261,20 @@
             background: #fff3e0;
         }
 
+        .btn-border {
+            color: #9C27B0;
+            border-color: #9C27B0;
+        }
+
+        .btn-border:hover {
+            background: #f3e5f5;
+        }
+
+        .btn-border.active {
+            background: #9C27B0;
+            color: white;
+        }
+
         /* Status message */
         .status {
             position: absolute;
@@ -222,13 +338,36 @@
             <div class="loading-spinner"></div>
             <div>Loading screenshot...</div>
         </div>
-        <img class="screenshot-image" id="screenshotImage" style="display: none;" />
+        <div class="image-wrapper" id="imageWrapper" style="display: none;">
+            <img class="screenshot-image" id="screenshotImage" />
+            <canvas class="annotation-canvas" id="annotationCanvas"></canvas>
+        </div>
         <div class="error" id="error" style="display: none;">
             Failed to load screenshot
         </div>
     </div>
 
+    <div class="border-toolbar" id="borderToolbar">
+        <div class="border-options">
+            <span style="font-size: 12px; color: #666; font-weight: 500;">Border Color:</span>
+            <div class="border-colors">
+                <div class="color-option red active" data-color="#f44336" title="Red"></div>
+                <div class="color-option blue" data-color="#2196F3" title="Blue"></div>
+                <div class="color-option green" data-color="#4CAF50" title="Green"></div>
+                <div class="color-option orange" data-color="#FF9800" title="Orange"></div>
+                <div class="color-option purple" data-color="#9C27B0" title="Purple"></div>
+            </div>
+        </div>
+        <div class="border-controls">
+            <button class="border-btn" id="clearBordersBtn">Clear All</button>
+            <button class="border-btn" id="undoBorderBtn">Undo</button>
+        </div>
+    </div>
+
     <div class="toolbar">
+        <button class="action-btn btn-border" id="borderBtn">
+            🖍️ Add Borders
+        </button>
         <button class="action-btn btn-copy-image" id="copyImageBtn">
             📋 Copy Image
         </button>
@@ -244,6 +383,12 @@
 
     <script>
         let screenshotData = null;
+        let borderMode = false;
+        let currentBorderColor = '#f44336';
+        let isDrawing = false;
+        let startX, startY;
+        let borders = [];
+        let imageWrapper, canvas, ctx;
 
         // DOM elements
         const loading = document.getElementById('loading');
@@ -260,6 +405,13 @@
         const copyImageBtn = document.getElementById('copyImageBtn');
         const copyPathBtn = document.getElementById('copyPathBtn');
         const saveBtn = document.getElementById('saveBtn');
+        const borderBtn = document.getElementById('borderBtn');
+
+        // Border elements
+        const borderToolbar = document.getElementById('borderToolbar');
+        const colorOptions = document.querySelectorAll('.color-option');
+        const clearBordersBtn = document.getElementById('clearBordersBtn');
+        const undoBorderBtn = document.getElementById('undoBorderBtn');
 
 
         // Initialize when DOM is ready
@@ -271,19 +423,37 @@
             console.log('Setting up event listeners for buttons:', {
                 copyImageBtn: !!copyImageBtn,
                 copyPathBtn: !!copyPathBtn, 
-                saveBtn: !!saveBtn
+                saveBtn: !!saveBtn,
+                borderBtn: !!borderBtn
             });
 
             // Action button events
             if (copyImageBtn) copyImageBtn.addEventListener('click', () => handleAction('copy-image'));
             if (copyPathBtn) copyPathBtn.addEventListener('click', () => handleAction('copy-path'));
             if (saveBtn) saveBtn.addEventListener('click', () => handleAction('save'));
+            if (borderBtn) borderBtn.addEventListener('click', toggleBorderMode);
 
+            // Border color selection
+            colorOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    colorOptions.forEach(o => o.classList.remove('active'));
+                    option.classList.add('active');
+                    currentBorderColor = option.dataset.color;
+                });
+            });
+
+            // Border controls
+            if (clearBordersBtn) clearBordersBtn.addEventListener('click', clearAllBorders);
+            if (undoBorderBtn) undoBorderBtn.addEventListener('click', undoLastBorder);
 
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
-                    window.electronAPI.closePreview();
+                    if (borderMode) {
+                        toggleBorderMode();
+                    } else {
+                        window.electronAPI.closePreview();
+                    }
                 } else if (e.ctrlKey || e.metaKey) {
                     switch (e.key) {
                         case 'c':
@@ -293,6 +463,10 @@
                         case 's':
                             e.preventDefault();
                             handleAction('save');
+                            break;
+                        case 'b':
+                            e.preventDefault();
+                            toggleBorderMode();
                             break;
                     }
                 }
@@ -393,7 +567,8 @@
                 
                 screenshotImage.onload = () => {
                     loading.style.display = 'none';
-                    screenshotImage.style.display = 'block';
+                    document.getElementById('imageWrapper').style.display = 'block';
+                    initializeCanvas();
                 };
 
                 screenshotImage.onerror = () => {
@@ -405,6 +580,135 @@
                 console.error('Failed to load screenshot:', err);
                 loading.style.display = 'none';
                 error.style.display = 'block';
+            }
+        }
+
+        function initializeCanvas() {
+            imageWrapper = document.getElementById('imageWrapper');
+            canvas = document.getElementById('annotationCanvas');
+            
+            if (!canvas) return;
+            
+            ctx = canvas.getContext('2d');
+            
+            // Set canvas size to match image
+            const rect = screenshotImage.getBoundingClientRect();
+            canvas.width = screenshotImage.naturalWidth || screenshotImage.width;
+            canvas.height = screenshotImage.naturalHeight || screenshotImage.height;
+            canvas.style.width = screenshotImage.style.width || screenshotImage.width + 'px';
+            canvas.style.height = screenshotImage.style.height || screenshotImage.height + 'px';
+            
+            setupCanvasEvents();
+        }
+
+        function setupCanvasEvents() {
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseleave', stopDrawing);
+        }
+
+        function toggleBorderMode() {
+            borderMode = !borderMode;
+            
+            if (borderMode) {
+                borderBtn.classList.add('active');
+                borderBtn.textContent = '❌ Exit Borders';
+                borderToolbar.classList.add('active');
+                canvas.classList.add('drawing');
+                showStatus('Click and drag to draw rectangular borders');
+            } else {
+                borderBtn.classList.remove('active');
+                borderBtn.textContent = '🖍️ Add Borders';
+                borderToolbar.classList.remove('active');
+                canvas.classList.remove('drawing');
+            }
+        }
+
+        function startDrawing(e) {
+            if (!borderMode) return;
+            
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            startX = (e.clientX - rect.left) * scaleX;
+            startY = (e.clientY - rect.top) * scaleY;
+        }
+
+        function draw(e) {
+            if (!borderMode || !isDrawing) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const currentX = (e.clientX - rect.left) * scaleX;
+            const currentY = (e.clientY - rect.top) * scaleY;
+            
+            // Clear and redraw all borders
+            redrawCanvas();
+            
+            // Draw current border being drawn
+            ctx.strokeStyle = currentBorderColor;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(startX, startY, currentX - startX, currentY - startY);
+        }
+
+        function stopDrawing(e) {
+            if (!borderMode || !isDrawing) return;
+            
+            isDrawing = false;
+            
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            const endX = (e.clientX - rect.left) * scaleX;
+            const endY = (e.clientY - rect.top) * scaleY;
+            
+            // Only add border if it has meaningful size
+            const width = Math.abs(endX - startX);
+            const height = Math.abs(endY - startY);
+            
+            if (width > 10 && height > 10) {
+                borders.push({
+                    x: Math.min(startX, endX),
+                    y: Math.min(startY, endY),
+                    width: width,
+                    height: height,
+                    color: currentBorderColor
+                });
+                
+                redrawCanvas();
+                showStatus(`Border added (${borders.length} total)`);
+            }
+        }
+
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            borders.forEach(border => {
+                ctx.strokeStyle = border.color;
+                ctx.lineWidth = 3;
+                ctx.strokeRect(border.x, border.y, border.width, border.height);
+            });
+        }
+
+        function clearAllBorders() {
+            borders = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            showStatus('All borders cleared');
+        }
+
+        function undoLastBorder() {
+            if (borders.length > 0) {
+                borders.pop();
+                redrawCanvas();
+                showStatus(`Border removed (${borders.length} remaining)`);
+            } else {
+                showStatus('No borders to undo');
             }
         }
     </script>
