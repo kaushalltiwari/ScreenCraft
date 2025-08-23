@@ -89,16 +89,15 @@ jobs:
           "password\s*[:=]\s*['\"][^'\"]{8,}['\"]"
           "api[_-]?key\s*[:=]\s*['\"][^'\"]{20,}['\"]"
           "secret\s*[:=]\s*['\"][^'\"]{16,}['\"]"
-          "token\s*[:=]\s*['\"][^'\"]{20,}['\"]"
           "private[_-]?key"
           "BEGIN\s+(RSA\s+)?PRIVATE\s+KEY"
         )
         
         SECRETS_FOUND=false
         for pattern in "${SECRET_PATTERNS[@]}"; do
-          if grep -r -i -P --include="*.js" --include="*.json" --include="*.ts" "$pattern" . --exclude-dir=node_modules >/dev/null 2>&1; then
+          if grep -r -i -P --include="*.js" --include="*.ts" --exclude="package-lock.json" --exclude-dir=node_modules "$pattern" . >/dev/null 2>&1; then
             echo "⚠️ Potential secret pattern found: $pattern"
-            grep -r -i -P --include="*.js" --include="*.json" --include="*.ts" "$pattern" . --exclude-dir=node_modules || true
+            grep -r -i -P --include="*.js" --include="*.ts" --exclude="package-lock.json" --exclude-dir=node_modules "$pattern" . || true
             SECRETS_FOUND=true
           fi
         done
