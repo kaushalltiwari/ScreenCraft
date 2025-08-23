@@ -360,6 +360,7 @@
         let startX, startY;
         let borders = [];
         let imageWrapper, canvas, ctx;
+        let lastImageRect = null; // Store last known image position for scaling
 
         // DOM elements
         const loading = document.getElementById('loading');
@@ -603,6 +604,10 @@
                     loading.style.display = 'none';
                     document.getElementById('imageWrapper').style.display = 'block';
                     initializeCanvas();
+                    // Store initial image position for border scaling
+                    setTimeout(() => {
+                        lastImageRect = screenshotImage.getBoundingClientRect();
+                    }, 100);
                 };
 
                 screenshotImage.onerror = () => {
@@ -636,6 +641,7 @@
                 if (canvas) {
                     canvas.width = window.innerWidth;
                     canvas.height = window.innerHeight;
+                    scaleBordersOnResize();
                     redrawCanvas();
                 }
             });
@@ -756,6 +762,34 @@
             } else {
                 showStatus('No borders to undo');
             }
+        }
+
+        function scaleBordersOnResize() {
+            if (!lastImageRect || borders.length === 0 || !screenshotImage) return;
+            
+            const currentImageRect = screenshotImage.getBoundingClientRect();
+            
+            // Calculate scaling factors
+            const scaleX = currentImageRect.width / lastImageRect.width;
+            const scaleY = currentImageRect.height / lastImageRect.height;
+            const offsetX = currentImageRect.left - lastImageRect.left;
+            const offsetY = currentImageRect.top - lastImageRect.top;
+            
+            // Scale all existing borders
+            borders.forEach(border => {
+                // Scale position relative to old image position
+                const relativeX = border.x - lastImageRect.left;
+                const relativeY = border.y - lastImageRect.top;
+                
+                // Apply scaling and new offset
+                border.x = currentImageRect.left + (relativeX * scaleX);
+                border.y = currentImageRect.top + (relativeY * scaleY);
+                border.width = border.width * scaleX;
+                border.height = border.height * scaleY;
+            });
+            
+            // Update last known image position
+            lastImageRect = currentImageRect;
         }
     </script>
 </body>
