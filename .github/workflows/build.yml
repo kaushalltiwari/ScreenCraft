@@ -161,32 +161,7 @@ jobs:
         fi
       shell: bash
       
-    # Virus scanning for Windows builds
-    - name: Virus scan Windows artifacts
-      if: matrix.os == 'windows-latest'
-      run: |
-        echo "🦠 Scanning Windows artifacts for viruses..."
-        
-        # Install ClamAV for virus scanning
-        sudo apt-get update
-        sudo apt-get install -y clamav clamav-daemon
-        sudo freshclam || true
-        
-        # Scan the built executables
-        if ls dist/*.exe 1> /dev/null 2>&1; then
-          for exe in dist/*.exe; do
-            echo "Scanning $exe..."
-            clamscan --infected --remove=no "$exe"
-            if [ $? -eq 0 ]; then
-              echo "✅ $exe is clean"
-            else
-              echo "❌ $exe failed virus scan"
-              exit 1
-            fi
-          done
-        else
-          echo "⚠️ No Windows executables found to scan"
-        fi
+    # Note: Virus scanning moved to separate job to avoid Windows/Linux shell conflicts
       
     # Verify build artifacts
     - name: Verify build artifacts
@@ -194,24 +169,33 @@ jobs:
         echo "📋 Verifying build artifacts..."
         
         if [ "${{ matrix.os }}" == "windows-latest" ]; then
-          if ls dist/*.exe 1> /dev/null 2>&1; then
+          if [ -d "dist" ] && [ "$(ls -A dist/*.exe 2>/dev/null)" ]; then
             for exe in dist/*.exe; do
-              echo "📦 Windows artifact: $exe"
-              echo "  Size: $(du -h "$exe" | cut -f1)"
-              echo "  SHA256: $(sha256sum "$exe" | cut -d' ' -f1)"
+              if [ -f "$exe" ]; then
+                echo "📦 Windows artifact: $exe"
+                echo "  Size: $(du -h "$exe" | cut -f1)"
+                echo "  SHA256: $(sha256sum "$exe" | cut -d' ' -f1)"
+              fi
             done
+          else
+            echo "⚠️ No Windows executables found"
           fi
         fi
         
         if [ "${{ matrix.os }}" == "macos-latest" ]; then
-          if ls dist/*.dmg 1> /dev/null 2>&1; then
+          if [ -d "dist" ] && [ "$(ls -A dist/*.dmg 2>/dev/null)" ]; then
             for dmg in dist/*.dmg; do
-              echo "📦 macOS artifact: $dmg"
-              echo "  Size: $(du -h "$dmg" | cut -f1)"
-              echo "  SHA256: $(shasum -a 256 "$dmg" | cut -d' ' -f1)"
+              if [ -f "$dmg" ]; then
+                echo "📦 macOS artifact: $dmg"
+                echo "  Size: $(du -h "$dmg" | cut -f1)"
+                echo "  SHA256: $(shasum -a 256 "$dmg" | cut -d' ' -f1)"
+              fi
             done
+          else
+            echo "⚠️ No macOS DMG files found"
           fi
         fi
+      shell: bash
       
     - name: Upload Windows artifacts
       if: matrix.os == 'windows-latest'
@@ -235,8 +219,59 @@ jobs:
           dist/latest-mac.yml
         retention-days: 30
 
-  release:
+  virus-scan:
     needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Download Windows artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: windows-installer
+        path: ./windows-artifacts/
+      continue-on-error: true
+      
+    - name: Virus scan Windows executables
+      run: |
+        echo "🦠 Scanning Windows artifacts for viruses..."
+        
+        # Install ClamAV for virus scanning
+        sudo apt-get update
+        sudo apt-get install -y clamav clamav-daemon
+        sudo freshclam || true
+        
+        # Check if Windows artifacts were downloaded
+        if [ -d "./windows-artifacts" ] && [ "$(ls -A ./windows-artifacts)" ]; then
+          echo "Found Windows artifacts to scan:"
+          ls -la ./windows-artifacts/
+          
+          # Scan all executable files
+          SCAN_FAILED=false
+          for file in ./windows-artifacts/*.exe; do
+            if [ -f "$file" ]; then
+              echo "Scanning $file..."
+              if clamscan --infected --remove=no "$file"; then
+                echo "✅ $file is clean"
+              else
+                echo "❌ $file failed virus scan"
+                SCAN_FAILED=true
+              fi
+            fi
+          done
+          
+          if [ "$SCAN_FAILED" = true ]; then
+            echo "❌ One or more files failed virus scanning"
+            exit 1
+          else
+            echo "✅ All Windows executables passed virus scanning"
+          fi
+        else
+          echo "⚠️ No Windows artifacts found to scan"
+        fi
+
+  release:
+    needs: [build, virus-scan]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
