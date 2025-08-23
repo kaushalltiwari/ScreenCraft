@@ -468,6 +468,10 @@
                             e.preventDefault();
                             toggleBorderMode();
                             break;
+                        case 'z':
+                            e.preventDefault();
+                            undoLastBorder();
+                            break;
                     }
                 }
             });
@@ -633,8 +637,9 @@
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             
-            startX = (e.clientX - rect.left) * scaleX;
-            startY = (e.clientY - rect.top) * scaleY;
+            // Constrain start coordinates within canvas bounds
+            startX = Math.max(0, Math.min(canvas.width, (e.clientX - rect.left) * scaleX));
+            startY = Math.max(0, Math.min(canvas.height, (e.clientY - rect.top) * scaleY));
         }
 
         function draw(e) {
@@ -644,16 +649,23 @@
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             
-            const currentX = (e.clientX - rect.left) * scaleX;
-            const currentY = (e.clientY - rect.top) * scaleY;
+            // Constrain current coordinates within canvas bounds
+            const currentX = Math.max(0, Math.min(canvas.width, (e.clientX - rect.left) * scaleX));
+            const currentY = Math.max(0, Math.min(canvas.height, (e.clientY - rect.top) * scaleY));
             
             // Clear and redraw all borders
             redrawCanvas();
             
-            // Draw current border being drawn
+            // Calculate constrained border dimensions
+            const borderX = Math.min(startX, currentX);
+            const borderY = Math.min(startY, currentY);
+            const borderWidth = Math.abs(currentX - startX);
+            const borderHeight = Math.abs(currentY - startY);
+            
+            // Draw current border being drawn (already constrained)
             ctx.strokeStyle = currentBorderColor;
             ctx.lineWidth = 3;
-            ctx.strokeRect(startX, startY, currentX - startX, currentY - startY);
+            ctx.strokeRect(borderX, borderY, borderWidth, borderHeight);
         }
 
         function stopDrawing(e) {
@@ -665,19 +677,29 @@
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             
-            const endX = (e.clientX - rect.left) * scaleX;
-            const endY = (e.clientY - rect.top) * scaleY;
+            // Constrain end coordinates within canvas bounds
+            const endX = Math.max(0, Math.min(canvas.width, (e.clientX - rect.left) * scaleX));
+            const endY = Math.max(0, Math.min(canvas.height, (e.clientY - rect.top) * scaleY));
             
-            // Only add border if it has meaningful size
+            // Calculate final border dimensions (already constrained)
+            const borderX = Math.min(startX, endX);
+            const borderY = Math.min(startY, endY);
             const width = Math.abs(endX - startX);
             const height = Math.abs(endY - startY);
             
+            // Only add border if it has meaningful size
             if (width > 10 && height > 10) {
+                // Ensure border stays within image bounds (double-check)
+                const finalX = Math.max(0, borderX);
+                const finalY = Math.max(0, borderY);
+                const finalWidth = Math.min(width, canvas.width - finalX);
+                const finalHeight = Math.min(height, canvas.height - finalY);
+                
                 borders.push({
-                    x: Math.min(startX, endX),
-                    y: Math.min(startY, endY),
-                    width: width,
-                    height: height,
+                    x: finalX,
+                    y: finalY,
+                    width: finalWidth,
+                    height: finalHeight,
                     color: currentBorderColor
                 });
                 
