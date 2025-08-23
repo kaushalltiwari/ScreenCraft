@@ -78,12 +78,14 @@
         }
 
         .annotation-canvas {
-            position: absolute;
+            position: fixed;
             top: 0;
             left: 0;
-            border-radius: 6px;
+            width: 100vw;
+            height: 100vh;
             pointer-events: none;
-            z-index: 10;
+            z-index: 1000;
+            background: transparent;
         }
 
         .annotation-canvas.drawing {
@@ -492,10 +494,17 @@
             }
 
             try {
-                const result = await window.electronAPI.previewAction({
+                let actionData = {
                     action: action,
                     filePath: screenshotData.filePath
-                });
+                };
+
+                // If we have borders and action involves image, include border data
+                if (borders.length > 0 && (action === 'copy-image' || action === 'save')) {
+                    actionData.borders = await generateImageWithBorders();
+                }
+
+                const result = await window.electronAPI.previewAction(actionData);
 
                 if (result.success) {
                     showStatus(result.message);
@@ -513,6 +522,53 @@
                 console.error('Action failed:', error);
                 showStatus('Action failed: ' + error.message);
             }
+        }
+
+        async function generateImageWithBorders() {
+            if (borders.length === 0) return null;
+
+            // Create a new canvas for compositing the final image with borders
+            const compositeCanvas = document.createElement('canvas');
+            const compositeCtx = compositeCanvas.getContext('2d');
+
+            // Set canvas size to match original image
+            compositeCanvas.width = screenshotImage.naturalWidth;
+            compositeCanvas.height = screenshotImage.naturalHeight;
+
+            // Draw the original image
+            compositeCtx.drawImage(screenshotImage, 0, 0);
+
+            // Get image position and scaling to convert window coordinates to image coordinates
+            const imageRect = screenshotImage.getBoundingClientRect();
+            const scaleX = screenshotImage.naturalWidth / imageRect.width;
+            const scaleY = screenshotImage.naturalHeight / imageRect.height;
+
+            // Draw borders on the composite image
+            borders.forEach(border => {
+                // Convert window coordinates to image coordinates
+                const imgX = (border.x - imageRect.left) * scaleX;
+                const imgY = (border.y - imageRect.top) * scaleY;
+                const imgWidth = border.width * scaleX;
+                const imgHeight = border.height * scaleY;
+
+                // Only draw borders that intersect with the image
+                if (imgX < screenshotImage.naturalWidth && imgY < screenshotImage.naturalHeight && 
+                    imgX + imgWidth > 0 && imgY + imgHeight > 0) {
+                    
+                    // Clamp coordinates to image bounds
+                    const clampedX = Math.max(0, imgX);
+                    const clampedY = Math.max(0, imgY);
+                    const clampedWidth = Math.min(imgWidth, screenshotImage.naturalWidth - clampedX);
+                    const clampedHeight = Math.min(imgHeight, screenshotImage.naturalHeight - clampedY);
+
+                    compositeCtx.strokeStyle = border.color;
+                    compositeCtx.lineWidth = 3 * Math.min(scaleX, scaleY); // Scale line width
+                    compositeCtx.strokeRect(clampedX, clampedY, clampedWidth, clampedHeight);
+                }
+            });
+
+            // Convert to base64 data URL
+            return compositeCanvas.toDataURL('image/png');
         }
 
         function formatFileSize(bytes) {
@@ -595,21 +651,26 @@
             
             ctx = canvas.getContext('2d');
             
-            // Set canvas size to match image
-            const rect = screenshotImage.getBoundingClientRect();
-            canvas.width = screenshotImage.naturalWidth || screenshotImage.width;
-            canvas.height = screenshotImage.naturalHeight || screenshotImage.height;
-            canvas.style.width = screenshotImage.style.width || screenshotImage.width + 'px';
-            canvas.style.height = screenshotImage.style.height || screenshotImage.height + 'px';
+            // Set canvas size to match window viewport
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
             
             setupCanvasEvents();
+            
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                if (canvas) {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                    redrawCanvas();
+                }
+            });
         }
 
         function setupCanvasEvents() {
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
-            canvas.addEventListener('mouseleave', stopDrawing);
         }
 
         function toggleBorderMode() {
@@ -633,39 +694,23 @@
             if (!borderMode) return;
             
             isDrawing = true;
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            
-            // Constrain start coordinates within canvas bounds
-            startX = Math.max(0, Math.min(canvas.width, (e.clientX - rect.left) * scaleX));
-            startY = Math.max(0, Math.min(canvas.height, (e.clientY - rect.top) * scaleY));
+            // Use direct window coordinates (canvas is full viewport)
+            startX = Math.max(0, Math.min(canvas.width, e.clientX));
+            startY = Math.max(0, Math.min(canvas.height, e.clientY));
         }
 
         function draw(e) {
             if (!borderMode || !isDrawing) return;
             
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            
-            // Constrain current coordinates within canvas bounds
-            const currentX = Math.max(0, Math.min(canvas.width, (e.clientX - rect.left) * scaleX));
-            const currentY = Math.max(0, Math.min(canvas.height, (e.clientY - rect.top) * scaleY));
+            // Use direct window coordinates and constrain to window bounds
+            const currentX = Math.max(0, Math.min(canvas.width, e.clientX));
+            const currentY = Math.max(0, Math.min(canvas.height, e.clientY));
             
             // Clear and redraw all borders
             redrawCanvas();
             
-            // Calculate constrained border dimensions
-            const borderX = Math.min(startX, currentX);
-            const borderY = Math.min(startY, currentY);
-            const borderWidth = Math.abs(currentX - startX);
-            const borderHeight = Math.abs(currentY - startY);
-            
-            // Draw current border being drawn (already constrained)
-            ctx.strokeStyle = currentBorderColor;
-            ctx.lineWidth = 3;
-            ctx.strokeRect(borderX, borderY, borderWidth, borderHeight);
+            // Draw current border being drawn
+            drawBorder(startX, startY, currentX - startX, currentY - startY, currentBorderColor, true);
         }
 
         function stopDrawing(e) {
@@ -673,33 +718,20 @@
             
             isDrawing = false;
             
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
+            // Use direct window coordinates and constrain to window bounds
+            const endX = Math.max(0, Math.min(canvas.width, e.clientX));
+            const endY = Math.max(0, Math.min(canvas.height, e.clientY));
             
-            // Constrain end coordinates within canvas bounds
-            const endX = Math.max(0, Math.min(canvas.width, (e.clientX - rect.left) * scaleX));
-            const endY = Math.max(0, Math.min(canvas.height, (e.clientY - rect.top) * scaleY));
-            
-            // Calculate final border dimensions (already constrained)
-            const borderX = Math.min(startX, endX);
-            const borderY = Math.min(startY, endY);
             const width = Math.abs(endX - startX);
             const height = Math.abs(endY - startY);
             
-            // Only add border if it has meaningful size
+            // Only add border if it has meaningful size (10px minimum)
             if (width > 10 && height > 10) {
-                // Ensure border stays within image bounds (double-check)
-                const finalX = Math.max(0, borderX);
-                const finalY = Math.max(0, borderY);
-                const finalWidth = Math.min(width, canvas.width - finalX);
-                const finalHeight = Math.min(height, canvas.height - finalY);
-                
                 borders.push({
-                    x: finalX,
-                    y: finalY,
-                    width: finalWidth,
-                    height: finalHeight,
+                    x: Math.min(startX, endX),
+                    y: Math.min(startY, endY),
+                    width: width,
+                    height: height,
                     color: currentBorderColor
                 });
                 
@@ -708,13 +740,24 @@
             }
         }
 
+        function drawBorder(x, y, width, height, color, isPreview = false) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.setLineDash(isPreview ? [5, 5] : []);
+            
+            const rectX = width >= 0 ? x : x + width;
+            const rectY = height >= 0 ? y : y + height;
+            const rectWidth = Math.abs(width);
+            const rectHeight = Math.abs(height);
+            
+            ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
+            ctx.setLineDash([]);
+        }
+
         function redrawCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
             borders.forEach(border => {
-                ctx.strokeStyle = border.color;
-                ctx.lineWidth = 3;
-                ctx.strokeRect(border.x, border.y, border.width, border.height);
+                drawBorder(border.x, border.y, border.width, border.height, border.color);
             });
         }
 

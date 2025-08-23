@@ -104,6 +104,27 @@ class FileManager {
   }
 
   /**
+   * Copy image with borders to clipboard
+   */
+  async copyImageWithBorders(bordersDataUrl) {
+    try {
+      const { nativeImage } = require('electron');
+      
+      // Convert data URL to buffer
+      const base64Data = bordersDataUrl.split(',')[1];
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      const image = nativeImage.createFromBuffer(imageBuffer);
+      clipboard.writeImage(image);
+      log.info('Image with borders copied to clipboard successfully');
+      return { success: true };
+    } catch (error) {
+      log.error('Failed to copy image with borders to clipboard:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Copy file path to clipboard (for Claude Code integration)
    */
   async copyPathToClipboard(filePath) {
@@ -258,6 +279,50 @@ class FileManager {
   setDefaultSaveLocation(location) {
     this.defaultSaveLocation = location;
     log.info(`Default save location updated: ${location}`);
+  }
+
+  /**
+   * Save image with borders to permanent location
+   */
+  async saveImageWithBorders(bordersDataUrl, originalFilePath = null) {
+    try {
+      // Convert data URL to buffer
+      const base64Data = bordersDataUrl.split(',')[1];
+      const imageBuffer = Buffer.from(base64Data, 'base64');
+      
+      // Show Save As dialog
+      const { dialog } = require('electron');
+      const defaultFilename = originalFilePath ? 
+        path.basename(originalFilePath).replace(/screenshot-.*?-/, 'Screenshot_with_borders_') :
+        'Screenshot_with_borders.png';
+      
+      const saveResult = await dialog.showSaveDialog({
+        title: 'Save Screenshot with Borders As',
+        defaultPath: path.join(this.defaultSaveLocation, defaultFilename),
+        filters: [
+          { name: 'PNG Images', extensions: ['png'] },
+          { name: 'JPEG Images', extensions: ['jpg', 'jpeg'] },
+          { name: 'All Files', extensions: ['*'] }
+        ],
+        properties: ['createDirectory']
+      });
+
+      if (saveResult.canceled) {
+        return { success: false, message: 'Save cancelled by user' };
+      }
+
+      const targetPath = saveResult.filePath;
+      
+      // Write the image buffer to the target location
+      await fs.writeFile(targetPath, imageBuffer);
+      
+      log.info(`Screenshot with borders saved permanently: ${targetPath}`);
+      return { success: true, filePath: targetPath };
+
+    } catch (error) {
+      log.error('Failed to save screenshot with borders:', error);
+      return { success: false, message: error.message };
+    }
   }
 }
 

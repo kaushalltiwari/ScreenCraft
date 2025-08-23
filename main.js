@@ -343,16 +343,23 @@ class ScreenCaptureApp {
   // New handlers for preview window actions
   async handlePreviewAction(actionData, windowId) {
     try {
-      const { action, filePath } = actionData;
+      const { action, filePath, borders } = actionData;
       const windowData = this.previewWindows.get(windowId);
       
       switch (action) {
         case 'copy-image':
-          // Re-copy image to clipboard
-          const imageBuffer = await require('fs').promises.readFile(filePath);
-          await this.fileManager.copyImageToClipboard(imageBuffer);
-          log.info('Screenshot copied to clipboard');
-          return { success: true, message: 'Screenshot copied to clipboard' };
+          if (borders) {
+            // Copy image with borders applied
+            await this.fileManager.copyImageWithBorders(borders);
+            log.info('Screenshot with borders copied to clipboard');
+            return { success: true, message: 'Screenshot with borders copied to clipboard' };
+          } else {
+            // Re-copy original image to clipboard
+            const imageBuffer = await require('fs').promises.readFile(filePath);
+            await this.fileManager.copyImageToClipboard(imageBuffer);
+            log.info('Screenshot copied to clipboard');
+            return { success: true, message: 'Screenshot copied to clipboard' };
+          }
 
         case 'copy-path':
           // Copy file path to clipboard for Claude Code integration
@@ -362,7 +369,15 @@ class ScreenCaptureApp {
 
         case 'save':
           // Save to permanent location
-          const saveResult = await this.fileManager.saveToLocation(filePath);
+          let saveResult;
+          if (borders) {
+            saveResult = await this.fileManager.saveImageWithBorders(borders, filePath);
+            log.info('Screenshot with borders saved');
+          } else {
+            saveResult = await this.fileManager.saveToLocation(filePath);
+            log.info('Original screenshot saved');
+          }
+          
           if (saveResult.success) {
             // Clear screenshot path from window data since it's now saved permanently
             if (windowData && windowData.screenshotPath === filePath) {
@@ -371,7 +386,7 @@ class ScreenCaptureApp {
             log.info(`Screenshot saved permanently for window ${windowId}`);
             return { 
               success: true, 
-              message: 'Screenshot saved successfully',
+              message: borders ? 'Screenshot with borders saved successfully' : 'Screenshot saved successfully',
               savedPath: saveResult.filePath
             };
           } else {
