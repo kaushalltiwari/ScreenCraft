@@ -49,33 +49,6 @@
             gap: 16px;
         }
 
-        /* Image container */
-        .image-container {
-            flex: 1 1 auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background: #f8f8f8;
-            position: relative;
-            min-height: 0;
-            overflow: hidden;
-        }
-
-        .image-wrapper {
-            position: relative;
-            display: inline-block;
-        }
-
-        .screenshot-image {
-            max-width: 100%;
-            max-height: 100%;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            background: white;
-            display: block;
-        }
 
         .annotation-canvas {
             position: fixed;
@@ -93,28 +66,6 @@
             cursor: crosshair;
         }
 
-        /* Loading state */
-        .loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
-            color: #666;
-        }
-
-        .loading-spinner {
-            width: 32px;
-            height: 32px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #2196F3;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
 
         /* Border annotation toolbar */
         .border-toolbar {
@@ -298,12 +249,6 @@
             opacity: 1;
         }
 
-        /* Error state */
-        .error {
-            color: #f44336;
-            text-align: center;
-            padding: 20px;
-        }
 
         /* Responsive design */
         @media (max-width: 600px) {
@@ -335,19 +280,8 @@
         </div>
     </div>
 
-    <div class="image-container" id="imageContainer">
-        <div class="loading" id="loading">
-            <div class="loading-spinner"></div>
-            <div>Loading screenshot...</div>
-        </div>
-        <div class="image-wrapper" id="imageWrapper" style="display: none;">
-            <img class="screenshot-image" id="screenshotImage" />
-            <canvas class="annotation-canvas" id="annotationCanvas"></canvas>
-        </div>
-        <div class="error" id="error" style="display: none;">
-            Failed to load screenshot
-        </div>
-    </div>
+    <!-- Screenshot preview removed - borders now drawn on full window canvas -->
+    <canvas class="annotation-canvas" id="annotationCanvas"></canvas>
 
     <div class="border-toolbar" id="borderToolbar">
         <div class="border-options">
@@ -390,12 +324,9 @@
         let isDrawing = false;
         let startX, startY;
         let borders = [];
-        let imageWrapper, canvas, ctx;
+        let canvas, ctx;
 
         // DOM elements
-        const loading = document.getElementById('loading');
-        const screenshotImage = document.getElementById('screenshotImage');
-        const error = document.getElementById('error');
         const metadata = document.getElementById('metadata');
         const dimensions = document.getElementById('dimensions');
         const fileSize = document.getElementById('fileSize');
@@ -527,48 +458,64 @@
         async function generateImageWithBorders() {
             if (borders.length === 0) return null;
 
-            // Create a new canvas for compositing the final image with borders
-            const compositeCanvas = document.createElement('canvas');
-            const compositeCtx = compositeCanvas.getContext('2d');
+            try {
+                // Load the original screenshot image
+                const img = new Image();
+                const imageLoaded = new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                });
+                
+                img.src = `file://${screenshotData.filePath}`;
+                await imageLoaded;
 
-            // Set canvas size to match original image
-            compositeCanvas.width = screenshotImage.naturalWidth;
-            compositeCanvas.height = screenshotImage.naturalHeight;
+                // Create a new canvas for compositing the final image with borders
+                const compositeCanvas = document.createElement('canvas');
+                const compositeCtx = compositeCanvas.getContext('2d');
 
-            // Draw the original image
-            compositeCtx.drawImage(screenshotImage, 0, 0);
+                // Set canvas size to match original image
+                compositeCanvas.width = img.naturalWidth;
+                compositeCanvas.height = img.naturalHeight;
 
-            // Get image position and scaling to convert window coordinates to image coordinates
-            const imageRect = screenshotImage.getBoundingClientRect();
-            const scaleX = screenshotImage.naturalWidth / imageRect.width;
-            const scaleY = screenshotImage.naturalHeight / imageRect.height;
+                // Draw the original image
+                compositeCtx.drawImage(img, 0, 0);
 
-            // Draw borders on the composite image
-            borders.forEach(border => {
-                // Convert window coordinates to image coordinates
-                const imgX = (border.x - imageRect.left) * scaleX;
-                const imgY = (border.y - imageRect.top) * scaleY;
-                const imgWidth = border.width * scaleX;
-                const imgHeight = border.height * scaleY;
+                // For window-wide borders, we need to scale them to image coordinates
+                // Since borders are drawn in window coordinates, we need to map them to the image
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
+                const imageWidth = img.naturalWidth;
+                const imageHeight = img.naturalHeight;
 
-                // Only draw borders that intersect with the image
-                if (imgX < screenshotImage.naturalWidth && imgY < screenshotImage.naturalHeight && 
-                    imgX + imgWidth > 0 && imgY + imgHeight > 0) {
-                    
-                    // Clamp coordinates to image bounds
-                    const clampedX = Math.max(0, imgX);
-                    const clampedY = Math.max(0, imgY);
-                    const clampedWidth = Math.min(imgWidth, screenshotImage.naturalWidth - clampedX);
-                    const clampedHeight = Math.min(imgHeight, screenshotImage.naturalHeight - clampedY);
+                // Draw borders on the composite image
+                borders.forEach(border => {
+                    // Convert window coordinates to image coordinates
+                    // Map border coordinates from window space to image space
+                    const imgX = (border.x / windowWidth) * imageWidth;
+                    const imgY = (border.y / windowHeight) * imageHeight;
+                    const imgWidth = (border.width / windowWidth) * imageWidth;
+                    const imgHeight = (border.height / windowHeight) * imageHeight;
 
-                    compositeCtx.strokeStyle = border.color;
-                    compositeCtx.lineWidth = 3 * Math.min(scaleX, scaleY); // Scale line width
-                    compositeCtx.strokeRect(clampedX, clampedY, clampedWidth, clampedHeight);
-                }
-            });
+                    // Only draw borders that are within image bounds
+                    if (imgX < imageWidth && imgY < imageHeight && imgX + imgWidth > 0 && imgY + imgHeight > 0) {
+                        // Clamp coordinates to image bounds
+                        const clampedX = Math.max(0, imgX);
+                        const clampedY = Math.max(0, imgY);
+                        const clampedWidth = Math.min(imgWidth, imageWidth - clampedX);
+                        const clampedHeight = Math.min(imgHeight, imageHeight - clampedY);
 
-            // Convert to base64 data URL
-            return compositeCanvas.toDataURL('image/png');
+                        compositeCtx.strokeStyle = border.color;
+                        compositeCtx.lineWidth = Math.max(2, 3 * Math.min(imageWidth / windowWidth, imageHeight / windowHeight));
+                        compositeCtx.strokeRect(clampedX, clampedY, clampedWidth, clampedHeight);
+                    }
+                });
+
+                // Convert to base64 data URL
+                return compositeCanvas.toDataURL('image/png');
+            } catch (error) {
+                console.error('Failed to generate image with borders:', error);
+                return null;
+            }
         }
 
         function formatFileSize(bytes) {
@@ -622,29 +569,16 @@
                 // Update window info and show multiple windows count
                 await updateWindowInfo(data);
 
-                // Load image
-                screenshotImage.src = `file://${data.filePath}`;
-                
-                screenshotImage.onload = () => {
-                    loading.style.display = 'none';
-                    document.getElementById('imageWrapper').style.display = 'block';
-                    initializeCanvas();
-                };
-
-                screenshotImage.onerror = () => {
-                    loading.style.display = 'none';
-                    error.style.display = 'block';
-                };
+                // Initialize canvas for border drawing
+                initializeCanvas();
 
             } catch (err) {
                 console.error('Failed to load screenshot:', err);
-                loading.style.display = 'none';
-                error.style.display = 'block';
+                showStatus('Failed to initialize border annotation');
             }
         }
 
         function initializeCanvas() {
-            imageWrapper = document.getElementById('imageWrapper');
             canvas = document.getElementById('annotationCanvas');
             
             if (!canvas) return;
