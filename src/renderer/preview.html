@@ -365,7 +365,6 @@
         const loading = document.getElementById('loading');
         const screenshotImage = document.getElementById('screenshotImage');
         const error = document.getElementById('error');
-        const metadata = document.getElementById('metadata');
         const dimensions = document.getElementById('dimensions');
         const fileSize = document.getElementById('fileSize');
         const timestamp = document.getElementById('timestamp');
@@ -378,7 +377,7 @@
         const saveBtn = document.getElementById('saveBtn');
         const borderBtn = document.getElementById('borderBtn');
 
-        // UI elements
+        // Border UI elements
         const colorBtn = document.getElementById('colorBtn');
         const colorDropdown = document.getElementById('colorDropdown');
         const currentColorSpan = document.getElementById('currentColor');
@@ -393,26 +392,17 @@
         });
 
         function setupEventListeners() {
-            console.log('Setting up event listeners for buttons:', {
-                copyImageBtn: !!copyImageBtn,
-                copyPathBtn: !!copyPathBtn, 
-                saveBtn: !!saveBtn,
-                borderBtn: !!borderBtn
-            });
-
             // Action button events
-            if (copyImageBtn) copyImageBtn.addEventListener('click', () => handleAction('copy-image'));
-            if (copyPathBtn) copyPathBtn.addEventListener('click', () => handleAction('copy-path'));
-            if (saveBtn) saveBtn.addEventListener('click', () => handleAction('save'));
-            if (borderBtn) borderBtn.addEventListener('click', toggleBorderMode);
+            copyImageBtn?.addEventListener('click', () => handleAction('copy-image'));
+            copyPathBtn?.addEventListener('click', () => handleAction('copy-path'));
+            saveBtn?.addEventListener('click', () => handleAction('save'));
+            borderBtn?.addEventListener('click', toggleBorderMode);
 
             // Color picker functionality
-            if (colorBtn) {
-                colorBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    colorDropdown.classList.toggle('show');
-                });
-            }
+            colorBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                colorDropdown.classList.toggle('show');
+            });
 
             // Close color dropdown when clicking outside
             document.addEventListener('click', () => {
@@ -430,8 +420,8 @@
             });
 
             // Border controls
-            if (clearBordersBtn) clearBordersBtn.addEventListener('click', clearAllBorders);
-            if (undoBorderBtn) undoBorderBtn.addEventListener('click', undoLastBorder);
+            clearBordersBtn?.addEventListener('click', clearAllBorders);
+            undoBorderBtn?.addEventListener('click', undoLastBorder);
 
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
@@ -536,19 +526,18 @@
                 const imgWidth = border.width * scaleX;
                 const imgHeight = border.height * scaleY;
 
-                // Only draw borders that intersect with the image
+                // Only draw borders that intersect with the image area
                 if (imgX < screenshotImage.naturalWidth && imgY < screenshotImage.naturalHeight && 
                     imgX + imgWidth > 0 && imgY + imgHeight > 0) {
                     
-                    // Clamp coordinates to image bounds
-                    const clampedX = Math.max(0, imgX);
-                    const clampedY = Math.max(0, imgY);
-                    const clampedWidth = Math.min(imgWidth, screenshotImage.naturalWidth - clampedX);
-                    const clampedHeight = Math.min(imgHeight, screenshotImage.naturalHeight - clampedY);
-
                     compositeCtx.strokeStyle = border.color;
-                    compositeCtx.lineWidth = 3 * Math.min(scaleX, scaleY); // Scale line width
-                    compositeCtx.strokeRect(clampedX, clampedY, clampedWidth, clampedHeight);
+                    compositeCtx.lineWidth = 3 * Math.min(scaleX, scaleY);
+                    compositeCtx.strokeRect(
+                        Math.max(0, imgX),
+                        Math.max(0, imgY),
+                        Math.min(imgWidth, screenshotImage.naturalWidth - Math.max(0, imgX)),
+                        Math.min(imgHeight, screenshotImage.naturalHeight - Math.max(0, imgY))
+                    );
                 }
             });
 
@@ -656,6 +645,10 @@
             canvas.addEventListener('mousedown', startDrawing);
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
+            
+            // Handle mouse up outside the window
+            document.addEventListener('mouseup', stopDrawing);
+            document.addEventListener('mouseleave', stopDrawing);
         }
 
         function toggleBorderMode() {
@@ -699,9 +692,16 @@
             
             isDrawing = false;
             
-            // Use direct window coordinates and constrain to window bounds
-            const endX = Math.max(0, Math.min(canvas.width, e.clientX));
-            const endY = Math.max(0, Math.min(canvas.height, e.clientY));
+            // Use current mouse position or last known position if mouse is outside window
+            let endX, endY;
+            if (e && e.clientX !== undefined && e.clientY !== undefined) {
+                endX = Math.max(0, Math.min(canvas.width, e.clientX));
+                endY = Math.max(0, Math.min(canvas.height, e.clientY));
+            } else {
+                // Mouse is outside window, use canvas bounds as limits
+                endX = Math.max(0, Math.min(canvas.width, startX));
+                endY = Math.max(0, Math.min(canvas.height, startY));
+            }
             
             const width = Math.abs(endX - startX);
             const height = Math.abs(endY - startY);
@@ -719,7 +719,6 @@
                 redrawCanvas();
                 showStatus(`Border added (${borders.length} total). Click Borders again or press Escape to exit border mode.`);
             }
-            // Note: borderMode stays active so user can draw multiple borders
         }
 
         function drawBorder(x, y, width, height, color, isPreview = false) {
