@@ -1,27 +1,14 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Expose secure API for preview window functionality
+// Expose secure API for settings window functionality
 contextBridge.exposeInMainWorld('electronAPI', {
-  // Handle action buttons in preview
-  previewAction: async (actionData) => {
-    return await ipcRenderer.invoke('preview-action', actionData);
+  // Settings management
+  getSettings: async () => {
+    return await ipcRenderer.invoke('get-settings');
   },
 
-  // Close preview window
-  closePreview: () => {
-    ipcRenderer.invoke('close-preview');
-  },
-
-  // Get information about all open preview windows
-  getOpenWindows: async () => {
-    return await ipcRenderer.invoke('get-open-windows');
-  },
-
-  // Listen for screenshot data from main process
-  onScreenshotData: (callback) => {
-    ipcRenderer.on('screenshot-data', (event, data) => {
-      callback(data);
-    });
+  saveSettings: async (settings) => {
+    return await ipcRenderer.invoke('save-settings', settings);
   },
 
   // Theme management
@@ -33,6 +20,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return await ipcRenderer.invoke('set-theme', theme);
   },
 
+  // Listen for settings data from main process
+  onSettingsData: (callback) => {
+    ipcRenderer.on('settings-data', (event, data) => {
+      callback(data);
+    });
+  },
+
   // Listen for theme updates from main process
   onThemeUpdate: (callback) => {
     ipcRenderer.on('theme-update', (event, themeData) => {
@@ -40,6 +34,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     });
   },
 
+  // Close settings window
+  closeSettings: () => {
+    ipcRenderer.invoke('close-settings');
+  },
 
   // Remove event listeners
   removeAllListeners: (channel) => {
@@ -50,4 +48,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
 const { setupPreloadLogging } = require('../shared/preload-utils');
 
 // Setup standard preload security logging
-setupPreloadLogging('Preview');
+setupPreloadLogging('Settings');

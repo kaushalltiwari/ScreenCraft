@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Screenshot Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            overflow: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Light Theme Variables (Default) */
+        body {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            
+            /* Backgrounds */
+            --bg-primary: #f8fafc;
+            --bg-secondary: #f1f5f9;
+            --bg-content: #ffffff;
+            
+            /* Surfaces */
+            --surface: rgba(255, 255, 255, 0.95);
+            --surface-elevated: rgba(255, 255, 255, 0.98);
+            --surface-hover: rgba(255, 255, 255, 0.85);
+            
+            /* Text */
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --text-inverse: #ffffff;
+            
+            /* Borders */
+            --border-color: rgba(0, 0, 0, 0.1);
+            --border-strong: rgba(0, 0, 0, 0.2);
+            --border-subtle: rgba(0, 0, 0, 0.05);
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            
+            /* Radius */
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            
+            /* Set background */
+            background: var(--bg-primary);
+        }
+
+        /* Dark Theme Variables */
+        body[data-theme="dark"] {
+            --primary-color: #6366f1;
+            --primary-hover: #5855eb;
+            --success-color: #34d399;
+            --warning-color: #fbbf24;
+            --danger-color: #f87171;
+            
+            /* Backgrounds */
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-content: #334155;
+            
+            /* Surfaces */
+            --surface: rgba(30, 41, 59, 0.95);
+            --surface-elevated: rgba(30, 41, 59, 0.98);
+            --surface-hover: rgba(30, 41, 59, 0.85);
+            
+            /* Text */
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
+            --text-inverse: #0f172a;
+            
+            /* Borders */
+            --border-color: rgba(255, 255, 255, 0.1);
+            --border-strong: rgba(255, 255, 255, 0.2);
+            --border-subtle: rgba(255, 255, 255, 0.05);
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+            
+            /* Set background */
+            background: var(--bg-primary);
+        }
+
+        /* Settings Header */
+        .settings-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 20px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .settings-header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .close-settings {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: background-color 0.2s ease;
+        }
+
+        .close-settings:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Settings Content */
+        .settings-content {
+            flex: 1;
+            overflow-y: auto;
+            background: var(--bg-content);
+        }
+
+        /* Settings Tabs */
+        .settings-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--surface);
+        }
+
+        .settings-tab {
+            flex: 1;
+            padding: 16px 20px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .settings-tab:hover {
+            background: var(--surface-hover);
+            color: var(--text-primary);
+        }
+
+        .settings-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            background: var(--surface-elevated);
+        }
+
+        .settings-tab-content {
+            display: none;
+            padding: 24px;
+        }
+
+        .settings-tab-content.active {
+            display: block;
+        }
+
+        .settings-tab-content h2 {
+            margin: 0 0 20px 0;
+            color: var(--text-primary);
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        /* Shortcuts Styles */
+        .shortcuts-list {
+            margin-bottom: 20px;
+        }
+
+        .shortcut-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .shortcut-item:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .shortcut-info {
+            flex: 1;
+        }
+
+        .shortcut-info strong {
+            display: block;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .shortcut-description {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .shortcut-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .shortcut-input {
+            padding: 8px 12px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--surface-elevated);
+            color: var(--text-primary);
+            font-family: monospace;
+            font-size: 12px;
+            min-width: 120px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .shortcut-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .shortcut-input.recording {
+            border-color: var(--warning-color);
+            background: rgba(245, 158, 11, 0.1);
+            animation: pulse 1s infinite;
+        }
+
+        .edit-shortcut {
+            padding: 6px 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .edit-shortcut:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .shortcuts-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .shortcuts-actions button {
+            padding: 8px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .shortcuts-actions button:hover {
+            background: var(--surface-hover);
+            border-color: var(--primary-color);
+        }
+
+        /* Theme Selector Styles */
+        .theme-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-top: 16px;
+        }
+
+        .theme-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-option:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .theme-option.selected {
+            border-color: var(--primary-color);
+            background: rgba(79, 70, 229, 0.05);
+        }
+
+        .theme-preview {
+            width: 120px;
+            height: 80px;
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .light-preview {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .dark-preview {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        }
+
+        .system-preview {
+            background: linear-gradient(45deg, #667eea 25%, #1e293b 25%, #1e293b 50%, #667eea 50%, #667eea 75%, #1e293b 75%);
+            background-size: 20px 20px;
+        }
+
+        .theme-toolbar {
+            height: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            margin-bottom: 4px;
+        }
+
+        .dark-preview .theme-toolbar {
+            background: rgba(30, 41, 59, 0.9);
+        }
+
+        .theme-content {
+            height: 56px;
+            background: #f5f5f5;
+        }
+
+        .dark-preview .theme-content {
+            background: #1e293b;
+        }
+
+        /* Settings Footer */
+        .settings-footer {
+            padding: 20px 24px;
+            background: var(--surface);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .settings-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .settings-button.secondary {
+            background: var(--surface-elevated);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .settings-button.secondary:hover {
+            background: var(--surface-hover);
+        }
+
+        .settings-button.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .settings-button.primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        /* Loading and Status */
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--surface-elevated);
+            color: var(--text-primary);
+            padding: 12px 20px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+        }
+
+        .status-message.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .status-message.success {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .status-message.error {
+            border-left: 4px solid var(--danger-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Settings Header -->
+    <div class="settings-header">
+        <h1>Settings</h1>
+        <button class="close-settings" id="closeBtn" title="Close Settings">×</button>
+    </div>
+
+    <!-- Settings Content -->
+    <div class="settings-content">
+        <!-- Loading State -->
+        <div class="loading" id="loading">
+            <div>Loading settings...</div>
+        </div>
+
+        <!-- Settings Content -->
+        <div id="settingsContainer" style="display: none;">
+            <!-- Settings Tabs -->
+            <div class="settings-tabs">
+                <button class="settings-tab active" data-tab="shortcuts">Shortcuts</button>
+                <button class="settings-tab" data-tab="appearance">Appearance</button>
+            </div>
+
+            <!-- Shortcuts Tab -->
+            <div class="settings-tab-content active" id="shortcuts-tab">
+                <h2>Keyboard Shortcuts</h2>
+                <div class="shortcuts-list">
+                    <div class="shortcut-item">
+                        <div class="shortcut-info">
+                            <strong>Take Screenshot</strong>
+                            <div class="shortcut-description">Capture a new screenshot</div>
+                        </div>
+                        <div class="shortcut-input-wrapper">
+                            <input class="shortcut-input" data-action="take-screenshot" readonly value="Ctrl+Shift+S">
+                            <button class="edit-shortcut" data-action="take-screenshot">Edit</button>
+                        </div>
+                    </div>
+
+                    <div class="shortcut-item">
+                        <div class="shortcut-info">
+                            <strong>Copy Image</strong>
+                            <div class="shortcut-description">Copy screenshot to clipboard</div>
+                        </div>
+                        <div class="shortcut-input-wrapper">
+                            <input class="shortcut-input" data-action="copy-image" readonly value="Ctrl+C">
+                            <button class="edit-shortcut" data-action="copy-image">Edit</button>
+                        </div>
+                    </div>
+
+                    <div class="shortcut-item">
+                        <div class="shortcut-info">
+                            <strong>Copy File Path</strong>
+                            <div class="shortcut-description">Copy file path to clipboard</div>
+                        </div>
+                        <div class="shortcut-input-wrapper">
+                            <input class="shortcut-input" data-action="copy-path" readonly value="Ctrl+Shift+C">
+                            <button class="edit-shortcut" data-action="copy-path">Edit</button>
+                        </div>
+                    </div>
+
+                    <div class="shortcut-item">
+                        <div class="shortcut-info">
+                            <strong>Save</strong>
+                            <div class="shortcut-description">Save screenshot to file</div>
+                        </div>
+                        <div class="shortcut-input-wrapper">
+                            <input class="shortcut-input" data-action="save" readonly value="Ctrl+S">
+                            <button class="edit-shortcut" data-action="save">Edit</button>
+                        </div>
+                    </div>
+
+                    <div class="shortcut-item">
+                        <div class="shortcut-info">
+                            <strong>Toggle Borders</strong>
+                            <div class="shortcut-description">Enable/disable border drawing mode</div>
+                        </div>
+                        <div class="shortcut-input-wrapper">
+                            <input class="shortcut-input" data-action="toggle-borders" readonly value="Ctrl+B">
+                            <button class="edit-shortcut" data-action="toggle-borders">Edit</button>
+                        </div>
+                    </div>
+
+                    <div class="shortcut-item">
+                        <div class="shortcut-info">
+                            <strong>Undo Border</strong>
+                            <div class="shortcut-description">Undo last border drawn</div>
+                        </div>
+                        <div class="shortcut-input-wrapper">
+                            <input class="shortcut-input" data-action="undo-border" readonly value="Ctrl+Z">
+                            <button class="edit-shortcut" data-action="undo-border">Edit</button>
+                        </div>
+                    </div>
+
+                    <div class="shortcut-item">
+                        <div class="shortcut-info">
+                            <strong>Toggle Theme</strong>
+                            <div class="shortcut-description">Switch between light/dark/system theme</div>
+                        </div>
+                        <div class="shortcut-input-wrapper">
+                            <input class="shortcut-input" data-action="toggle-theme" readonly value="Ctrl+T">
+                            <button class="edit-shortcut" data-action="toggle-theme">Edit</button>
+                        </div>
+                    </div>
+
+                    <div class="shortcut-item">
+                        <div class="shortcut-info">
+                            <strong>Close Window</strong>
+                            <div class="shortcut-description">Close preview window or exit border mode</div>
+                        </div>
+                        <div class="shortcut-input-wrapper">
+                            <input class="shortcut-input" data-action="close-window" readonly value="Escape">
+                            <button class="edit-shortcut" data-action="close-window">Edit</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="shortcuts-actions">
+                    <button class="reset-shortcuts">Reset to Defaults</button>
+                </div>
+            </div>
+
+            <!-- Appearance Tab -->
+            <div class="settings-tab-content" id="appearance-tab">
+                <h2>Appearance</h2>
+                <div class="theme-selector">
+                    <div class="theme-option" data-theme="light">
+                        <div class="theme-preview light-preview">
+                            <div class="theme-toolbar"></div>
+                            <div class="theme-content"></div>
+                        </div>
+                        <div>Light Theme</div>
+                    </div>
+
+                    <div class="theme-option" data-theme="dark">
+                        <div class="theme-preview dark-preview">
+                            <div class="theme-toolbar"></div>
+                            <div class="theme-content"></div>
+                        </div>
+                        <div>Dark Theme</div>
+                    </div>
+
+                    <div class="theme-option" data-theme="system">
+                        <div class="theme-preview system-preview"></div>
+                        <div>System Theme</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Footer -->
+    <div class="settings-footer">
+        <button class="settings-button secondary" id="cancelBtn">Cancel</button>
+        <button class="settings-button primary" id="saveBtn">Save Settings</button>
+    </div>
+
+    <!-- Status Message -->
+    <div class="status-message" id="statusMessage"></div>
+
+    <script>
+        // State variables
+        let currentSettings = null;
+        let customShortcuts = {};
+        let selectedTheme = 'system';
+        let isRecordingShortcut = false;
+        let recordingAction = null;
+
+        // DOM elements
+        const loading = document.getElementById('loading');
+        const settingsContainer = document.getElementById('settingsContainer');
+        const closeBtn = document.getElementById('closeBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeSettings();
+            setupEventListeners();
+        });
+
+        async function initializeSettings() {
+            try {
+                // Get current settings from main process
+                const settings = await window.electronAPI.getSettings();
+                currentSettings = settings;
+                customShortcuts = settings.shortcuts || {};
+                selectedTheme = settings.theme || 'system';
+
+                // Apply current theme
+                const themeInfo = await window.electronAPI.getThemeInfo();
+                updateTheme(themeInfo);
+
+                // Update UI
+                updateShortcutInputs();
+                updateThemeSelection();
+
+                // Show settings container
+                loading.style.display = 'none';
+                settingsContainer.style.display = 'block';
+
+                console.log('Settings initialized:', settings);
+            } catch (error) {
+                console.error('Failed to initialize settings:', error);
+                showStatus('Failed to load settings', 'error');
+            }
+        }
+
+        function setupEventListeners() {
+            // Close button
+            closeBtn.addEventListener('click', closeSettings);
+            cancelBtn.addEventListener('click', closeSettings);
+
+            // Save button
+            saveBtn.addEventListener('click', saveSettings);
+
+            // Tab switching
+            document.querySelectorAll('.settings-tab').forEach(tab => {
+                tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+            });
+
+            // Shortcut editing
+            document.querySelectorAll('.edit-shortcut').forEach(btn => {
+                btn.addEventListener('click', () => startShortcutRecording(btn.dataset.action));
+            });
+
+            // Theme selection
+            document.querySelectorAll('.theme-option').forEach(option => {
+                option.addEventListener('click', () => selectTheme(option.dataset.theme));
+            });
+
+            // Reset shortcuts
+            document.querySelector('.reset-shortcuts').addEventListener('click', resetShortcuts);
+
+            // Listen for settings data from main process
+            window.electronAPI.onSettingsData((data) => {
+                console.log('Received settings data:', data);
+                selectedTheme = data.theme;
+                updateThemeSelection();
+            });
+
+            // Listen for theme updates
+            window.electronAPI.onThemeUpdate((themeData) => {
+                updateTheme(themeData);
+            });
+        }
+
+        function updateTheme(themeData) {
+            const effectiveTheme = themeData.effectiveTheme || themeData.currentTheme;
+            document.body.setAttribute('data-theme', effectiveTheme);
+            console.log('Theme updated to:', effectiveTheme);
+        }
+
+        function switchTab(tabName) {
+            // Update tabs
+            document.querySelectorAll('.settings-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.settings-tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        function updateShortcutInputs() {
+            const defaultShortcuts = {
+                'take-screenshot': 'Ctrl+Shift+S',
+                'copy-image': 'Ctrl+C',
+                'copy-path': 'Ctrl+Shift+C',
+                'save': 'Ctrl+S',
+                'toggle-borders': 'Ctrl+B',
+                'undo-border': 'Ctrl+Z',
+                'toggle-theme': 'Ctrl+T',
+                'close-window': 'Escape'
+            };
+
+            Object.keys(defaultShortcuts).forEach(action => {
+                const input = document.querySelector(`[data-action="${action}"]`);
+                if (input) {
+                    input.value = customShortcuts[action] || defaultShortcuts[action];
+                }
+            });
+        }
+
+        function updateThemeSelection() {
+            document.querySelectorAll('.theme-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.querySelector(`[data-theme="${selectedTheme}"]`)?.classList.add('selected');
+        }
+
+        function startShortcutRecording(action) {
+            if (isRecordingShortcut) return;
+
+            isRecordingShortcut = true;
+            recordingAction = action;
+
+            const input = document.querySelector(`[data-action="${action}"]`);
+            input.classList.add('recording');
+            input.value = 'Press keys...';
+            input.focus();
+
+            // Listen for keydown
+            document.addEventListener('keydown', recordShortcut);
+        }
+
+        function recordShortcut(e) {
+            if (!isRecordingShortcut) return;
+
+            e.preventDefault();
+
+            const keys = [];
+            if (e.ctrlKey || e.metaKey) keys.push('Ctrl');
+            if (e.altKey) keys.push('Alt');
+            if (e.shiftKey) keys.push('Shift');
+
+            // Don't record modifier keys alone
+            if (!['Control', 'Alt', 'Shift', 'Meta'].includes(e.key)) {
+                keys.push(e.key.toUpperCase());
+
+                const shortcut = keys.join('+');
+                customShortcuts[recordingAction] = shortcut;
+
+                const input = document.querySelector(`[data-action="${recordingAction}"]`);
+                input.value = shortcut;
+                input.classList.remove('recording');
+
+                isRecordingShortcut = false;
+                document.removeEventListener('keydown', recordShortcut);
+                recordingAction = null;
+
+                console.log(`Shortcut for ${recordingAction} set to: ${shortcut}`);
+            }
+        }
+
+        function selectTheme(theme) {
+            selectedTheme = theme;
+            updateThemeSelection();
+            console.log('Theme selected:', theme);
+        }
+
+        function resetShortcuts() {
+            const defaultShortcuts = {
+                'take-screenshot': 'Ctrl+Shift+S',
+                'copy-image': 'Ctrl+C',
+                'copy-path': 'Ctrl+Shift+C',
+                'save': 'Ctrl+S',
+                'toggle-borders': 'Ctrl+B',
+                'undo-border': 'Ctrl+Z',
+                'toggle-theme': 'Ctrl+T',
+                'close-window': 'Escape'
+            };
+
+            customShortcuts = { ...defaultShortcuts };
+            updateShortcutInputs();
+            showStatus('Shortcuts reset to defaults', 'success');
+        }
+
+        async function saveSettings() {
+            try {
+                const settings = {
+                    shortcuts: customShortcuts,
+                    theme: selectedTheme
+                };
+
+                const result = await window.electronAPI.saveSettings(settings);
+
+                if (result.success) {
+                    // Apply theme if changed
+                    if (selectedTheme !== currentSettings?.theme) {
+                        const themeResult = await window.electronAPI.setTheme(selectedTheme);
+                        if (themeResult.success) {
+                            updateTheme(themeResult);
+                        }
+                    }
+
+                    showStatus('Settings saved successfully!', 'success');
+                    setTimeout(() => {
+                        closeSettings();
+                    }, 1500);
+                } else {
+                    showStatus('Failed to save settings', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to save settings:', error);
+                showStatus('Settings save failed', 'error');
+            }
+        }
+
+        function closeSettings() {
+            window.electronAPI.closeSettings();
+        }
+
+        function showStatus(message, type = 'info') {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message show ${type}`;
+
+            setTimeout(() => {
+                statusMessage.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

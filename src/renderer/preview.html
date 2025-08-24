@@ -473,6 +473,7 @@
             margin: 20px;
         }
 
+
         /* Responsive design */
         @media (max-width: 600px) {
             .toolbar {
@@ -488,6 +489,23 @@
                 flex-direction: column;
                 gap: 4px;
                 text-align: right;
+            }
+            
+            .settings-modal {
+                width: 95vw;
+                max-height: 95vh;
+            }
+            
+            .settings-header {
+                padding: 16px 20px;
+            }
+            
+            .settings-tab-content {
+                padding: 20px 16px;
+            }
+            
+            .theme-selector {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -631,6 +649,17 @@
         const themeIcon = document.getElementById('themeIcon');
         const themeText = document.getElementById('themeText');
 
+        // Default shortcuts (can be customized later via system tray settings)
+        let customShortcuts = {
+            'take-screenshot': 'Ctrl+Shift+S',
+            'copy-image': 'Ctrl+C',
+            'copy-path': 'Ctrl+Shift+C',
+            'save': 'Ctrl+S',
+            'toggle-borders': 'Ctrl+B',
+            'undo-border': 'Ctrl+Z',
+            'toggle-theme': 'Ctrl+T',
+            'close-window': 'Escape'
+        };
 
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
@@ -709,6 +738,7 @@
             }
         }
 
+
         function setupEventListeners() {
             // Action button events
             copyImageBtn?.addEventListener('click', () => handleAction('copy-image'));
@@ -760,37 +790,56 @@
 
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape') {
+                const pressedShortcut = getShortcutFromEvent(e);
+                
+                // Find matching action
+                for (const [action, shortcut] of Object.entries(customShortcuts)) {
+                    if (pressedShortcut === shortcut) {
+                        e.preventDefault();
+                        handleShortcutAction(action);
+                        break;
+                    }
+                }
+            });
+        }
+
+        function getShortcutFromEvent(e) {
+            const keys = [];
+            if (e.ctrlKey || e.metaKey) keys.push('Ctrl');
+            if (e.altKey) keys.push('Alt');
+            if (e.shiftKey) keys.push('Shift');
+            keys.push(e.key.toUpperCase());
+            return keys.join('+');
+        }
+
+        function handleShortcutAction(action) {
+            switch (action) {
+                case 'copy-image':
+                    handleAction('copy-image');
+                    break;
+                case 'copy-path':
+                    handleAction('copy-path');
+                    break;
+                case 'save':
+                    handleAction('save');
+                    break;
+                case 'toggle-borders':
+                    toggleBorderMode();
+                    break;
+                case 'undo-border':
+                    undoLastBorder();
+                    break;
+                case 'toggle-theme':
+                    cycleTheme();
+                    break;
+                case 'close-window':
                     if (borderMode) {
                         toggleBorderMode();
                     } else {
                         window.electronAPI.closePreview();
                     }
-                } else if (e.ctrlKey || e.metaKey) {
-                    switch (e.key) {
-                        case 'c':
-                            e.preventDefault();
-                            handleAction('copy-image');
-                            break;
-                        case 's':
-                            e.preventDefault();
-                            handleAction('save');
-                            break;
-                        case 'b':
-                            e.preventDefault();
-                            toggleBorderMode();
-                            break;
-                        case 'z':
-                            e.preventDefault();
-                            undoLastBorder();
-                            break;
-                        case 't':
-                            e.preventDefault();
-                            cycleTheme();
-                            break;
-                    }
-                }
-            });
+                    break;
+            }
         }
 
         function showStatus(message, type = 'info') {

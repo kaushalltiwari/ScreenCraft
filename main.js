@@ -16,6 +16,7 @@ class ScreenCaptureApp {
   constructor() {
     this.tray = null;
     this.previewWindows = new Map(); // Map of windowId -> {window, screenshotPath, screenshotId}
+    this.settingsWindow = null;
     this.isQuitting = false;
     this.screenshotCounter = 0;
     
@@ -122,22 +123,53 @@ class ScreenCaptureApp {
     }
   }
 
-  async saveSettings() {
+  async saveSettings(customSettings = null) {
     try {
-      const settings = {
+      const settings = customSettings || {
         theme: this.currentTheme,
+        shortcuts: {},
         version: '1.0.0',
         lastUpdated: new Date().toISOString()
       };
+      
+      // If custom settings provided, merge with current theme
+      if (customSettings) {
+        settings.theme = customSettings.theme || this.currentTheme;
+        settings.shortcuts = customSettings.shortcuts || {};
+        settings.version = '1.0.0';
+        settings.lastUpdated = new Date().toISOString();
+      }
       
       // Ensure the userData directory exists
       const userDataDir = app.getPath('userData');
       await fs.mkdir(userDataDir, { recursive: true });
       
       await fs.writeFile(this.settingsFile, JSON.stringify(settings, null, 2));
-      log.info(`Settings saved: theme = ${this.currentTheme}`);
+      log.info(`Settings saved: theme = ${settings.theme}, shortcuts = ${Object.keys(settings.shortcuts).length} items`);
+      
+      return { success: true };
     } catch (error) {
       log.error('Failed to save settings:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getAllSettings() {
+    try {
+      const settingsData = await fs.readFile(this.settingsFile, 'utf8');
+      const settings = JSON.parse(settingsData);
+      return {
+        theme: settings.theme || 'system',
+        shortcuts: settings.shortcuts || {},
+        version: settings.version || '1.0.0'
+      };
+    } catch (error) {
+      log.info('No saved settings found, returning defaults');
+      return {
+        theme: 'system',
+        shortcuts: {},
+        version: '1.0.0'
+      };
     }
   }
 
@@ -229,6 +261,11 @@ class ScreenCaptureApp {
       {
         label: 'Take Screenshot (Ctrl+Shift+S)',
         click: () => this.triggerScreenshot()
+      },
+      { type: 'separator' },
+      {
+        label: 'Settings',
+        click: () => this.openSettingsWindow()
       },
       { type: 'separator' },
       {
@@ -381,6 +418,43 @@ class ScreenCaptureApp {
       return { success: false, message: 'Invalid theme' };
     });
 
+    // Handle settings operations
+    ipcMain.handle('get-settings', async () => {
+      try {
+        const settings = await this.getAllSettings();
+        return settings;
+      } catch (error) {
+        log.error('Failed to get settings:', error);
+        return { theme: 'system', shortcuts: {}, version: '1.0.0' };
+      }
+    });
+
+    ipcMain.handle('save-settings', async (event, settings) => {
+      try {
+        const result = await this.saveSettings(settings);
+        
+        // If theme changed, update it
+        if (settings.theme && settings.theme !== this.currentTheme) {
+          this.currentTheme = settings.theme;
+          const effectiveTheme = this.getEffectiveTheme();
+          this.updateAllWindowsTheme(effectiveTheme);
+          log.info(`Theme updated via settings: ${settings.theme} (effective: ${effectiveTheme})`);
+        }
+        
+        return result;
+      } catch (error) {
+        log.error('Failed to save settings:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // Handle closing settings window
+    ipcMain.handle('close-settings', () => {
+      if (this.settingsWindow && !this.settingsWindow.isDestroyed()) {
+        this.settingsWindow.close();
+      }
+    });
+
     log.info('IPC handlers setup complete');
   }
 
@@ -520,6 +594,58 @@ class ScreenCaptureApp {
         message: error.message || 'Action failed' 
       };
     }
+  }
+
+  openSettingsWindow() {
+    // Prevent multiple settings windows
+    if (this.settingsWindow && !this.settingsWindow.isDestroyed()) {
+      this.settingsWindow.focus();
+      return;
+    }
+
+    // Create settings window
+    this.settingsWindow = new BrowserWindow({
+      width: 800,
+      height: 600,
+      show: false,
+      frame: true,
+      transparent: false,
+      alwaysOnTop: false,
+      skipTaskbar: false,
+      resizable: true,
+      maximizable: false,
+      minimizable: true,
+      title: 'Settings - Screenshot Tool',
+      autoHideMenuBar: true,
+      webPreferences: {
+        contextIsolation: true,
+        enableRemoteModule: false,
+        nodeIntegration: false,
+        preload: path.join(__dirname, 'src', 'renderer', 'settings-preload.js')
+      }
+    });
+
+    // Load settings HTML
+    this.settingsWindow.loadFile(path.join(__dirname, 'src', 'renderer', 'settings.html'));
+
+    // Show window when ready
+    this.settingsWindow.once('ready-to-show', () => {
+      this.settingsWindow.show();
+      
+      // Send current settings to window
+      this.settingsWindow.webContents.send('settings-data', {
+        theme: this.currentTheme,
+        systemTheme: this.systemTheme,
+        settings: {}
+      });
+    });
+
+    // Handle window closed
+    this.settingsWindow.on('closed', () => {
+      this.settingsWindow = null;
+    });
+
+    log.info('Settings window opened');
   }
 
   onWindowAllClosed() {
