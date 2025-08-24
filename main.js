@@ -84,6 +84,7 @@ class ScreenCaptureApp {
       maximizable: true,
       minimizable: true,
       title: `Screenshot Preview #${this.screenshotCounter}`,
+      autoHideMenuBar: true,
       webPreferences: {
         contextIsolation: true,
         enableRemoteModule: false,
