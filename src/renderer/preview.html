@@ -141,6 +141,10 @@
             pointer-events: all;
             cursor: crosshair;
         }
+        
+        .annotation-canvas.drawing.toolbar-area {
+            cursor: not-allowed;
+        }
 
         /* Loading state */
         .loading {
@@ -655,6 +659,20 @@
             // Handle mouse up outside the window
             document.addEventListener('mouseup', stopDrawing);
             document.addEventListener('mouseleave', stopDrawing);
+            
+            // Handle cursor change in toolbar area
+            canvas.addEventListener('mousemove', (e) => {
+                if (borderMode) {
+                    const toolbar = document.querySelector('.top-toolbar');
+                    const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+                    
+                    if (e.clientY < toolbarHeight) {
+                        canvas.classList.add('toolbar-area');
+                    } else {
+                        canvas.classList.remove('toolbar-area');
+                    }
+                }
+            });
         }
 
         function toggleBorderMode() {
@@ -663,10 +681,11 @@
             if (borderMode) {
                 borderBtn.classList.add('active');
                 canvas.classList.add('drawing');
-                showStatus('Click and drag to draw rectangular borders');
+                showStatus('Click and drag to draw rectangular borders (toolbar area excluded)');
             } else {
                 borderBtn.classList.remove('active');
                 canvas.classList.remove('drawing');
+                canvas.classList.remove('toolbar-area');
             }
         }
 
@@ -698,15 +717,19 @@
             
             isDrawing = false;
             
+            // Get toolbar height to avoid drawing over it
+            const toolbar = document.querySelector('.top-toolbar');
+            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+            
             // Use current mouse position or last known position if mouse is outside window
             let endX, endY;
             if (e && e.clientX !== undefined && e.clientY !== undefined) {
                 endX = Math.max(0, Math.min(canvas.width, e.clientX));
-                endY = Math.max(0, Math.min(canvas.height, e.clientY));
+                endY = Math.max(toolbarHeight, Math.min(canvas.height, e.clientY));
             } else {
                 // Mouse is outside window, use canvas bounds as limits
                 endX = Math.max(0, Math.min(canvas.width, startX));
-                endY = Math.max(0, Math.min(canvas.height, startY));
+                endY = Math.max(toolbarHeight, Math.min(canvas.height, startY));
             }
             
             const width = Math.abs(endX - startX);
@@ -737,14 +760,34 @@
             const rectWidth = Math.abs(width);
             const rectHeight = Math.abs(height);
             
-            ctx.strokeRect(rectX, rectY, rectWidth, rectHeight);
+            // Get toolbar height to avoid drawing over it
+            const toolbar = document.querySelector('.top-toolbar');
+            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+            
+            // Ensure border doesn't extend into toolbar area
+            const clampedY = Math.max(toolbarHeight, rectY);
+            const clampedHeight = Math.max(0, rectHeight - Math.max(0, toolbarHeight - rectY));
+            
+            // Only draw if there's a valid area below toolbar
+            if (clampedHeight > 0) {
+                ctx.strokeRect(rectX, clampedY, rectWidth, clampedHeight);
+            }
+            
             ctx.setLineDash([]);
         }
 
         function redrawCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Get toolbar height to filter out borders in toolbar area
+            const toolbar = document.querySelector('.top-toolbar');
+            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+            
             borders.forEach(border => {
-                drawBorder(border.x, border.y, border.width, border.height, border.color);
+                // Only draw borders that don't start in toolbar area
+                if (border.y >= toolbarHeight) {
+                    drawBorder(border.x, border.y, border.width, border.height, border.color);
+                }
             });
         }
 
