@@ -14,28 +14,109 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             height: 100vh;
             display: flex;
             flex-direction: column;
             margin: 0;
             overflow: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Light Theme Variables (Default) */
+        body {
             --primary-color: #4f46e5;
             --primary-hover: #4338ca;
             --success-color: #10b981;
             --warning-color: #f59e0b;
             --danger-color: #ef4444;
+            
+            /* Backgrounds */
+            --bg-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --bg-secondary: #f8fafc;
+            --bg-content: #f5f5f5;
+            
+            /* Surfaces */
             --surface: rgba(255, 255, 255, 0.95);
             --surface-elevated: rgba(255, 255, 255, 0.98);
+            --surface-hover: rgba(255, 255, 255, 0.85);
+            
+            /* Text */
             --text-primary: #1f2937;
             --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --text-inverse: #ffffff;
+            
+            /* Borders */
             --border-color: rgba(0, 0, 0, 0.1);
+            --border-strong: rgba(0, 0, 0, 0.2);
+            --border-subtle: rgba(0, 0, 0, 0.05);
+            
+            /* Shadows */
             --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            
+            /* Status bar */
+            --status-bg: #ffffff;
+            --status-border: #d1d1d1;
+            --status-text: #666666;
+            
+            /* Image border */
+            --image-border: #ffffff;
+            
+            /* Radius */
             --radius-sm: 0.375rem;
             --radius-md: 0.5rem;
             --radius-lg: 0.75rem;
+            
+            /* Set background */
+            background: var(--bg-primary);
+        }
+
+        /* Dark Theme Variables */
+        body[data-theme="dark"] {
+            --primary-color: #6366f1;
+            --primary-hover: #5855eb;
+            --success-color: #34d399;
+            --warning-color: #fbbf24;
+            --danger-color: #f87171;
+            
+            /* Backgrounds */
+            --bg-primary: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            --bg-secondary: #0f172a;
+            --bg-content: #1e293b;
+            
+            /* Surfaces */
+            --surface: rgba(30, 41, 59, 0.95);
+            --surface-elevated: rgba(30, 41, 59, 0.98);
+            --surface-hover: rgba(30, 41, 59, 0.85);
+            
+            /* Text */
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
+            --text-inverse: #0f172a;
+            
+            /* Borders */
+            --border-color: rgba(255, 255, 255, 0.1);
+            --border-strong: rgba(255, 255, 255, 0.2);
+            --border-subtle: rgba(255, 255, 255, 0.05);
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+            
+            /* Status bar */
+            --status-bg: #334155;
+            --status-border: #475569;
+            --status-text: #cbd5e1;
+            
+            /* Image border */
+            --image-border: #475569;
+            
+            /* Set background */
+            background: var(--bg-primary);
         }
 
         /* Modern glass-morphism toolbar */
@@ -143,11 +224,11 @@
 
         /* Status bar at bottom */
         .status-bar {
-            background: #ffffff;
-            border-top: 1px solid #d1d1d1;
+            background: var(--status-bg);
+            border-top: 1px solid var(--status-border);
             padding: 4px 12px;
             font-size: 11px;
-            color: #666;
+            color: var(--status-text);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -166,7 +247,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #f5f5f5;
+            background: var(--bg-content);
             position: relative;
             overflow: hidden;
             padding: 8px;
@@ -182,9 +263,9 @@
         .screenshot-image {
             max-width: 100%;
             max-height: 100%;
-            border: 2px solid #ffffff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            background: white;
+            border: 2px solid var(--image-border);
+            box-shadow: var(--shadow-lg);
+            background: var(--surface);
             display: block;
         }
 
@@ -468,6 +549,15 @@
                 <div>Path</div>
             </button>
         </div>
+        
+        <div class="toolbar-separator"></div>
+        
+        <div class="toolbar-group">
+            <button class="toolbar-button" id="themeBtn" title="Toggle Theme">
+                <div class="toolbar-icon" id="themeIcon">🌙</div>
+                <div id="themeText">Dark</div>
+            </button>
+        </div>
     </div>
 
     <!-- Main content area -->
@@ -506,6 +596,11 @@
         let borders = [];
         let imageWrapper, canvas, ctx;
         let lastImageRect = null; // Store last known image position for scaling
+        
+        // Theme management
+        let currentTheme = 'system';
+        let effectiveTheme = 'light';
+        let systemTheme = 'light';
 
         // DOM elements
         const loading = document.getElementById('loading');
@@ -530,12 +625,18 @@
         const colorOptions = document.querySelectorAll('.color-option');
         const clearBordersBtn = document.getElementById('clearBordersBtn');
         const undoBorderBtn = document.getElementById('undoBorderBtn');
+        
+        // Theme UI elements
+        const themeBtn = document.getElementById('themeBtn');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeText = document.getElementById('themeText');
 
 
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
             setupEventListeners();
             initializeColorPicker();
+            initializeTheme();
         });
         
         function initializeColorPicker() {
@@ -543,6 +644,68 @@
             const firstColorOption = document.querySelector('.color-option.red');
             if (firstColorOption) {
                 firstColorOption.classList.add('selected');
+            }
+        }
+
+        async function initializeTheme() {
+            try {
+                // Get current theme info from main process
+                const themeInfo = await window.electronAPI.getThemeInfo();
+                updateTheme(themeInfo);
+            } catch (error) {
+                console.error('Failed to initialize theme:', error);
+                // Fallback to light theme
+                updateTheme({ currentTheme: 'system', effectiveTheme: 'light', systemTheme: 'light' });
+            }
+        }
+
+        function updateTheme(themeInfo) {
+            currentTheme = themeInfo.currentTheme;
+            effectiveTheme = themeInfo.effectiveTheme;
+            systemTheme = themeInfo.systemTheme;
+
+            // Apply theme to body
+            document.body.setAttribute('data-theme', effectiveTheme);
+
+            // Update theme button
+            updateThemeButton();
+            
+            console.log(`Theme updated - Current: ${currentTheme}, Effective: ${effectiveTheme}, System: ${systemTheme}`);
+        }
+
+        function updateThemeButton() {
+            const themeMap = {
+                'light': { icon: '🌙', text: 'Dark', title: 'Switch to Dark Theme' },
+                'dark': { icon: '☀️', text: 'Light', title: 'Switch to Light Theme' },
+                'system': { 
+                    icon: '🖥️', 
+                    text: 'Auto', 
+                    title: `Auto Theme (Currently ${effectiveTheme === 'dark' ? 'Dark' : 'Light'})` 
+                }
+            };
+
+            const theme = themeMap[currentTheme] || themeMap['system'];
+            themeIcon.textContent = theme.icon;
+            themeText.textContent = theme.text;
+            themeBtn.title = theme.title;
+        }
+
+        async function cycleTheme() {
+            const themes = ['light', 'dark', 'system'];
+            const currentIndex = themes.indexOf(currentTheme);
+            const nextTheme = themes[(currentIndex + 1) % themes.length];
+
+            try {
+                const result = await window.electronAPI.setTheme(nextTheme);
+                if (result.success) {
+                    updateTheme(result);
+                    showStatus(`🎨 Theme switched to ${nextTheme}`, 'success');
+                } else {
+                    showStatus('❌ Failed to change theme', 'error');
+                }
+            } catch (error) {
+                console.error('Failed to change theme:', error);
+                showStatus('❌ Theme change failed', 'error');
             }
         }
 
@@ -592,6 +755,9 @@
             clearBordersBtn?.addEventListener('click', clearAllBorders);
             undoBorderBtn?.addEventListener('click', undoLastBorder);
 
+            // Theme button
+            themeBtn?.addEventListener('click', cycleTheme);
+
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
@@ -617,6 +783,10 @@
                         case 'z':
                             e.preventDefault();
                             undoLastBorder();
+                            break;
+                        case 't':
+                            e.preventDefault();
+                            cycleTheme();
                             break;
                     }
                 }
@@ -787,6 +957,11 @@
         window.electronAPI.onScreenshotData((data) => {
             screenshotData = data;
             loadScreenshot(data);
+        });
+
+        // Listen for theme updates from main process
+        window.electronAPI.onThemeUpdate((themeData) => {
+            updateTheme(themeData);
         });
 
         async function loadScreenshot(data) {

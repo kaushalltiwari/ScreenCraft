@@ -24,6 +24,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
     });
   },
 
+  // Theme management
+  getThemeInfo: async () => {
+    return await ipcRenderer.invoke('get-theme-info');
+  },
+
+  setTheme: async (theme) => {
+    return await ipcRenderer.invoke('set-theme', theme);
+  },
+
+  // Listen for theme updates from main process
+  onThemeUpdate: (callback) => {
+    ipcRenderer.on('theme-update', (event, themeData) => {
+      callback(themeData);
+    });
+  },
+
   // Remove event listeners
   removeAllListeners: (channel) => {
     ipcRenderer.removeAllListeners(channel);

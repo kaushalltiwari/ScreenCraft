@@ -1,5 +1,6 @@
-const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain } = require('electron');
+const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeTheme } = require('electron');
 const path = require('path');
+const fs = require('fs').promises;
 const log = require('electron-log');
 
 // Import modular components
@@ -17,6 +18,11 @@ class ScreenCaptureApp {
     this.previewWindows = new Map(); // Map of windowId -> {window, screenshotPath, screenshotId}
     this.isQuitting = false;
     this.screenshotCounter = 0;
+    
+    // Theme management
+    this.currentTheme = 'system'; // 'light', 'dark', 'system'
+    this.systemTheme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+    this.settingsFile = path.join(app.getPath('userData'), 'app-settings.json');
     
     // Initialize modular components
     this.screenCaptureManager = new ScreenCaptureManager();
@@ -55,6 +61,10 @@ class ScreenCaptureApp {
       await this.screenCaptureManager.initialize();
       await this.fileManager.initialize();
       
+      // Load saved settings and initialize theme system
+      await this.loadSettings();
+      this.initializeThemeSystem();
+      
       // Only setup tray and shortcuts - no main window
       this.setupTray();
       this.registerGlobalShortcuts();
@@ -63,6 +73,71 @@ class ScreenCaptureApp {
       log.info('Screenshot tool initialized successfully');
     } catch (error) {
       log.error('Failed to initialize screenshot tool:', error);
+    }
+  }
+
+  initializeThemeSystem() {
+    // Listen for system theme changes
+    nativeTheme.on('updated', () => {
+      const newSystemTheme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+      this.systemTheme = newSystemTheme;
+      log.info(`System theme changed to: ${newSystemTheme}`);
+      
+      // Update all open windows if using system theme
+      if (this.currentTheme === 'system') {
+        this.updateAllWindowsTheme(newSystemTheme);
+      }
+    });
+    
+    log.info(`Theme system initialized - Current: ${this.currentTheme}, System: ${this.systemTheme}`);
+  }
+
+  updateAllWindowsTheme(theme) {
+    this.previewWindows.forEach((windowData, windowId) => {
+      windowData.window.webContents.send('theme-update', {
+        currentTheme: this.currentTheme,
+        effectiveTheme: theme,
+        systemTheme: this.systemTheme
+      });
+    });
+  }
+
+  getEffectiveTheme() {
+    return this.currentTheme === 'system' ? this.systemTheme : this.currentTheme;
+  }
+
+  async loadSettings() {
+    try {
+      const settingsData = await fs.readFile(this.settingsFile, 'utf8');
+      const settings = JSON.parse(settingsData);
+      
+      if (settings.theme && ['light', 'dark', 'system'].includes(settings.theme)) {
+        this.currentTheme = settings.theme;
+        log.info(`Loaded saved theme preference: ${this.currentTheme}`);
+      }
+    } catch (error) {
+      // Settings file doesn't exist or is corrupted, use defaults
+      log.info('No saved settings found, using defaults');
+      this.currentTheme = 'system';
+    }
+  }
+
+  async saveSettings() {
+    try {
+      const settings = {
+        theme: this.currentTheme,
+        version: '1.0.0',
+        lastUpdated: new Date().toISOString()
+      };
+      
+      // Ensure the userData directory exists
+      const userDataDir = app.getPath('userData');
+      await fs.mkdir(userDataDir, { recursive: true });
+      
+      await fs.writeFile(this.settingsFile, JSON.stringify(settings, null, 2));
+      log.info(`Settings saved: theme = ${this.currentTheme}`);
+    } catch (error) {
+      log.error('Failed to save settings:', error);
     }
   }
 
@@ -124,6 +199,14 @@ class ScreenCaptureApp {
         screenshotId: screenshotId,
         windowId: windowId
       };
+      
+      // Send initial theme data
+      previewWindow.webContents.send('theme-update', {
+        currentTheme: this.currentTheme,
+        effectiveTheme: this.getEffectiveTheme(),
+        systemTheme: this.systemTheme
+      });
+      
       previewWindow.webContents.send('screenshot-data', enhancedScreenshotData);
       previewWindow.show();
       previewWindow.focus();
@@ -265,6 +348,37 @@ class ScreenCaptureApp {
         });
       }
       return windowsInfo;
+    });
+
+    // Handle theme operations
+    ipcMain.handle('get-theme-info', () => {
+      return {
+        currentTheme: this.currentTheme,
+        effectiveTheme: this.getEffectiveTheme(),
+        systemTheme: this.systemTheme
+      };
+    });
+
+    ipcMain.handle('set-theme', async (event, newTheme) => {
+      if (['light', 'dark', 'system'].includes(newTheme)) {
+        this.currentTheme = newTheme;
+        const effectiveTheme = this.getEffectiveTheme();
+        
+        // Save settings to persist theme choice
+        await this.saveSettings();
+        
+        // Update all windows
+        this.updateAllWindowsTheme(effectiveTheme);
+        
+        log.info(`Theme changed to: ${newTheme} (effective: ${effectiveTheme})`);
+        return {
+          success: true,
+          currentTheme: this.currentTheme,
+          effectiveTheme: effectiveTheme,
+          systemTheme: this.systemTheme
+        };
+      }
+      return { success: false, message: 'Invalid theme' };
     });
 
     log.info('IPC handlers setup complete');
