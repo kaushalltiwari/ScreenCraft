@@ -85,22 +85,27 @@ class ScreenCaptureApp {
   }
 
   initializeAppIcon() {
-    // Try to load custom icon, fallback to generated one
+    // Try to load abstract SVG icon first, then PNG, then fallback to generated
     const { nativeImage } = require('electron');
-    const iconPath = path.join(__dirname, 'assets', 'icon.png');
+    const svgIconPath = path.join(__dirname, 'assets', 'icon-abstract.svg');
+    const pngIconPath = path.join(__dirname, 'assets', 'icon.png');
     
     try {
-      // Check if custom icon file exists
-      if (require('fs').existsSync(iconPath)) {
-        this.appIcon = nativeImage.createFromPath(iconPath);
-        log.info('Using custom icon from assets/icon.png');
+      // Check if abstract SVG icon exists
+      if (require('fs').existsSync(svgIconPath)) {
+        this.appIcon = nativeImage.createFromPath(svgIconPath);
+        log.info('Using abstract SVG icon from assets/icon-abstract.svg');
+      } else if (require('fs').existsSync(pngIconPath)) {
+        // Fallback to PNG if SVG not available
+        this.appIcon = nativeImage.createFromPath(pngIconPath);
+        log.info('Using custom PNG icon from assets/icon.png');
       } else {
-        // Use generated default icon
+        // Use generated default icon as final fallback
         this.appIcon = this.createDefaultIcon();
         log.info('Using generated default icon');
       }
     } catch (error) {
-      log.warn('Failed to load custom icon, using generated default:', error);
+      log.warn('Failed to load custom icons, using generated default:', error);
       this.appIcon = this.createDefaultIcon();
     }
   }
