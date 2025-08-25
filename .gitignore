@@ -40,6 +40,7 @@ tmp/
 temp/
 *.tmp
 *.temp
+create-icons.js
 
 # Environment variables
 .env

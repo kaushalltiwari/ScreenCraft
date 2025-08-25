@@ -12,6 +12,14 @@ class ScreenCaptureManager {
     this.capturedScreens = null;
     this.isCapturing = false;
     this.displays = [];
+    this.appIcon = null;
+  }
+  
+  /**
+   * Set the app icon for windows
+   */
+  setAppIcon(icon) {
+    this.appIcon = icon;
   }
 
   /**

@@ -1,0 +1,40 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle with gradient -->
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="screen-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#e2e8f0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Outer circle background -->
+  <circle cx="128" cy="128" r="120" fill="url(#bg-gradient)" stroke="#4338ca" stroke-width="4"/>
+  
+  <!-- Screen/Monitor shape -->
+  <rect x="64" y="80" width="128" height="96" rx="8" ry="8" fill="url(#screen-gradient)" stroke="#334155" stroke-width="3"/>
+  
+  <!-- Screen content - dashed selection area -->
+  <rect x="80" y="96" width="96" height="64" rx="4" ry="4" fill="none" stroke="#6366f1" stroke-width="2" stroke-dasharray="6,4"/>
+  
+  <!-- Corner handles on selection -->
+  <circle cx="80" cy="96" r="3" fill="#6366f1"/>
+  <circle cx="176" cy="96" r="3" fill="#6366f1"/>
+  <circle cx="80" cy="160" r="3" fill="#6366f1"/>
+  <circle cx="176" cy="160" r="3" fill="#6366f1"/>
+  
+  <!-- Camera shutter/capture icon in center -->
+  <circle cx="128" cy="128" r="12" fill="#6366f1" opacity="0.8"/>
+  <circle cx="128" cy="128" r="8" fill="none" stroke="#ffffff" stroke-width="2"/>
+  
+  <!-- Minimal sparkle effects -->
+  <g fill="#ffffff" opacity="0.6">
+    <circle cx="100" cy="60" r="2"/>
+    <circle cx="180" cy="70" r="1.5"/>
+    <circle cx="200" cy="140" r="2"/>
+    <circle cx="70" cy="180" r="1.5"/>
+  </g>
+</svg>

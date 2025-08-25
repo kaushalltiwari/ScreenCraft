@@ -19,6 +19,7 @@ class ScreenCaptureApp {
     this.settingsWindow = null;
     this.isQuitting = false;
     this.screenshotCounter = 0;
+    this.appIcon = null; // Global app icon
     
     // Theme management
     this.currentTheme = 'system'; // 'light', 'dark', 'system'
@@ -58,9 +59,15 @@ class ScreenCaptureApp {
     log.info('App is ready, initializing screenshot tool...');
     
     try {
+      // Initialize app icon first
+      this.initializeAppIcon();
+      
       // Initialize components
       await this.screenCaptureManager.initialize();
       await this.fileManager.initialize();
+      
+      // Pass app icon to screen capture manager
+      this.screenCaptureManager.setAppIcon(this.appIcon);
       
       // Load saved settings and initialize theme system
       await this.loadSettings();
@@ -74,6 +81,27 @@ class ScreenCaptureApp {
       log.info('Screenshot tool initialized successfully');
     } catch (error) {
       log.error('Failed to initialize screenshot tool:', error);
+    }
+  }
+
+  initializeAppIcon() {
+    // Try to load custom icon, fallback to generated one
+    const { nativeImage } = require('electron');
+    const iconPath = path.join(__dirname, 'assets', 'icon.png');
+    
+    try {
+      // Check if custom icon file exists
+      if (require('fs').existsSync(iconPath)) {
+        this.appIcon = nativeImage.createFromPath(iconPath);
+        log.info('Using custom icon from assets/icon.png');
+      } else {
+        // Use generated default icon
+        this.appIcon = this.createDefaultIcon();
+        log.info('Using generated default icon');
+      }
+    } catch (error) {
+      log.warn('Failed to load custom icon, using generated default:', error);
+      this.appIcon = this.createDefaultIcon();
     }
   }
 
@@ -192,6 +220,7 @@ class ScreenCaptureApp {
       minimizable: true,
       title: `Screenshot Preview #${this.screenshotCounter}`,
       autoHideMenuBar: true,
+      icon: this.appIcon,
       webPreferences: {
         contextIsolation: true,
         enableRemoteModule: false,
@@ -249,11 +278,8 @@ class ScreenCaptureApp {
   }
 
   setupTray() {
-    // Create tray icon (you'll need to add an icon file)
-    const iconPath = path.join(__dirname, 'assets', 'icon.png');
-    
-    // Fallback if icon doesn't exist yet
-    this.tray = new Tray(this.createDefaultIcon());
+    // Create tray icon using global app icon
+    this.tray = new Tray(this.appIcon);
     
     this.tray.setToolTip('Offline Screenshot Tool');
     
@@ -288,33 +314,90 @@ class ScreenCaptureApp {
   }
 
   createDefaultIcon() {
-    // Create a simple default icon programmatically
+    // Create a minimalist screenshot icon programmatically
     const { nativeImage } = require('electron');
     
-    // Create a 16x16 bitmap with a simple pattern
-    const size = 16;
+    const size = 32; // Increased size for better quality
     const buffer = Buffer.alloc(size * size * 4); // RGBA
     
-    // Create a simple camera icon pattern
+    const centerX = size / 2;
+    const centerY = size / 2;
+    const radius = (size / 2) - 2;
+    
+    // Helper function to set pixel
+    function setPixel(x, y, r, g, b, a = 255) {
+      if (x < 0 || x >= size || y < 0 || y >= size) return;
+      const index = (y * size + x) * 4;
+      buffer[index] = r;
+      buffer[index + 1] = g;
+      buffer[index + 2] = b;
+      buffer[index + 3] = a;
+    }
+    
+    // Draw background circle with modern gradient
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
-        const index = (y * size + x) * 4;
-        // Simple camera-like pattern
-        if ((x >= 2 && x <= 13 && y >= 4 && y <= 11) || // Main body
-            (x >= 5 && x <= 10 && y >= 2 && y <= 3) ||   // Top part
-            (x >= 7 && x <= 8 && y >= 6 && y <= 7)) {    // Lens center
-          buffer[index] = 255;     // R
-          buffer[index + 1] = 255; // G  
-          buffer[index + 2] = 255; // B
-          buffer[index + 3] = 255; // A
-        } else {
-          buffer[index] = 0;       // R
-          buffer[index + 1] = 0;   // G
-          buffer[index + 2] = 0;   // B
-          buffer[index + 3] = 0;   // A (transparent)
+        const dx = x - centerX;
+        const dy = y - centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance <= radius) {
+          // Modern gradient: Purple to Blue
+          const gradient = 1 - (distance / radius);
+          const r = Math.floor(102 * gradient + 118 * (1 - gradient));
+          const g = Math.floor(126 * gradient + 75 * (1 - gradient));
+          const b = Math.floor(234 * gradient + 162 * (1 - gradient));
+          setPixel(x, y, r, g, b);
+        } else if (distance <= radius + 1) {
+          // Border
+          setPixel(x, y, 67, 56, 202);
         }
       }
     }
+    
+    // Draw minimalist screen rectangle
+    const screenW = size * 0.5;
+    const screenH = size * 0.375;
+    const screenX = centerX - screenW / 2;
+    const screenY = centerY - screenH / 2;
+    
+    // Screen background
+    for (let y = screenY; y < screenY + screenH; y++) {
+      for (let x = screenX; x < screenX + screenW; x++) {
+        setPixel(Math.floor(x), Math.floor(y), 248, 250, 252);
+      }
+    }
+    
+    // Screen border
+    for (let x = screenX - 1; x < screenX + screenW + 1; x++) {
+      setPixel(Math.floor(x), Math.floor(screenY - 1), 51, 65, 85);
+      setPixel(Math.floor(x), Math.floor(screenY + screenH), 51, 65, 85);
+    }
+    for (let y = screenY - 1; y < screenY + screenH + 1; y++) {
+      setPixel(Math.floor(screenX - 1), Math.floor(y), 51, 65, 85);
+      setPixel(Math.floor(screenX + screenW), Math.floor(y), 51, 65, 85);
+    }
+    
+    // Selection area indicators (corner dots)
+    const selW = screenW * 0.75;
+    const selH = screenH * 0.67;
+    const selX = screenX + (screenW - selW) / 2;
+    const selY = screenY + (screenH - selH) / 2;
+    
+    // Corner handles
+    [[selX, selY], [selX + selW, selY], [selX, selY + selH], [selX + selW, selY + selH]].forEach(([x, y]) => {
+      setPixel(Math.floor(x), Math.floor(y), 99, 102, 241);
+      // Make handles slightly bigger for visibility
+      setPixel(Math.floor(x + 1), Math.floor(y), 99, 102, 241);
+      setPixel(Math.floor(x), Math.floor(y + 1), 99, 102, 241);
+    });
+    
+    // Center capture indicator
+    setPixel(Math.floor(centerX), Math.floor(centerY), 99, 102, 241);
+    setPixel(Math.floor(centerX + 1), Math.floor(centerY), 99, 102, 241);
+    setPixel(Math.floor(centerX), Math.floor(centerY + 1), 99, 102, 241);
+    setPixel(Math.floor(centerX - 1), Math.floor(centerY), 99, 102, 241);
+    setPixel(Math.floor(centerX), Math.floor(centerY - 1), 99, 102, 241);
     
     return nativeImage.createFromBuffer(buffer, { width: size, height: size });
   }
@@ -617,6 +700,7 @@ class ScreenCaptureApp {
       minimizable: true,
       title: 'Settings - Screenshot Tool',
       autoHideMenuBar: true,
+      icon: this.appIcon,
       webPreferences: {
         contextIsolation: true,
         enableRemoteModule: false,
