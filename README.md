@@ -1,6 +1,6 @@
 # Offline Screenshot Tool
 
-A completely offline desktop screenshot tool built with Electron.js that provides fast, privacy-focused screen capture with seamless Claude Code integration.
+A completely offline desktop screenshot tool built with Electron.js that provides fast, privacy-focused screen capture with enhanced annotation capabilities.
 
 ![Screenshot Tool Demo](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue)
 ![Electron](https://img.shields.io/badge/Electron-37.3.1-47848F)
@@ -21,13 +21,13 @@ A completely offline desktop screenshot tool built with Electron.js that provide
 - **Theme System**: Light/Dark/System theme support with real-time switching
 - **Settings Window**: Comprehensive settings with customizable keyboard shortcuts
 - **File Management**: Smart temporary file handling with auto-cleanup
-- **Claude Code Integration**: Copy file paths for direct use in Claude Code
+- **File Path Access**: Copy file paths to clipboard for external tool integration
 - **100% Offline**: Zero network dependencies, all data stays local
 - **Cross-Platform**: Works on Windows and macOS
 
 ### 🎨 Enhanced Preview Features
 - **Copy Image**: Re-copy screenshot to clipboard (with or without borders)
-- **Copy Path**: Copy file path to clipboard for Claude Code usage
+- **Copy Path**: Copy file path to clipboard for external tool integration
 - **Save As**: Save to permanent location with file dialog
 - **Border Tool**: Draw colored borders and annotations on screenshots
 - **Color Picker**: Choose from 12 predefined colors for border drawing
@@ -185,20 +185,6 @@ The application follows a clean, modular architecture with separation of concern
 - Automatic cleanup when preview window closes
 - Optional permanent save with user-chosen location
 
-## 🎯 Claude Code Integration
-
-This tool is specifically designed for seamless Claude Code workflows:
-
-1. **Auto-Clipboard**: Screenshots immediately available for pasting
-2. **File Path Copy**: Get absolute file paths for direct Claude Code usage
-3. **Temporary Persistence**: Files remain available until window close
-4. **Offline Operation**: No network dependencies, complete privacy
-
-### Usage with Claude Code
-1. Take screenshot using `Ctrl+Shift+S`
-2. Image is automatically in clipboard - paste directly into Claude Code
-3. Or click "Copy Path" to get file path for Claude Code file operations
-4. Files auto-cleanup when done, maintaining privacy
 
 ## 🛡️ Privacy & Security
 
@@ -214,118 +200,8 @@ This tool is specifically designed for seamless Claude Code workflows:
 - Sandboxed renderer processes with limited API access
 - All system operations handled in main process
 
-## 📦 Automated Builds
-
-### GitHub Actions CI/CD
-This repository uses GitHub Actions for automated cross-platform builds:
-
-- **Trigger**: Every push to `main` branch
-- **Platforms**: Windows and macOS builds run in parallel
-- **Artifacts**: Installers automatically uploaded to GitHub Releases
-- **Workflow**: See `.github/workflows/` for build configuration
-
-### Build Requirements
-
-#### Custom Icons (Required for Distribution)
-Add these files to `/assets/` directory:
-- `icon.ico` - Windows icon (256x256 with multiple sizes)
-- `icon.icns` - macOS icon (1024x1024 with Retina support)
-
-See `assets/ICON-SETUP.md` for detailed icon creation instructions.
-
-#### Platform-Specific Notes
-- **Windows**: Creates NSIS installer with desktop shortcuts
-- **macOS**: Creates DMG with drag-to-Applications
-- **Permissions**: macOS may require screen recording permissions
-- **Code Signing**: GitHub Actions can be configured with signing certificates
-
-## 🔮 Future Roadmap
-
-### Stage 2: Enhanced Capture Modes
-- Full screen capture (`Ctrl+Shift+F`)
-- Freeform selection with custom shapes  
-- Window selection mode
-- Enhanced multi-monitor controls
-
-### Stage 3: Screen Recording
-- Video recording with area selection
-- System audio and microphone capture
-- Recording controls with floating panel
-- MP4/WebM format support
-
-## 🤝 Development
-
-### Project Status
-**Current**: Stage 1+ Complete ✅
-- All core screenshot functionality implemented and polished
-- System tray and global hotkey working with settings integration
-- Multi-monitor support functional with display scaling
-- Enhanced preview window with border annotation tools complete
-- Theme system with light/dark/system modes implemented
-- Settings window with customizable keyboard shortcuts
-- Claude Code integration ready with file path copying
-- Icon system with programmatic generation and SVG assets
-
-### Contributing
-This is a privacy-focused, offline-only project. Contributions should maintain:
-- Zero network dependencies
-- Local-only file operations  
-- Cross-platform compatibility
-- Clean modular architecture
-
-### Code Style
-- ES6+ JavaScript with async/await
-- Modular class-based architecture
-- Comprehensive error handling
-- Electron security best practices
 
 ## 📄 License
 
 MIT License - see LICENSE file for details.
 
-## 🔧 Troubleshooting
-
-### Common Issues
-
-**Global Shortcut Not Working**
-- Check if another app is using `Ctrl+Shift+S`
-- Try running as administrator (Windows) or check accessibility permissions (macOS)
-
-**Black Screenshot/No Overlay**
-- Check screen recording permissions on macOS
-- Ensure no fullscreen apps are blocking overlay
-
-**Build Fails**
-- Run `npm run build:setup` first to create required assets
-- Add custom icons to `/assets/` directory
-- Check Node.js version (requires 18+)
-
-**Preview Window Not Opening** 
-- Check temp directory permissions
-- Look in electron logs for error details
-- Verify image processing dependencies installed
-
-**Settings Window Issues**
-- Try right-clicking system tray icon to access settings
-- Check if settings file has correct permissions in user data directory
-- Reset settings by deleting app settings file in user data folder
-
-**Border Drawing Not Working**
-- Make sure you're in border mode (click Borders button or press Ctrl+B)
-- Check that you're drawing outside the toolbar area
-- Try right-clicking in border mode to access color picker
-
-**Theme Not Changing**
-- Check system theme settings if using "System" theme mode
-- Try manually selecting Light or Dark theme from settings
-- Restart application if theme appears stuck
-
-### Debug Mode
-```bash
-npm run dev  # Runs with developer tools open
-```
-
-### Logs
-Application logs are stored locally using electron-log:
-- **Windows**: `%USERPROFILE%\AppData\Roaming\offline-screenshot-tool\logs\`
-- **macOS**: `~/Library/Logs/offline-screenshot-tool/`
