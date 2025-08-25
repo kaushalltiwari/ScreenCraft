@@ -2,21 +2,30 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- Electron/Chromium runtime requirements -->
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
     <true/>
     <key>com.apple.security.cs.disable-library-validation</key>
     <true/>
-    <key>com.apple.security.device.camera</key>
-    <true/>
-    <key>com.apple.security.device.microphone</key>
-    <true/>
+    
+    <!-- File system access for screenshot saving -->
     <key>com.apple.security.files.user-selected.read-write</key>
     <true/>
     <key>com.apple.security.files.downloads.read-write</key>
     <true/>
-    <key>com.apple.security.network.client</key>
+    
+    <!-- Future: Screen recording features (Stage 3) - Currently unused -->
+    <!-- 
+    <key>com.apple.security.device.camera</key>
     <true/>
+    <key>com.apple.security.device.microphone</key>
+    <true/>
+    -->
+    
+    <!-- Network access removed - This is a 100% offline application -->
+    <!-- <key>com.apple.security.network.client</key> -->
+    <!-- <true/> -->
 </dict>
 </plist>
