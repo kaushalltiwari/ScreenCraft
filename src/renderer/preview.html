@@ -286,7 +286,14 @@
         }
         
         .annotation-canvas.drawing.toolbar-area {
-            cursor: not-allowed;
+            cursor: default;
+            pointer-events: none;
+        }
+        
+        /* Ensure toolbar remains interactive during border mode */
+        .top-toolbar {
+            position: relative;
+            z-index: 1001;
         }
 
         /* Enhanced loading state */
@@ -790,6 +797,13 @@
 
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
+                // Handle Escape key specifically for border mode
+                if (e.key === 'Escape' && borderMode) {
+                    e.preventDefault();
+                    toggleBorderMode();
+                    return;
+                }
+                
                 const pressedShortcut = getShortcutFromEvent(e);
                 
                 // Find matching action
@@ -1092,8 +1106,12 @@
                     
                     if (e.clientY < toolbarHeight) {
                         canvas.classList.add('toolbar-area');
+                        // Disable pointer events in toolbar area to allow toolbar interactions
+                        canvas.style.pointerEvents = 'none';
                     } else {
                         canvas.classList.remove('toolbar-area');
+                        // Re-enable pointer events for drawing area
+                        canvas.style.pointerEvents = 'all';
                     }
                 }
             });
@@ -1105,11 +1123,14 @@
             if (borderMode) {
                 borderBtn.classList.add('active');
                 canvas.classList.add('drawing');
-                showStatus('Click and drag to draw rectangular borders (toolbar area excluded)');
+                canvas.style.pointerEvents = 'all';
+                showStatus('Click and drag to draw rectangular borders (toolbar area excluded). Press Escape to exit.');
             } else {
                 borderBtn.classList.remove('active');
                 canvas.classList.remove('drawing');
                 canvas.classList.remove('toolbar-area');
+                canvas.style.pointerEvents = 'none';
+                showStatus('Border mode disabled');
             }
         }
 
