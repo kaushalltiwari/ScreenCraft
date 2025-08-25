@@ -350,10 +350,40 @@
             }
         }
 
-        /* Modern color picker dropdown */
-        .color-picker {
+        /* Border tool with integrated color picker */
+        .border-tool {
             position: relative;
             display: inline-block;
+        }
+        
+        .border-color-indicator {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease;
+        }
+        
+        .dropdown-arrow {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            font-size: 8px;
+            color: var(--text-secondary);
+            opacity: 0.7;
+            transition: transform 0.2s ease;
+        }
+        
+        .toolbar-button:hover .dropdown-arrow {
+            opacity: 1;
+        }
+        
+        .border-tool.show-dropdown .dropdown-arrow {
+            transform: rotate(180deg);
         }
 
         .color-dropdown {
@@ -380,6 +410,89 @@
             display: flex;
             opacity: 1;
             transform: translateX(-50%) translateY(0) scale(1);
+        }
+        
+        /* Border color dropdown */
+        .border-color-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface-elevated);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 8px;
+            display: none;
+            gap: 6px;
+            z-index: 1000;
+            box-shadow: var(--shadow-lg);
+            opacity: 0;
+            transform: translateX(-50%) translateY(-8px) scale(0.95);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            grid-template-columns: repeat(6, 1fr);
+            min-width: 220px;
+        }
+        
+        .border-color-dropdown.show {
+            display: grid;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+        
+        /* Color option styles for border dropdown */
+        .border-color-dropdown .color-option {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .border-color-dropdown .color-option[data-color="#e74c3c"] { background-color: #e74c3c; }
+        .border-color-dropdown .color-option[data-color="#3498db"] { background-color: #3498db; }
+        .border-color-dropdown .color-option[data-color="#2ecc71"] { background-color: #2ecc71; }
+        .border-color-dropdown .color-option[data-color="#f39c12"] { background-color: #f39c12; }
+        .border-color-dropdown .color-option[data-color="#9b59b6"] { background-color: #9b59b6; }
+        .border-color-dropdown .color-option[data-color="#e67e22"] { background-color: #e67e22; }
+        .border-color-dropdown .color-option[data-color="#1abc9c"] { background-color: #1abc9c; }
+        .border-color-dropdown .color-option[data-color="#34495e"] { background-color: #34495e; }
+        .border-color-dropdown .color-option[data-color="#f1c40f"] { background-color: #f1c40f; }
+        .border-color-dropdown .color-option[data-color="#e91e63"] { background-color: #e91e63; }
+        .border-color-dropdown .color-option[data-color="#000000"] { background-color: #000000; }
+        .border-color-dropdown .color-option[data-color="#ffffff"] { background-color: #ffffff; border: 2px solid rgba(0, 0, 0, 0.3); }
+        
+        .border-color-dropdown .color-option:hover {
+            transform: scale(1.15);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .border-color-dropdown .color-option.selected {
+            border-color: var(--primary-color);
+            border-width: 3px;
+            transform: scale(1.1);
+        }
+        
+        .border-color-dropdown .color-option.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .border-color-dropdown .color-option[data-color="#ffffff"].selected::after,
+        .border-color-dropdown .color-option[data-color="#f1c40f"].selected::after {
+            color: black;
+            text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
         }
 
         .color-option {
@@ -534,21 +647,28 @@
         <div class="toolbar-separator"></div>
         
         <div class="toolbar-group">
-            <button class="toolbar-button" id="borderBtn" title="Borders">
-                <div class="toolbar-icon">🖍️</div>
-                <div>Borders</div>
-            </button>
-            <div class="color-picker">
-                <button class="toolbar-button" id="colorBtn" title="Border Color">
-                    <div class="toolbar-icon"><span class="current-color" id="currentColor" style="background-color: #e74c3c;"></span></div>
-                    <div>Color</div>
+            <div class="border-tool">
+                <button class="toolbar-button" id="borderBtn" title="Draw borders - Click for color options">
+                    <div class="toolbar-icon">
+                        🖍️
+                        <span class="border-color-indicator" id="borderColorIndicator" style="background-color: #e74c3c;"></span>
+                    </div>
+                    <div>Borders</div>
+                    <div class="dropdown-arrow">▼</div>
                 </button>
-                <div class="color-dropdown" id="colorDropdown">
-                    <div class="color-option red" data-color="#e74c3c" title="Red"></div>
-                    <div class="color-option blue" data-color="#3498db" title="Blue"></div>
-                    <div class="color-option green" data-color="#2ecc71" title="Green"></div>
-                    <div class="color-option orange" data-color="#f39c12" title="Orange"></div>
-                    <div class="color-option purple" data-color="#9b59b6" title="Purple"></div>
+                <div class="border-color-dropdown" id="borderColorDropdown">
+                    <div class="color-option selected" data-color="#e74c3c" title="Red"></div>
+                    <div class="color-option" data-color="#3498db" title="Blue"></div>
+                    <div class="color-option" data-color="#2ecc71" title="Green"></div>
+                    <div class="color-option" data-color="#f39c12" title="Orange"></div>
+                    <div class="color-option" data-color="#9b59b6" title="Purple"></div>
+                    <div class="color-option" data-color="#e67e22" title="Dark Orange"></div>
+                    <div class="color-option" data-color="#1abc9c" title="Teal"></div>
+                    <div class="color-option" data-color="#34495e" title="Dark Gray"></div>
+                    <div class="color-option" data-color="#f1c40f" title="Yellow"></div>
+                    <div class="color-option" data-color="#e91e63" title="Pink"></div>
+                    <div class="color-option" data-color="#000000" title="Black"></div>
+                    <div class="color-option" data-color="#ffffff" title="White"></div>
                 </div>
             </div>
         </div>
@@ -642,12 +762,9 @@
         const copyPathBtn = document.getElementById('copyPathBtn');
         const saveBtn = document.getElementById('saveBtn');
         const borderBtn = document.getElementById('borderBtn');
-
-        // Border UI elements
-        const colorBtn = document.getElementById('colorBtn');
-        const colorDropdown = document.getElementById('colorDropdown');
-        const currentColorSpan = document.getElementById('currentColor');
-        const colorOptions = document.querySelectorAll('.color-option');
+        const borderTool = document.querySelector('.border-tool');
+        const borderColorDropdown = document.getElementById('borderColorDropdown');
+        const borderColorIndicator = document.getElementById('borderColorIndicator');
         const clearBordersBtn = document.getElementById('clearBordersBtn');
         const undoBorderBtn = document.getElementById('undoBorderBtn');
         
@@ -751,42 +868,64 @@
             copyImageBtn?.addEventListener('click', () => handleAction('copy-image'));
             copyPathBtn?.addEventListener('click', () => handleAction('copy-path'));
             saveBtn?.addEventListener('click', () => handleAction('save'));
-            borderBtn?.addEventListener('click', toggleBorderMode);
-
-            // Color picker functionality
-            colorBtn?.addEventListener('click', (e) => {
+            // Border tool functionality
+            borderBtn?.addEventListener('click', (e) => {
                 e.stopPropagation();
-                colorDropdown.classList.toggle('show');
+                
+                if (borderMode) {
+                    // If already in border mode, toggle off
+                    toggleBorderMode();
+                } else {
+                    // Show color picker dropdown
+                    borderTool.classList.toggle('show-dropdown');
+                    borderColorDropdown.classList.toggle('show');
+                }
+            });
+            
+            // Handle color selection in border dropdown
+            borderColorDropdown?.addEventListener('click', (e) => {
+                if (e.target.classList.contains('color-option')) {
+                    e.stopPropagation();
+                    
+                    // Remove selected from all options
+                    borderColorDropdown.querySelectorAll('.color-option').forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    
+                    // Add selected to clicked option
+                    e.target.classList.add('selected');
+                    
+                    // Update border color
+                    currentBorderColor = e.target.dataset.color;
+                    borderColorIndicator.style.backgroundColor = currentBorderColor;
+                    
+                    // Enter border mode and hide dropdown
+                    borderMode = false; // Reset to false so toggleBorderMode can properly enable it
+                    toggleBorderMode();
+                    borderTool.classList.remove('show-dropdown');
+                    borderColorDropdown.classList.remove('show');
+                    
+                    // Show feedback animation
+                    borderColorIndicator.style.transform = 'scale(1.3)';
+                    setTimeout(() => {
+                        borderColorIndicator.style.transform = 'scale(1)';
+                    }, 200);
+                }
             });
 
             // Close color dropdown when clicking outside
             document.addEventListener('click', () => {
                 colorDropdown.classList.remove('show');
             });
-
-            // Enhanced border color selection
-            colorOptions.forEach(option => {
-                option.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    
-                    // Remove selected class from all options
-                    colorOptions.forEach(opt => opt.classList.remove('selected'));
-                    
-                    // Add selected class to clicked option
-                    option.classList.add('selected');
-                    
-                    currentBorderColor = option.dataset.color;
-                    currentColorSpan.style.backgroundColor = currentBorderColor;
-                    
-                    // Add a small animation to the color indicator
-                    currentColorSpan.style.transform = 'scale(1.2)';
-                    setTimeout(() => {
-                        currentColorSpan.style.transform = 'scale(1)';
-                    }, 150);
-                    
-                    colorDropdown.classList.remove('show');
-                });
+            
+            // Close border color dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!borderTool?.contains(e.target)) {
+                    borderTool?.classList.remove('show-dropdown');
+                    borderColorDropdown?.classList.remove('show');
+                }
             });
+
 
             // Border controls
             clearBordersBtn?.addEventListener('click', clearAllBorders);
