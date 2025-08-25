@@ -85,28 +85,23 @@ class ScreenCaptureApp {
   }
 
   initializeAppIcon() {
-    // Try to load abstract SVG icon first, then PNG, then fallback to generated
+    // Use generated abstract icon design - SVGs don't work well for system icons
     const { nativeImage } = require('electron');
-    const svgIconPath = path.join(__dirname, 'assets', 'icon-abstract.svg');
     const pngIconPath = path.join(__dirname, 'assets', 'icon.png');
     
     try {
-      // Check if abstract SVG icon exists
-      if (require('fs').existsSync(svgIconPath)) {
-        this.appIcon = nativeImage.createFromPath(svgIconPath);
-        log.info('Using abstract SVG icon from assets/icon-abstract.svg');
-      } else if (require('fs').existsSync(pngIconPath)) {
-        // Fallback to PNG if SVG not available
+      // Check if custom PNG icon exists first
+      if (require('fs').existsSync(pngIconPath)) {
         this.appIcon = nativeImage.createFromPath(pngIconPath);
         log.info('Using custom PNG icon from assets/icon.png');
       } else {
-        // Use generated default icon as final fallback
-        this.appIcon = this.createDefaultIcon();
-        log.info('Using generated default icon');
+        // Use generated abstract icon design
+        this.appIcon = this.createAbstractIcon();
+        log.info('Using generated abstract icon design');
       }
     } catch (error) {
-      log.warn('Failed to load custom icons, using generated default:', error);
-      this.appIcon = this.createDefaultIcon();
+      log.warn('Failed to load custom icon, using generated abstract:', error);
+      this.appIcon = this.createAbstractIcon();
     }
   }
 
@@ -318,16 +313,15 @@ class ScreenCaptureApp {
     log.info('System tray setup complete');
   }
 
-  createDefaultIcon() {
-    // Create a minimalist screenshot icon programmatically
+  createAbstractIcon() {
+    // Create abstract capture icon with vibrant gradient
     const { nativeImage } = require('electron');
     
-    const size = 32; // Increased size for better quality
+    const size = 32; // Good size for system tray
     const buffer = Buffer.alloc(size * size * 4); // RGBA
     
     const centerX = size / 2;
     const centerY = size / 2;
-    const radius = (size / 2) - 2;
     
     // Helper function to set pixel
     function setPixel(x, y, r, g, b, a = 255) {
@@ -339,72 +333,110 @@ class ScreenCaptureApp {
       buffer[index + 3] = a;
     }
     
-    // Draw background circle with modern gradient
+    // Create vibrant diagonal gradient background (Purple to Pink)
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const gradientPos = (x + y) / (size * 2);
+        const r = Math.floor(99 + (236 - 99) * gradientPos);   // #6366f1 to #ec4899
+        const g = Math.floor(102 + (72 - 102) * gradientPos);
+        const b = Math.floor(241 + (153 - 241) * gradientPos);
+        setPixel(x, y, r, g, b);
+      }
+    }
+    
+    // Add radial glow effect
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
         const dx = x - centerX;
         const dy = y - centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
+        const maxDistance = size * 0.4;
         
-        if (distance <= radius) {
-          // Modern gradient: Purple to Blue
-          const gradient = 1 - (distance / radius);
-          const r = Math.floor(102 * gradient + 118 * (1 - gradient));
-          const g = Math.floor(126 * gradient + 75 * (1 - gradient));
-          const b = Math.floor(234 * gradient + 162 * (1 - gradient));
-          setPixel(x, y, r, g, b);
-        } else if (distance <= radius + 1) {
-          // Border
-          setPixel(x, y, 67, 56, 202);
+        if (distance <= maxDistance) {
+          const glowIntensity = 1 - (distance / maxDistance);
+          const glowAmount = Math.floor(30 * glowIntensity * 0.3);
+          
+          const currentIndex = (y * size + x) * 4;
+          const currentR = buffer[currentIndex];
+          const currentG = buffer[currentIndex + 1];
+          const currentB = buffer[currentIndex + 2];
+          
+          setPixel(x, y,
+            Math.min(255, currentR + glowAmount),
+            Math.min(255, currentG + glowAmount),
+            Math.min(255, currentB + glowAmount)
+          );
         }
       }
     }
     
-    // Draw minimalist screen rectangle
-    const screenW = size * 0.5;
-    const screenH = size * 0.375;
-    const screenX = centerX - screenW / 2;
-    const screenY = centerY - screenH / 2;
+    // Draw main capture frame (white outline)
+    const frameSize = size * 0.6;
+    const frameX = Math.floor(centerX - frameSize / 2);
+    const frameY = Math.floor(centerY - frameSize / 2);
+    const frameEndX = Math.floor(centerX + frameSize / 2);
+    const frameEndY = Math.floor(centerY + frameSize / 2);
     
-    // Screen background
-    for (let y = screenY; y < screenY + screenH; y++) {
-      for (let x = screenX; x < screenX + screenW; x++) {
-        setPixel(Math.floor(x), Math.floor(y), 248, 250, 252);
+    // Draw frame outline
+    for (let x = frameX; x <= frameEndX; x++) {
+      setPixel(x, frameY, 255, 255, 255, 230);     // Top
+      setPixel(x, frameEndY, 255, 255, 255, 230);  // Bottom
+    }
+    for (let y = frameY; y <= frameEndY; y++) {
+      setPixel(frameX, y, 255, 255, 255, 230);     // Left
+      setPixel(frameEndX, y, 255, 255, 255, 230);  // Right
+    }
+    
+    // Draw dynamic corner elements (L-shaped brackets)
+    const cornerSize = 4;
+    const corners = [
+      { x: frameX - 2, y: frameY - 2 }, // Top-left
+      { x: frameEndX - cornerSize + 2, y: frameY - 2 }, // Top-right
+      { x: frameX - 2, y: frameEndY - cornerSize + 2 }, // Bottom-left
+      { x: frameEndX - cornerSize + 2, y: frameEndY - cornerSize + 2 } // Bottom-right
+    ];
+    
+    corners.forEach((corner, index) => {
+      const isLeft = index % 2 === 0;
+      const isTop = index < 2;
+      
+      // Draw L-shaped brackets
+      for (let i = 0; i < cornerSize; i++) {
+        if (isLeft && isTop) {
+          setPixel(corner.x + i, corner.y, 255, 255, 255);     // Horizontal
+          setPixel(corner.x, corner.y + i, 255, 255, 255);     // Vertical
+        } else if (!isLeft && isTop) {
+          setPixel(corner.x + i, corner.y, 255, 255, 255);     // Horizontal
+          setPixel(corner.x + cornerSize - 1, corner.y + i, 255, 255, 255); // Vertical
+        } else if (isLeft && !isTop) {
+          setPixel(corner.x, corner.y + i, 255, 255, 255);     // Vertical
+          setPixel(corner.x + i, corner.y + cornerSize - 1, 255, 255, 255); // Horizontal
+        } else {
+          setPixel(corner.x + cornerSize - 1, corner.y + i, 255, 255, 255); // Vertical
+          setPixel(corner.x + i, corner.y + cornerSize - 1, 255, 255, 255); // Horizontal
+        }
       }
-    }
-    
-    // Screen border
-    for (let x = screenX - 1; x < screenX + screenW + 1; x++) {
-      setPixel(Math.floor(x), Math.floor(screenY - 1), 51, 65, 85);
-      setPixel(Math.floor(x), Math.floor(screenY + screenH), 51, 65, 85);
-    }
-    for (let y = screenY - 1; y < screenY + screenH + 1; y++) {
-      setPixel(Math.floor(screenX - 1), Math.floor(y), 51, 65, 85);
-      setPixel(Math.floor(screenX + screenW), Math.floor(y), 51, 65, 85);
-    }
-    
-    // Selection area indicators (corner dots)
-    const selW = screenW * 0.75;
-    const selH = screenH * 0.67;
-    const selX = screenX + (screenW - selW) / 2;
-    const selY = screenY + (screenH - selH) / 2;
-    
-    // Corner handles
-    [[selX, selY], [selX + selW, selY], [selX, selY + selH], [selX + selW, selY + selH]].forEach(([x, y]) => {
-      setPixel(Math.floor(x), Math.floor(y), 99, 102, 241);
-      // Make handles slightly bigger for visibility
-      setPixel(Math.floor(x + 1), Math.floor(y), 99, 102, 241);
-      setPixel(Math.floor(x), Math.floor(y + 1), 99, 102, 241);
     });
     
-    // Center capture indicator
-    setPixel(Math.floor(centerX), Math.floor(centerY), 99, 102, 241);
-    setPixel(Math.floor(centerX + 1), Math.floor(centerY), 99, 102, 241);
-    setPixel(Math.floor(centerX), Math.floor(centerY + 1), 99, 102, 241);
-    setPixel(Math.floor(centerX - 1), Math.floor(centerY), 99, 102, 241);
-    setPixel(Math.floor(centerX), Math.floor(centerY - 1), 99, 102, 241);
+    // Draw center capture indicator
+    setPixel(Math.floor(centerX), Math.floor(centerY), 255, 255, 255);
+    setPixel(Math.floor(centerX + 1), Math.floor(centerY), 255, 255, 255);
+    setPixel(Math.floor(centerX), Math.floor(centerY + 1), 255, 255, 255);
+    setPixel(Math.floor(centerX - 1), Math.floor(centerY), 255, 255, 255);
+    setPixel(Math.floor(centerX), Math.floor(centerY - 1), 255, 255, 255);
+    
+    // Add small crosshair in center
+    setPixel(Math.floor(centerX + 2), Math.floor(centerY), 255, 255, 255, 180);
+    setPixel(Math.floor(centerX - 2), Math.floor(centerY), 255, 255, 255, 180);
+    setPixel(Math.floor(centerX), Math.floor(centerY + 2), 255, 255, 255, 180);
+    setPixel(Math.floor(centerX), Math.floor(centerY - 2), 255, 255, 255, 180);
     
     return nativeImage.createFromBuffer(buffer, { width: size, height: size });
+  }
+
+  // Keep the old method as backup
+  createDefaultIcon() {
+    return this.createAbstractIcon();
   }
 
   registerGlobalShortcuts() {
