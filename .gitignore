@@ -43,8 +43,7 @@ temp/
 
 # Icon generation files (temporary development tools)
 create-icons.js
-**/create-*icon*.js
-assets/create-minimal-icon.js
+# Note: create-minimal-icon.js is now included as it's cleaned of external URLs
 
 # Environment variables
 .env
