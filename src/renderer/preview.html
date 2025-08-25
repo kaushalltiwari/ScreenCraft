@@ -518,9 +518,9 @@
                 <div class="toolbar-icon">💾</div>
                 <div>Save</div>
             </button>
-            <button class="toolbar-button" id="copyImageBtn" title="Copy">
+            <button class="toolbar-button" id="copyImageBtn" title="Paste Image">
                 <div class="toolbar-icon">📋</div>
-                <div>Copy</div>
+                <div>Paste</div>
             </button>
         </div>
         
@@ -562,7 +562,7 @@
         <div class="toolbar-separator"></div>
         
         <div class="toolbar-group">
-            <button class="toolbar-button" id="copyPathBtn" title="Copy File Path">
+            <button class="toolbar-button" id="copyPathBtn" title="Paste File Path">
                 <div class="toolbar-icon">📁</div>
                 <div>Path</div>
             </button>
@@ -652,8 +652,8 @@
         // Default shortcuts (can be customized later via system tray settings)
         let customShortcuts = {
             'take-screenshot': 'Ctrl+Shift+S',
-            'copy-image': 'Ctrl+C',
-            'copy-path': 'Ctrl+Shift+C',
+            'paste-image': 'Ctrl+V',
+            'paste-path': 'Ctrl+Shift+V',
             'save': 'Ctrl+S',
             'toggle-borders': 'Ctrl+B',
             'undo-border': 'Ctrl+Z',
@@ -814,10 +814,10 @@
 
         function handleShortcutAction(action) {
             switch (action) {
-                case 'copy-image':
+                case 'paste-image':
                     handleAction('copy-image');
                     break;
-                case 'copy-path':
+                case 'paste-path':
                     handleAction('copy-path');
                     break;
                 case 'save':
