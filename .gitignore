@@ -40,7 +40,11 @@ tmp/
 temp/
 *.tmp
 *.temp
+
+# Icon generation files (temporary development tools)
 create-icons.js
+**/create-*icon*.js
+assets/create-minimal-icon.js
 
 # Environment variables
 .env
