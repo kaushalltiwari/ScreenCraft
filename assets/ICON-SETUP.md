@@ -15,12 +15,19 @@ To build installers, you need to add the following icon files to the /assets fol
 ## Optional Assets:
 - **dmg-background.png** (540x380 pixels) - Background image for macOS DMG installer
 
-## How to Create Icons:
-1. Design a 1024x1024 PNG image of your app icon
-2. Use online tools like:
-   - https://icoconvert.com/ (for .ico)
-   - https://iconverticons.com/ (for .icns)
-3. Save icons as 'icon.ico' and 'icon.icns' in /assets folder
+## Current Status:
+✅ **Default Icon Available**: The app includes a programmatically generated icon
+📁 **SVG Source Available**: `assets/icon.svg` contains the source design
+🔧 **Generation Script**: `create-minimal-icon.js` can regenerate icons (excluded from git)
 
-## Temporary Solution:
-The build script will use Electron's default icon if custom icons are not found.
+## How to Create Custom Icons:
+1. **Option 1**: Edit `assets/icon.svg` and regenerate using the generation script
+2. **Option 2**: Design a 1024x1024 PNG image of your app icon
+3. **Option 3**: Use online conversion tools:
+   - Icon conversion websites for .ico format
+   - Icon conversion websites for .icns format  
+   - Local tools like GIMP, ImageMagick, or iconutil (macOS)
+4. Save icons as 'icon.ico' and 'icon.icns' in /assets folder
+
+## Default Behavior:
+The app currently uses a built-in programmatically generated icon with a minimalist screenshot tool design. Custom icons will override this default when present.
