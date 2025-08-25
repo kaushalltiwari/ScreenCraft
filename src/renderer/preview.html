@@ -875,10 +875,13 @@
                 if (borderMode) {
                     // If already in border mode, toggle off
                     toggleBorderMode();
+                    borderTool.classList.remove('show-dropdown');
+                    borderColorDropdown.classList.remove('show');
                 } else {
-                    // Show color picker dropdown
-                    borderTool.classList.toggle('show-dropdown');
-                    borderColorDropdown.classList.toggle('show');
+                    // Enter border mode immediately and show color picker
+                    toggleBorderMode();
+                    borderTool.classList.add('show-dropdown');
+                    borderColorDropdown.classList.add('show');
                 }
             });
             
@@ -899,9 +902,7 @@
                     currentBorderColor = e.target.dataset.color;
                     borderColorIndicator.style.backgroundColor = currentBorderColor;
                     
-                    // Enter border mode and hide dropdown
-                    borderMode = false; // Reset to false so toggleBorderMode can properly enable it
-                    toggleBorderMode();
+                    // Hide dropdown (border mode is already active)
                     borderTool.classList.remove('show-dropdown');
                     borderColorDropdown.classList.remove('show');
                     
@@ -910,6 +911,9 @@
                     setTimeout(() => {
                         borderColorIndicator.style.transform = 'scale(1)';
                     }, 200);
+                    
+                    // Update status to show new color
+                    showStatus(`Border color changed. Click and drag to draw borders. Press Escape to exit.`);
                 }
             });
 
@@ -918,9 +922,10 @@
                 colorDropdown.classList.remove('show');
             });
             
-            // Close border color dropdown when clicking outside
+            // Close border color dropdown when clicking outside (but not on canvas for drawing)
             document.addEventListener('click', (e) => {
-                if (!borderTool?.contains(e.target)) {
+                // Don't close if clicking on canvas for drawing or on border tool
+                if (!borderTool?.contains(e.target) && !canvas?.contains(e.target)) {
                     borderTool?.classList.remove('show-dropdown');
                     borderColorDropdown?.classList.remove('show');
                 }
@@ -1233,6 +1238,15 @@
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
             
+            // Right-click to show color picker while in border mode
+            canvas.addEventListener('contextmenu', (e) => {
+                if (borderMode) {
+                    e.preventDefault();
+                    borderTool.classList.add('show-dropdown');
+                    borderColorDropdown.classList.add('show');
+                }
+            });
+            
             // Handle mouse up outside the window
             document.addEventListener('mouseup', stopDrawing);
             document.addEventListener('mouseleave', stopDrawing);
@@ -1263,13 +1277,17 @@
                 borderBtn.classList.add('active');
                 canvas.classList.add('drawing');
                 canvas.style.pointerEvents = 'all';
-                showStatus('Click and drag to draw rectangular borders (toolbar area excluded). Press Escape to exit.');
+                showStatus('Border mode active! Click and drag to draw borders. Right-click to change colors. Press Escape to exit.');
             } else {
                 borderBtn.classList.remove('active');
                 canvas.classList.remove('drawing');
                 canvas.classList.remove('toolbar-area');
                 canvas.style.pointerEvents = 'none';
                 showStatus('Border mode disabled');
+                
+                // Also hide color dropdown when exiting border mode
+                borderTool.classList.remove('show-dropdown');
+                borderColorDropdown.classList.remove('show');
             }
         }
 
@@ -1277,6 +1295,13 @@
             if (!borderMode) return;
             
             isDrawing = true;
+            
+            // Hide color dropdown when drawing starts
+            if (borderTool.classList.contains('show-dropdown')) {
+                borderTool.classList.remove('show-dropdown');
+                borderColorDropdown.classList.remove('show');
+            }
+            
             // Use direct window coordinates (canvas is full viewport)
             startX = Math.max(0, Math.min(canvas.width, e.clientX));
             startY = Math.max(0, Math.min(canvas.height, e.clientY));
