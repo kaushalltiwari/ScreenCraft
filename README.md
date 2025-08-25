@@ -12,21 +12,38 @@ A completely offline desktop screenshot tool built with Electron.js that provide
 
 ### ✅ Current Implementation
 - **Global Hotkey**: `Ctrl+Shift+S` for instant screenshot capture
-- **System Tray Integration**: Click tray icon or use hotkey
+- **System Tray Integration**: Click tray icon or use hotkey with context menu
 - **Area Selection**: Click and drag to select rectangular screen areas
 - **Multi-Monitor Support**: Automatically handles multiple displays
 - **Instant Clipboard**: Screenshots automatically copied to clipboard
-- **Preview Window**: Enhanced preview with multiple action options
+- **Enhanced Preview Window**: Feature-rich preview with annotation tools
+- **Border Drawing**: Interactive border annotation with color picker
+- **Theme System**: Light/Dark/System theme support with real-time switching
+- **Settings Window**: Comprehensive settings with customizable keyboard shortcuts
 - **File Management**: Smart temporary file handling with auto-cleanup
 - **Claude Code Integration**: Copy file paths for direct use in Claude Code
 - **100% Offline**: Zero network dependencies, all data stays local
 - **Cross-Platform**: Works on Windows and macOS
 
-### 🎯 Preview Window Actions
-- **Copy Image**: Re-copy screenshot to clipboard
+### 🎨 Enhanced Preview Features
+- **Copy Image**: Re-copy screenshot to clipboard (with or without borders)
 - **Copy Path**: Copy file path to clipboard for Claude Code usage
 - **Save As**: Save to permanent location with file dialog
+- **Border Tool**: Draw colored borders and annotations on screenshots
+- **Color Picker**: Choose from 12 predefined colors for border drawing
+- **Undo/Clear**: Remove individual borders or clear all annotations
 - **Auto-cleanup**: Temporary files cleaned up on window close
+- **Multiple Windows**: Support for multiple simultaneous screenshot previews
+
+### ⌨️ Keyboard Shortcuts
+- **Take Screenshot**: `Ctrl+Shift+S` (customizable)
+- **Copy Image**: `Ctrl+V` (customizable)
+- **Copy Path**: `Ctrl+Shift+V` (customizable)
+- **Save**: `Ctrl+S` (customizable)
+- **Toggle Borders**: `Ctrl+B` (customizable)
+- **Undo Border**: `Ctrl+Z` (customizable)
+- **Toggle Theme**: `Ctrl+T` (customizable)
+- **Close Window**: `Escape` (customizable)
 
 ## 🛠️ Installation
 
@@ -79,12 +96,18 @@ Built installers will be created in the `/dist` directory.
 3. **Selection**: Click and drag to select the area you want to capture
 4. **Preview**: The preview window opens automatically with your screenshot
 
-### Preview Window
-- **Keyboard Shortcuts**:
-  - `Ctrl+C`: Copy image to clipboard
-  - `Ctrl+S`: Save screenshot
-  - `Esc`: Close preview window
-- **Mouse Actions**: Click action buttons for copy/save operations
+### Preview Window Features
+- **Border Drawing**: Click the "Borders" button or press `Ctrl+B` to enter border mode
+- **Color Selection**: Click the color picker dropdown to choose border colors
+- **Drawing**: Click and drag to draw rectangular borders around areas of interest
+- **Theme Toggle**: Click theme button or press `Ctrl+T` to cycle between light/dark/system themes
+- **Multiple Actions**: Copy image, copy file path, or save with borders included
+
+### System Tray Features
+- **Click to Capture**: Single-click tray icon to start screenshot
+- **Context Menu**: Right-click for options including Settings
+- **Settings Window**: Access keyboard shortcut customization and theme preferences
+- **Always Available**: App runs in background for instant access
 
 ## 🏗️ Architecture
 
@@ -98,27 +121,33 @@ The application follows a clean, modular architecture with separation of concern
 │   └── FileManager           # File operations and clipboard integration
 ├── src/renderer/
 │   ├── overlay.html          # Fullscreen selection overlay
-│   └── preview.html          # Screenshot preview window
+│   ├── preview.html          # Screenshot preview with annotation tools
+│   ├── settings.html         # Settings window with theme and shortcuts
+│   └── *-preload.js          # Secure IPC bridges for each renderer
 └── src/shared/
-    └── constants.js          # Centralized configuration
+    ├── constants.js          # Centralized configuration
+    └── preload-utils.js      # Shared preload script utilities
 ```
 
 ### Key Components
 
 **ScreenCaptureApp (main.js)**
-- Main application controller
+- Main application controller with theme management
 - Handles Electron lifecycle and IPC coordination
-- Manages system tray and global shortcuts
+- Manages system tray, global shortcuts, and settings persistence
+- Coordinates multiple preview windows and window lifecycle
 
 **ScreenCaptureManager**
 - Screen capture using Electron's `desktopCapturer`
 - Overlay window management for area selection
 - Multi-monitor support with combined display bounds
+- App icon integration and display scaling
 
 **FileManager**  
-- Image processing with Jimp for cropping
+- Image processing with Jimp for cropping and border compositing
 - Temporary file management with auto-cleanup
-- Clipboard integration and file save operations
+- Clipboard integration for images and file paths
+- Save operations with user file dialogs
 
 ### Security Model
 - Context isolation enabled in all renderer processes
@@ -227,12 +256,15 @@ See `assets/ICON-SETUP.md` for detailed icon creation instructions.
 ## 🤝 Development
 
 ### Project Status
-**Current**: Stage 1 Complete ✅
-- All core screenshot functionality implemented
-- System tray and global hotkey working
-- Multi-monitor support functional
-- Preview window with actions complete
-- Claude Code integration ready
+**Current**: Stage 1+ Complete ✅
+- All core screenshot functionality implemented and polished
+- System tray and global hotkey working with settings integration
+- Multi-monitor support functional with display scaling
+- Enhanced preview window with border annotation tools complete
+- Theme system with light/dark/system modes implemented
+- Settings window with customizable keyboard shortcuts
+- Claude Code integration ready with file path copying
+- Icon system with programmatic generation and SVG assets
 
 ### Contributing
 This is a privacy-focused, offline-only project. Contributions should maintain:
@@ -272,6 +304,21 @@ MIT License - see LICENSE file for details.
 - Check temp directory permissions
 - Look in electron logs for error details
 - Verify image processing dependencies installed
+
+**Settings Window Issues**
+- Try right-clicking system tray icon to access settings
+- Check if settings file has correct permissions in user data directory
+- Reset settings by deleting app settings file in user data folder
+
+**Border Drawing Not Working**
+- Make sure you're in border mode (click Borders button or press Ctrl+B)
+- Check that you're drawing outside the toolbar area
+- Try right-clicking in border mode to access color picker
+
+**Theme Not Changing**
+- Check system theme settings if using "System" theme mode
+- Try manually selecting Light or Dark theme from settings
+- Restart application if theme appears stuck
 
 ### Debug Mode
 ```bash
