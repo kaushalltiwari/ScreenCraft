@@ -43,7 +43,14 @@ temp/
 
 # Icon generation files (temporary development tools)
 create-icons.js
-# Note: create-minimal-icon.js is now included as it's cleaned of external URLs
+create-minimal-icon.js
+
+# Unused SVG icon designs (not used since switching to programmatic generation)
+assets/icon-camera.svg
+assets/icon-geometric.svg
+assets/icon-monitor.svg
+assets/icon-abstract.svg
+# Note: icon.svg is kept as it may be referenced elsewhere
 
 # Environment variables
 .env
