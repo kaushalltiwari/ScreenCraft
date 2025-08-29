@@ -495,23 +495,23 @@
 
                     <div class="shortcut-item">
                         <div class="shortcut-info">
-                            <strong>Paste Image</strong>
-                            <div class="shortcut-description">Paste screenshot to clipboard</div>
+                            <strong>Copy Image</strong>
+                            <div class="shortcut-description">Copy screenshot to clipboard</div>
                         </div>
                         <div class="shortcut-input-wrapper">
-                            <input class="shortcut-input" data-action="paste-image" readonly value="Ctrl+V">
-                            <button class="edit-shortcut" data-action="paste-image">Edit</button>
+                            <input class="shortcut-input" data-action="copy-image" readonly value="Ctrl+C">
+                            <button class="edit-shortcut" data-action="copy-image">Edit</button>
                         </div>
                     </div>
 
                     <div class="shortcut-item">
                         <div class="shortcut-info">
-                            <strong>Paste File Path</strong>
-                            <div class="shortcut-description">Paste file path to clipboard</div>
+                            <strong>Copy File Path</strong>
+                            <div class="shortcut-description">Copy file path to clipboard</div>
                         </div>
                         <div class="shortcut-input-wrapper">
-                            <input class="shortcut-input" data-action="paste-path" readonly value="Ctrl+Shift+V">
-                            <button class="edit-shortcut" data-action="paste-path">Edit</button>
+                            <input class="shortcut-input" data-action="copy-path" readonly value="Ctrl+Shift+C">
+                            <button class="edit-shortcut" data-action="copy-path">Edit</button>
                         </div>
                     </div>
 
@@ -725,8 +725,8 @@
         function updateShortcutInputs() {
             const defaultShortcuts = {
                 'take-screenshot': 'Ctrl+Shift+S',
-                'paste-image': 'Ctrl+V',
-                'paste-path': 'Ctrl+Shift+V',
+                'copy-image': 'Ctrl+C',
+                'copy-path': 'Ctrl+Shift+C',
                 'save': 'Ctrl+S',
                 'toggle-borders': 'Ctrl+B',
                 'undo-border': 'Ctrl+Z',
@@ -802,8 +802,8 @@
         function resetShortcuts() {
             const defaultShortcuts = {
                 'take-screenshot': 'Ctrl+Shift+S',
-                'paste-image': 'Ctrl+V',
-                'paste-path': 'Ctrl+Shift+V',
+                'copy-image': 'Ctrl+C',
+                'copy-path': 'Ctrl+Shift+C',
                 'save': 'Ctrl+S',
                 'toggle-borders': 'Ctrl+B',
                 'undo-border': 'Ctrl+Z',
