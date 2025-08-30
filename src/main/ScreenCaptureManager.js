@@ -1,6 +1,8 @@
 const { BrowserWindow, desktopCapturer, screen } = require('electron');
 const path = require('path');
 const log = require('electron-log');
+const ValidationUtils = require('../shared/ValidationUtils');
+const ErrorHandler = require('../shared/ErrorHandler');
 
 /**
  * ScreenCaptureManager - Handles screen capture functionality with overlay
@@ -195,14 +197,20 @@ class ScreenCaptureManager {
    * Process selected area and generate final screenshot
    */
   async processSelection(selectionData) {
-    try {
+    return ErrorHandler.withErrorHandling(async () => {
       log.info('Processing selection:', selectionData);
       
-      const { x, y, width, height, screenIndex } = selectionData;
-      const selectedScreen = this.capturedScreens[screenIndex || 0];
+      // Validate selection data
+      const validation = ValidationUtils.validateSelectionData(selectionData);
+      if (!validation.isValid) {
+        throw new Error(`Invalid selection data: ${validation.errors.join(', ')}`);
+      }
+      
+      const { x, y, width, height, screenIndex } = validation.sanitized;
+      const selectedScreen = this.capturedScreens[screenIndex];
       
       if (!selectedScreen) {
-        throw new Error('Invalid screen selection');
+        throw new Error(`Invalid screen index: ${screenIndex}`);
       }
 
       // Get full screen capture for processing
@@ -216,10 +224,10 @@ class ScreenCaptureManager {
 
       const screenSource = fullScreenSource.find(s => s.id === selectedScreen.id);
       if (!screenSource) {
-        throw new Error('Screen source not found');
+        throw new Error('Screen source not found for selected screen');
       }
 
-      // Return selection data for further processing
+      // Return validated selection data for further processing
       return {
         success: true,
         selection: { x, y, width, height },
@@ -227,11 +235,7 @@ class ScreenCaptureManager {
         fullImage: screenSource.thumbnail,
         timestamp: Date.now()
       };
-      
-    } catch (error) {
-      log.error('Failed to process selection:', error);
-      throw error;
-    }
+    }, 'processSelection', ErrorHandler.handleScreenCaptureError);
   }
 
   /**
