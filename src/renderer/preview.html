@@ -626,13 +626,26 @@
         <div class="toolbar-separator"></div>
         
         <div class="toolbar-group">
+            <button class="toolbar-button" id="rectBtn" title="Rectangle - Draw rectangular borders">
+                <div class="toolbar-icon" style="font-size: 16px;">⬜</div>
+                <div>Rect</div>
+            </button>
+            <button class="toolbar-button" id="lineBtn" title="Line - Draw straight lines">
+                <div class="toolbar-icon" style="font-size: 16px;">📏</div>
+                <div>Line</div>
+            </button>
+        </div>
+        
+        <div class="toolbar-separator"></div>
+        
+        <div class="toolbar-group">
             <div class="border-tool">
-                <button class="toolbar-button" id="borderBtn" title="Pen - Draw borders and annotations">
+                <button class="toolbar-button" id="colorBtn" title="Color - Select drawing color">
                     <div class="toolbar-icon" style="font-size: 16px;">
-                        ✏️
+                        🎨
                         <span class="border-color-indicator" id="borderColorIndicator" style="background-color: #e74c3c;"></span>
                     </div>
-                    <div>Pen</div>
+                    <div>Color</div>
                     <div class="dropdown-arrow">▼</div>
                 </button>
                 <div class="border-color-dropdown" id="borderColorDropdown">
@@ -692,11 +705,11 @@
 
     <script>
         let screenshotData = null;
-        let borderMode = false;
-        let currentBorderColor = '#e74c3c';
+        let drawingMode = null; // 'rect', 'line', or null
+        let currentColor = '#e74c3c';
         let isDrawing = false;
         let startX, startY;
-        let borders = [];
+        let drawings = []; // Store all drawings (rects and lines)
         let imageWrapper, canvas, ctx;
         let lastImageRect = null; // Store last known image position for scaling
         
@@ -719,7 +732,9 @@
         const copyImageBtn = document.getElementById('copyImageBtn');
         const copyPathBtn = document.getElementById('copyPathBtn');
         const saveBtn = document.getElementById('saveBtn');
-        const borderBtn = document.getElementById('borderBtn');
+        const rectBtn = document.getElementById('rectBtn');
+        const lineBtn = document.getElementById('lineBtn');
+        const colorBtn = document.getElementById('colorBtn');
         const borderTool = document.querySelector('.border-tool');
         const borderColorDropdown = document.getElementById('borderColorDropdown');
         const borderColorIndicator = document.getElementById('borderColorIndicator');
@@ -827,21 +842,19 @@
             copyImageBtn?.addEventListener('click', () => handleAction('copy-image'));
             copyPathBtn?.addEventListener('click', () => handleAction('copy-path'));
             saveBtn?.addEventListener('click', () => handleAction('save'));
-            // Border tool functionality
-            borderBtn?.addEventListener('click', (e) => {
+            // Drawing tool functionality
+            rectBtn?.addEventListener('click', () => {
+                setDrawingMode('rect');
+            });
+            lineBtn?.addEventListener('click', () => {
+                setDrawingMode('line');
+            });
+            
+            // Color tool functionality
+            colorBtn?.addEventListener('click', (e) => {
                 e.stopPropagation();
-                
-                if (borderMode) {
-                    // If already in border mode, toggle off
-                    toggleBorderMode();
-                    borderTool.classList.remove('show-dropdown');
-                    borderColorDropdown.classList.remove('show');
-                } else {
-                    // Enter border mode immediately and show color picker
-                    toggleBorderMode();
-                    borderTool.classList.add('show-dropdown');
-                    borderColorDropdown.classList.add('show');
-                }
+                borderTool.classList.toggle('show-dropdown');
+                borderColorDropdown.classList.toggle('show');
             });
             
             // Handle color selection in border dropdown
@@ -857,9 +870,9 @@
                     // Add selected to clicked option
                     e.target.classList.add('selected');
                     
-                    // Update border color
-                    currentBorderColor = e.target.dataset.color;
-                    borderColorIndicator.style.backgroundColor = currentBorderColor;
+                    // Update current color
+                    currentColor = e.target.dataset.color;
+                    borderColorIndicator.style.backgroundColor = currentColor;
                     
                     // Hide dropdown (border mode is already active)
                     borderTool.classList.remove('show-dropdown');
@@ -900,10 +913,10 @@
 
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
-                // Handle Escape key specifically for border mode
-                if (e.key === 'Escape' && borderMode) {
+                // Handle Escape key specifically for drawing mode
+                if (e.key === 'Escape' && drawingMode) {
                     e.preventDefault();
-                    toggleBorderMode();
+                    setDrawingMode(null);
                     return;
                 }
                 
@@ -941,17 +954,22 @@
                     handleAction('save');
                     break;
                 case 'toggle-borders':
-                    toggleBorderMode();
+                    // Toggle between rect mode and off
+                    if (drawingMode === 'rect') {
+                        setDrawingMode(null);
+                    } else {
+                        setDrawingMode('rect');
+                    }
                     break;
                 case 'undo-border':
-                    undoLastBorder();
+                    undoLastDrawing();
                     break;
                 case 'toggle-theme':
                     cycleTheme();
                     break;
                 case 'close-window':
-                    if (borderMode) {
-                        toggleBorderMode();
+                    if (drawingMode) {
+                        setDrawingMode(null);
                     } else {
                         window.electronAPI.closePreview();
                     }
@@ -999,9 +1017,9 @@
                     filePath: screenshotData.filePath
                 };
 
-                // If we have borders and action involves image, include border data
-                if (borders.length > 0 && (action === 'copy-image' || action === 'save')) {
-                    actionData.borders = await generateImageWithBorders();
+                // If we have drawings and action involves image, include drawing data
+                if (drawings.length > 0 && (action === 'copy-image' || action === 'save')) {
+                    actionData.borders = await generateImageWithDrawings();
                 }
 
                 const result = await window.electronAPI.previewAction(actionData);
@@ -1040,10 +1058,10 @@
             }
         }
 
-        async function generateImageWithBorders() {
-            if (borders.length === 0) return null;
+        async function generateImageWithDrawings() {
+            if (drawings.length === 0) return null;
 
-            // Create a new canvas for compositing the final image with borders
+            // Create a new canvas for compositing the final image with drawings
             const compositeCanvas = document.createElement('canvas');
             const compositeCtx = compositeCanvas.getContext('2d');
 
@@ -1059,26 +1077,40 @@
             const scaleX = screenshotImage.naturalWidth / imageRect.width;
             const scaleY = screenshotImage.naturalHeight / imageRect.height;
 
-            // Draw borders on the composite image
-            borders.forEach(border => {
-                // Convert window coordinates to image coordinates
-                const imgX = (border.x - imageRect.left) * scaleX;
-                const imgY = (border.y - imageRect.top) * scaleY;
-                const imgWidth = border.width * scaleX;
-                const imgHeight = border.height * scaleY;
+            // Draw all drawings on the composite image
+            drawings.forEach(drawing => {
+                compositeCtx.strokeStyle = drawing.color;
+                compositeCtx.lineWidth = 3 * Math.min(scaleX, scaleY);
+                
+                if (drawing.type === 'rect') {
+                    // Convert window coordinates to image coordinates
+                    const imgX = (drawing.x - imageRect.left) * scaleX;
+                    const imgY = (drawing.y - imageRect.top) * scaleY;
+                    const imgWidth = drawing.width * scaleX;
+                    const imgHeight = drawing.height * scaleY;
 
-                // Only draw borders that intersect with the image area
-                if (imgX < screenshotImage.naturalWidth && imgY < screenshotImage.naturalHeight && 
-                    imgX + imgWidth > 0 && imgY + imgHeight > 0) {
+                    // Only draw rectangles that intersect with the image area
+                    if (imgX < screenshotImage.naturalWidth && imgY < screenshotImage.naturalHeight && 
+                        imgX + imgWidth > 0 && imgY + imgHeight > 0) {
+                        compositeCtx.strokeRect(
+                            Math.max(0, imgX),
+                            Math.max(0, imgY),
+                            Math.min(imgWidth, screenshotImage.naturalWidth - Math.max(0, imgX)),
+                            Math.min(imgHeight, screenshotImage.naturalHeight - Math.max(0, imgY))
+                        );
+                    }
+                } else if (drawing.type === 'line') {
+                    // Convert line coordinates to image coordinates
+                    const imgX1 = (drawing.x1 - imageRect.left) * scaleX;
+                    const imgY1 = (drawing.y1 - imageRect.top) * scaleY;
+                    const imgX2 = (drawing.x2 - imageRect.left) * scaleX;
+                    const imgY2 = (drawing.y2 - imageRect.top) * scaleY;
                     
-                    compositeCtx.strokeStyle = border.color;
-                    compositeCtx.lineWidth = 3 * Math.min(scaleX, scaleY);
-                    compositeCtx.strokeRect(
-                        Math.max(0, imgX),
-                        Math.max(0, imgY),
-                        Math.min(imgWidth, screenshotImage.naturalWidth - Math.max(0, imgX)),
-                        Math.min(imgHeight, screenshotImage.naturalHeight - Math.max(0, imgY))
-                    );
+                    // Draw line if any part intersects with image
+                    compositeCtx.beginPath();
+                    compositeCtx.moveTo(imgX1, imgY1);
+                    compositeCtx.lineTo(imgX2, imgY2);
+                    compositeCtx.stroke();
                 }
             });
 
@@ -1197,9 +1229,9 @@
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
             
-            // Right-click to show color picker while in border mode
+            // Right-click to show color picker while in drawing mode
             canvas.addEventListener('contextmenu', (e) => {
-                if (borderMode) {
+                if (drawingMode) {
                     e.preventDefault();
                     borderTool.classList.add('show-dropdown');
                     borderColorDropdown.classList.add('show');
@@ -1212,7 +1244,7 @@
             
             // Handle cursor change in toolbar area
             canvas.addEventListener('mousemove', (e) => {
-                if (borderMode) {
+                if (drawingMode) {
                     const toolbar = document.querySelector('.top-toolbar');
                     const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
                     
@@ -1229,29 +1261,36 @@
             });
         }
 
-        function toggleBorderMode() {
-            borderMode = !borderMode;
+        function setDrawingMode(mode) {
+            // Clear previous mode
+            rectBtn?.classList.remove('active');
+            lineBtn?.classList.remove('active');
             
-            if (borderMode) {
-                borderBtn.classList.add('active');
-                canvas.classList.add('drawing');
-                canvas.style.pointerEvents = 'all';
-                showStatus('Border mode active! Click and drag to draw borders. Right-click for colors. Ctrl+Z to undo. Escape to exit.');
-            } else {
-                borderBtn.classList.remove('active');
+            if (drawingMode === mode) {
+                // Toggle off if same mode clicked
+                drawingMode = null;
                 canvas.classList.remove('drawing');
                 canvas.classList.remove('toolbar-area');
                 canvas.style.pointerEvents = 'none';
-                showStatus('Border mode disabled');
+                showStatus('Drawing mode disabled');
+            } else {
+                // Set new drawing mode
+                drawingMode = mode;
+                canvas.classList.add('drawing');
+                canvas.style.pointerEvents = 'all';
                 
-                // Also hide color dropdown when exiting border mode
-                borderTool.classList.remove('show-dropdown');
-                borderColorDropdown.classList.remove('show');
+                if (mode === 'rect') {
+                    rectBtn.classList.add('active');
+                    showStatus('Rectangle mode active! Click and drag to draw rectangles. Ctrl+Z to undo. Escape to exit.');
+                } else if (mode === 'line') {
+                    lineBtn.classList.add('active');
+                    showStatus('Line mode active! Click and drag to draw lines. Ctrl+Z to undo. Escape to exit.');
+                }
             }
         }
 
         function startDrawing(e) {
-            if (!borderMode) return;
+            if (!drawingMode) return;
             
             isDrawing = true;
             
@@ -1267,21 +1306,25 @@
         }
 
         function draw(e) {
-            if (!borderMode || !isDrawing) return;
+            if (!drawingMode || !isDrawing) return;
             
             // Use direct window coordinates and constrain to window bounds
             const currentX = Math.max(0, Math.min(canvas.width, e.clientX));
             const currentY = Math.max(0, Math.min(canvas.height, e.clientY));
             
-            // Clear and redraw all borders
+            // Clear and redraw all drawings
             redrawCanvas();
             
-            // Draw current border being drawn
-            drawBorder(startX, startY, currentX - startX, currentY - startY, currentBorderColor, true);
+            // Draw current drawing being created
+            if (drawingMode === 'rect') {
+                drawRect(startX, startY, currentX - startX, currentY - startY, currentColor, true);
+            } else if (drawingMode === 'line') {
+                drawLine(startX, startY, currentX, currentY, currentColor, true);
+            }
         }
 
         function stopDrawing(e) {
-            if (!borderMode || !isDrawing) return;
+            if (!drawingMode || !isDrawing) return;
             
             isDrawing = false;
             
@@ -1300,25 +1343,42 @@
                 endY = Math.max(toolbarHeight, Math.min(canvas.height, startY));
             }
             
-            const width = Math.abs(endX - startX);
-            const height = Math.abs(endY - startY);
-            
-            // Only add border if it has meaningful size (10px minimum)
-            if (width > 10 && height > 10) {
-                borders.push({
-                    x: Math.min(startX, endX),
-                    y: Math.min(startY, endY),
-                    width: width,
-                    height: height,
-                    color: currentBorderColor
-                });
+            if (drawingMode === 'rect') {
+                const width = Math.abs(endX - startX);
+                const height = Math.abs(endY - startY);
                 
-                redrawCanvas();
-                showStatus(`✅ Border added (${borders.length} total). Ctrl+Z to undo. Escape to exit border mode.`, 'success');
+                // Only add rectangle if it has meaningful size (10px minimum)
+                if (width > 10 && height > 10) {
+                    drawings.push({
+                        type: 'rect',
+                        x: Math.min(startX, endX),
+                        y: Math.min(startY, endY),
+                        width: width,
+                        height: height,
+                        color: currentColor
+                    });
+                    showStatus(`✅ Rectangle added (${drawings.length} total). Ctrl+Z to undo.`, 'success');
+                }
+            } else if (drawingMode === 'line') {
+                // Add line if it has meaningful length (10px minimum)
+                const distance = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+                if (distance > 10) {
+                    drawings.push({
+                        type: 'line',
+                        x1: startX,
+                        y1: startY,
+                        x2: endX,
+                        y2: endY,
+                        color: currentColor
+                    });
+                    showStatus(`✅ Line added (${drawings.length} total). Ctrl+Z to undo.`, 'success');
+                }
             }
+            
+            redrawCanvas();
         }
 
-        function drawBorder(x, y, width, height, color, isPreview = false) {
+        function drawRect(x, y, width, height, color, isPreview = false) {
             ctx.strokeStyle = color;
             ctx.lineWidth = 3;
             ctx.setLineDash(isPreview ? [5, 5] : []);
@@ -1332,7 +1392,7 @@
             const toolbar = document.querySelector('.top-toolbar');
             const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
             
-            // Ensure border doesn't extend into toolbar area
+            // Ensure rectangle doesn't extend into toolbar area
             const clampedY = Math.max(toolbarHeight, rectY);
             const clampedHeight = Math.max(0, rectHeight - Math.max(0, toolbarHeight - rectY));
             
@@ -1343,35 +1403,63 @@
             
             ctx.setLineDash([]);
         }
+        
+        function drawLine(x1, y1, x2, y2, color, isPreview = false) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.setLineDash(isPreview ? [5, 5] : []);
+            
+            // Get toolbar height to avoid drawing over it
+            const toolbar = document.querySelector('.top-toolbar');
+            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+            
+            // Clamp coordinates to avoid toolbar area
+            const clampedY1 = Math.max(toolbarHeight, y1);
+            const clampedY2 = Math.max(toolbarHeight, y2);
+            
+            ctx.beginPath();
+            ctx.moveTo(x1, clampedY1);
+            ctx.lineTo(x2, clampedY2);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+        }
 
         function redrawCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Get toolbar height to filter out borders in toolbar area
+            // Get toolbar height to filter out drawings in toolbar area
             const toolbar = document.querySelector('.top-toolbar');
             const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
             
-            borders.forEach(border => {
-                // Only draw borders that don't start in toolbar area
-                if (border.y >= toolbarHeight) {
-                    drawBorder(border.x, border.y, border.width, border.height, border.color);
+            drawings.forEach(drawing => {
+                if (drawing.type === 'rect') {
+                    // Only draw rectangles that don't start in toolbar area
+                    if (drawing.y >= toolbarHeight) {
+                        drawRect(drawing.x, drawing.y, drawing.width, drawing.height, drawing.color);
+                    }
+                } else if (drawing.type === 'line') {
+                    // Only draw lines that don't start in toolbar area
+                    if (drawing.y1 >= toolbarHeight || drawing.y2 >= toolbarHeight) {
+                        drawLine(drawing.x1, drawing.y1, drawing.x2, drawing.y2, drawing.color);
+                    }
                 }
             });
         }
 
-        function clearAllBorders() {
-            borders = [];
+        function clearAllDrawings() {
+            drawings = [];
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            showStatus('All borders cleared');
+            showStatus('All drawings cleared');
         }
 
-        function undoLastBorder() {
-            if (borders.length > 0) {
-                borders.pop();
+        function undoLastDrawing() {
+            if (drawings.length > 0) {
+                const removed = drawings.pop();
                 redrawCanvas();
-                showStatus(`Border removed (${borders.length} remaining)`);
+                showStatus(`${removed.type} removed (${drawings.length} remaining)`);
             } else {
-                showStatus('No borders to undo');
+                showStatus('No drawings to undo');
             }
         }
 
