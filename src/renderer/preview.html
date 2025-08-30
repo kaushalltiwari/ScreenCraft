@@ -614,11 +614,11 @@
     <div class="top-toolbar">
         <div class="toolbar-group">
             <button class="toolbar-button" id="saveBtn" title="Save">
-                <div class="toolbar-icon">💾</div>
+                <div class="toolbar-icon" style="color: #4CAF50; font-size: 16px;">💾</div>
                 <div>Save</div>
             </button>
             <button class="toolbar-button" id="copyImageBtn" title="Copy">
-                <div class="toolbar-icon">📋</div>
+                <div class="toolbar-icon" style="color: #2196F3; font-size: 16px;">📋</div>
                 <div>Copy</div>
             </button>
         </div>
@@ -628,7 +628,7 @@
         <div class="toolbar-group">
             <div class="border-tool">
                 <button class="toolbar-button" id="borderBtn" title="Pen - Draw borders and annotations">
-                    <div class="toolbar-icon">
+                    <div class="toolbar-icon" style="font-size: 16px;">
                         ✏️
                         <span class="border-color-indicator" id="borderColorIndicator" style="background-color: #e74c3c;"></span>
                     </div>
@@ -652,34 +652,13 @@
             </div>
         </div>
         
-        <div class="toolbar-separator"></div>
-        
-        <div class="toolbar-group">
-            <button class="toolbar-button" id="undoBorderBtn" title="Undo">
-                <div class="toolbar-icon">↶</div>
-                <div>Undo</div>
-            </button>
-            <button class="toolbar-button" id="clearBordersBtn" title="Clear All">
-                <div class="toolbar-icon">🗑️</div>
-                <div>Clear</div>
-            </button>
-        </div>
         
         <div class="toolbar-separator"></div>
         
         <div class="toolbar-group">
             <button class="toolbar-button" id="copyPathBtn" title="Copy Path">
-                <div class="toolbar-icon">📁</div>
+                <div class="toolbar-icon" style="font-size: 16px;">📁</div>
                 <div>Path</div>
-            </button>
-        </div>
-        
-        <div class="toolbar-separator"></div>
-        
-        <div class="toolbar-group">
-            <button class="toolbar-button" id="themeBtn" title="Toggle Theme">
-                <div class="toolbar-icon" id="themeIcon">🌙</div>
-                <div id="themeText">Theme</div>
             </button>
         </div>
     </div>
@@ -744,13 +723,13 @@
         const borderTool = document.querySelector('.border-tool');
         const borderColorDropdown = document.getElementById('borderColorDropdown');
         const borderColorIndicator = document.getElementById('borderColorIndicator');
-        const clearBordersBtn = document.getElementById('clearBordersBtn');
-        const undoBorderBtn = document.getElementById('undoBorderBtn');
         
-        // Theme UI elements
-        const themeBtn = document.getElementById('themeBtn');
-        const themeIcon = document.getElementById('themeIcon');
-        const themeText = document.getElementById('themeText');
+        // Removed buttons - keep functions but remove UI references
+        // const clearBordersBtn = document.getElementById('clearBordersBtn');
+        // const undoBorderBtn = document.getElementById('undoBorderBtn');
+        // const themeBtn = document.getElementById('themeBtn');
+        // const themeIcon = document.getElementById('themeIcon');
+        // const themeText = document.getElementById('themeText');
 
         // Default shortcuts (can be customized later via system tray settings)
         let customShortcuts = {
@@ -805,21 +784,22 @@
             console.log(`Theme updated - Current: ${currentTheme}, Effective: ${effectiveTheme}, System: ${systemTheme}`);
         }
 
+        // Theme button UI removed - theme switching still available via Ctrl+T
         function updateThemeButton() {
-            const themeMap = {
-                'light': { icon: '🌙', text: 'Dark', title: 'Switch to Dark Theme' },
-                'dark': { icon: '☀️', text: 'Light', title: 'Switch to Light Theme' },
-                'system': { 
-                    icon: '🖥️', 
-                    text: 'Auto', 
-                    title: `Auto Theme (Currently ${effectiveTheme === 'dark' ? 'Dark' : 'Light'})` 
-                }
-            };
-
-            const theme = themeMap[currentTheme] || themeMap['system'];
-            themeIcon.textContent = theme.icon;
-            themeText.textContent = theme.text;
-            themeBtn.title = theme.title;
+            // UI elements removed from toolbar
+            // const themeMap = {
+            //     'light': { icon: '🌙', text: 'Dark', title: 'Switch to Dark Theme' },
+            //     'dark': { icon: '☀️', text: 'Light', title: 'Switch to Light Theme' },
+            //     'system': { 
+            //         icon: '🖥️', 
+            //         text: 'Auto', 
+            //         title: `Auto Theme (Currently ${effectiveTheme === 'dark' ? 'Dark' : 'Light'})` 
+            //     }
+            // };
+            // const theme = themeMap[currentTheme] || themeMap['system'];
+            // themeIcon.textContent = theme.icon;
+            // themeText.textContent = theme.text;
+            // themeBtn.title = theme.title;
         }
 
         async function cycleTheme() {
@@ -911,12 +891,12 @@
             });
 
 
-            // Border controls
-            clearBordersBtn?.addEventListener('click', clearAllBorders);
-            undoBorderBtn?.addEventListener('click', undoLastBorder);
+            // Border controls (now keyboard-only: Ctrl+Z for undo)
+            // clearBordersBtn?.addEventListener('click', clearAllBorders);
+            // undoBorderBtn?.addEventListener('click', undoLastBorder);
 
-            // Theme button
-            themeBtn?.addEventListener('click', cycleTheme);
+            // Theme button removed (still works via keyboard: Ctrl+T)
+            // themeBtn?.addEventListener('click', cycleTheme);
 
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
@@ -1256,7 +1236,7 @@
                 borderBtn.classList.add('active');
                 canvas.classList.add('drawing');
                 canvas.style.pointerEvents = 'all';
-                showStatus('Border mode active! Click and drag to draw borders. Right-click to change colors. Press Escape to exit.');
+                showStatus('Border mode active! Click and drag to draw borders. Right-click for colors. Ctrl+Z to undo. Escape to exit.');
             } else {
                 borderBtn.classList.remove('active');
                 canvas.classList.remove('drawing');
@@ -1334,7 +1314,7 @@
                 });
                 
                 redrawCanvas();
-                showStatus(`✅ Border added (${borders.length} total). Continue drawing or press Escape to exit`, 'success');
+                showStatus(`✅ Border added (${borders.length} total). Ctrl+Z to undo. Escape to exit border mode.`, 'success');
             }
         }
 
