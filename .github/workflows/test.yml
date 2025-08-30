@@ -58,6 +58,11 @@ jobs:
         echo "🧪 Running unit tests..."
         npm test -- --verbose --coverage
         
+    - name: Run E2E tests
+      run: |
+        echo "🧪 Running E2E tests..."
+        npm run test:e2e -- --verbose
+
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
       if: success() && matrix.os == 'ubuntu-latest' && matrix.node-version == '20.x'
@@ -123,6 +128,61 @@ jobs:
           echo "❌ Build setup failed"
           exit 1
         fi
+        
+    - name: Run integration tests
+      run: |
+        echo "🧪 Running integration tests..."
+        npm run test:integration -- --verbose
+        
+    - name: Run E2E tests
+      run: |
+        echo "🧪 Running E2E tests..."
+        npm run test:e2e -- --verbose
+
+  comprehensive-tests:
+    name: All Tests Suite
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run all tests with coverage
+      run: |
+        echo "🧪 Running complete test suite..."
+        npm run test:coverage -- --verbose
+        
+    - name: Verify all test types pass
+      run: |
+        echo "✅ Running unit tests..."
+        npm run test:unit
+        
+        echo "✅ Running integration tests..."
+        npm run test:integration
+        
+        echo "✅ Running E2E tests..."
+        npm run test:e2e
+        
+        echo "🎉 All test types completed successfully!"
+        
+    - name: Generate test summary
+      run: |
+        echo "📊 Test Results Summary" >> $GITHUB_STEP_SUMMARY
+        echo "===================" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Unit Tests: Passed" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Integration Tests: Passed" >> $GITHUB_STEP_SUMMARY
+        echo "✅ E2E Tests: Passed" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Coverage: Generated" >> $GITHUB_STEP_SUMMARY
 
   performance-tests:
     name: Performance Tests
