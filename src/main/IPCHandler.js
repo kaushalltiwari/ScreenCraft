@@ -61,11 +61,7 @@ class IPCHandler {
       return await deps.screenCaptureManager.startCapture();
     });
 
-    this.registerHandler('process-selection', async (event, selectionData) => {
-      log.info('IPC: Processing selection');
-      // This will be handled by the main app logic
-      return { success: true, message: 'Selection will be processed by main app' };
-    });
+    // Note: process-selection is handled directly in main.js due to app context dependency
 
     this.registerHandler('close-overlay', () => {
       log.info('IPC: Closing overlay');

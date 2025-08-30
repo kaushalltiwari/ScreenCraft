@@ -1,17 +1,11 @@
-const { app, globalShortcut } = require('electron');
+const { app, BrowserWindow, Tray, Menu, globalShortcut, ipcMain, nativeTheme } = require('electron');
 const path = require('path');
+const fs = require('fs').promises;
 const log = require('electron-log');
 
 // Import modular components
 const ScreenCaptureManager = require('./src/main/ScreenCaptureManager');
 const FileManager = require('./src/main/FileManager');
-const ConfigManager = require('./src/main/ConfigManager');
-const ThemeManager = require('./src/main/ThemeManager');
-const WindowManager = require('./src/main/WindowManager');
-const TrayManager = require('./src/main/TrayManager');
-const IPCHandler = require('./src/main/IPCHandler');
-const ValidationUtils = require('./src/shared/ValidationUtils');
-const ErrorHandler = require('./src/shared/ErrorHandler');
 const CONSTANTS = require('./src/shared/constants');
 
 // Configure logging for offline-only operation
@@ -20,17 +14,21 @@ log.transports.console.level = 'debug';
 
 class ScreenCaptureApp {
   constructor() {
+    this.tray = null;
+    this.previewWindows = new Map(); // Map of windowId -> {window, screenshotPath, screenshotId}
+    this.settingsWindow = null;
     this.isQuitting = false;
-    this.appIcon = null;
+    this.screenshotCounter = 0;
+    this.appIcon = null; // Global app icon
     
-    // Initialize all manager components
+    // Theme management
+    this.currentTheme = 'system'; // 'light', 'dark', 'system'
+    this.systemTheme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+    this.settingsFile = path.join(app.getPath('userData'), 'app-settings.json');
+    
+    // Initialize modular components
     this.screenCaptureManager = new ScreenCaptureManager();
     this.fileManager = new FileManager();
-    this.configManager = new ConfigManager();
-    this.themeManager = new ThemeManager();
-    this.windowManager = new WindowManager();
-    this.trayManager = new TrayManager();
-    this.ipcHandler = new IPCHandler();
   }
 
   initialize() {
@@ -64,30 +62,21 @@ class ScreenCaptureApp {
       // Initialize app icon first
       this.initializeAppIcon();
       
-      // Initialize core managers
+      // Initialize components
       await this.screenCaptureManager.initialize();
       await this.fileManager.initialize();
       
-      // Set app icons for components that need them
+      // Pass app icon to screen capture manager
       this.screenCaptureManager.setAppIcon(this.appIcon);
-      this.windowManager.setAppIcon(this.appIcon);
       
-      // Load settings and initialize theme
-      const settings = await this.configManager.loadSettings();
-      this.themeManager.loadTheme(settings.theme);
+      // Load saved settings and initialize theme system
+      await this.loadSettings();
+      this.initializeThemeSystem();
       
-      // Setup tray with callbacks
-      this.trayManager.initialize(this.appIcon, {
-        onScreenshot: () => this.triggerScreenshot(),
-        onSettings: () => this.openSettingsWindow(),
-        onQuit: () => this.quitApp()
-      });
-      
-      // Setup IPC handlers
-      this.setupIPC();
-      
-      // Register global shortcuts
+      // Only setup tray and shortcuts - no main window
+      this.setupTray();
       this.registerGlobalShortcuts();
+      this.setupIPC();
       
       log.info('Screenshot tool initialized successfully');
     } catch (error) {
@@ -116,32 +105,213 @@ class ScreenCaptureApp {
     }
   }
 
-  // Removed deprecated methods - now handled by manager classes
+  initializeThemeSystem() {
+    // Listen for system theme changes
+    nativeTheme.on('updated', () => {
+      const newSystemTheme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
+      this.systemTheme = newSystemTheme;
+      log.info(`System theme changed to: ${newSystemTheme}`);
+      
+      // Update all open windows if using system theme
+      if (this.currentTheme === 'system') {
+        this.updateAllWindowsTheme(newSystemTheme);
+      }
+    });
+    
+    log.info(`Theme system initialized - Current: ${this.currentTheme}, System: ${this.systemTheme}`);
+  }
+
+  updateAllWindowsTheme(theme) {
+    this.previewWindows.forEach((windowData, windowId) => {
+      windowData.window.webContents.send('theme-update', {
+        currentTheme: this.currentTheme,
+        effectiveTheme: theme,
+        systemTheme: this.systemTheme
+      });
+    });
+  }
+
+  getEffectiveTheme() {
+    return this.currentTheme === 'system' ? this.systemTheme : this.currentTheme;
+  }
+
+  async loadSettings() {
+    try {
+      const settingsData = await fs.readFile(this.settingsFile, 'utf8');
+      const settings = JSON.parse(settingsData);
+      
+      if (settings.theme && ['light', 'dark', 'system'].includes(settings.theme)) {
+        this.currentTheme = settings.theme;
+        log.info(`Loaded saved theme preference: ${this.currentTheme}`);
+      }
+    } catch (error) {
+      // Settings file doesn't exist or is corrupted, use defaults
+      log.info('No saved settings found, using defaults');
+      this.currentTheme = 'system';
+    }
+  }
+
+  async saveSettings(customSettings = null) {
+    try {
+      const settings = customSettings || {
+        theme: this.currentTheme,
+        shortcuts: {},
+        version: '1.0.0',
+        lastUpdated: new Date().toISOString()
+      };
+      
+      // If custom settings provided, merge with current theme
+      if (customSettings) {
+        settings.theme = customSettings.theme || this.currentTheme;
+        settings.shortcuts = customSettings.shortcuts || {};
+        settings.version = '1.0.0';
+        settings.lastUpdated = new Date().toISOString();
+      }
+      
+      // Ensure the userData directory exists
+      const userDataDir = app.getPath('userData');
+      await fs.mkdir(userDataDir, { recursive: true });
+      
+      await fs.writeFile(this.settingsFile, JSON.stringify(settings, null, 2));
+      log.info(`Settings saved: theme = ${settings.theme}, shortcuts = ${Object.keys(settings.shortcuts).length} items`);
+      
+      return { success: true };
+    } catch (error) {
+      log.error('Failed to save settings:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getAllSettings() {
+    try {
+      const settingsData = await fs.readFile(this.settingsFile, 'utf8');
+      const settings = JSON.parse(settingsData);
+      return {
+        theme: settings.theme || 'system',
+        shortcuts: settings.shortcuts || {},
+        version: settings.version || '1.0.0'
+      };
+    } catch (error) {
+      log.info('No saved settings found, returning defaults');
+      return {
+        theme: 'system',
+        shortcuts: {},
+        version: '1.0.0'
+      };
+    }
+  }
 
   createPreviewWindow(screenshotData) {
-    // Create preview window using WindowManager
-    const previewWindow = this.windowManager.createPreviewWindow(
-      screenshotData,
-      async (windowData) => {
-        // Cleanup callback for when window closes
-        if (windowData && windowData.screenshotPath) {
-          try {
-            await this.fileManager.deleteFile(windowData.screenshotPath);
-            log.info('Temporary screenshot file automatically cleaned up');
-          } catch (error) {
-            log.warn('Failed to clean up temporary screenshot file:', error.message);
-          }
+    // Generate unique screenshot ID
+    this.screenshotCounter++;
+    const screenshotId = `screenshot-${this.screenshotCounter}`;
+    
+    // Create preview window similar to Snipping Tool
+    const previewWindow = new BrowserWindow({
+      width: Math.min(CONSTANTS.WINDOW.PREVIEW_MAX_WIDTH, screenshotData.dimensions.width + CONSTANTS.WINDOW.PREVIEW_WIDTH_PADDING),
+      height: Math.min(CONSTANTS.WINDOW.PREVIEW_MAX_HEIGHT, screenshotData.dimensions.height + CONSTANTS.WINDOW.PREVIEW_HEIGHT_PADDING),
+      show: false,
+      frame: true,
+      transparent: false,
+      alwaysOnTop: false,
+      skipTaskbar: false,
+      resizable: true,
+      maximizable: true,
+      minimizable: true,
+      title: `Screenshot Preview #${this.screenshotCounter}`,
+      autoHideMenuBar: true,
+      icon: this.appIcon,
+      webPreferences: {
+        contextIsolation: true,
+        enableRemoteModule: false,
+        nodeIntegration: false,
+        preload: path.join(__dirname, 'src', 'renderer', 'preview-preload.js')
+      }
+    });
+
+    // Store window reference with metadata
+    const windowId = previewWindow.id;
+    this.previewWindows.set(windowId, {
+      window: previewWindow,
+      screenshotPath: screenshotData.filePath,
+      screenshotId: screenshotId
+    });
+
+    previewWindow.loadFile(path.join(__dirname, 'src', 'renderer', 'preview.html'));
+
+    // Handle window close - automatically clean up temporary file
+    previewWindow.on('close', async () => {
+      const windowData = this.previewWindows.get(windowId);
+      if (windowData && windowData.screenshotPath) {
+        try {
+          await this.fileManager.deleteFile(windowData.screenshotPath);
+          log.info(`Temporary screenshot file automatically cleaned up for window #${this.screenshotCounter}`);
+        } catch (error) {
+          log.warn('Failed to clean up temporary screenshot file:', error.message);
         }
       }
-    );
+      this.previewWindows.delete(windowId);
+    });
 
-    // Add window to theme manager for theme updates
-    this.themeManager.addWindow(previewWindow);
+    // Send screenshot data once window is ready
+    previewWindow.webContents.once('dom-ready', () => {
+      const enhancedScreenshotData = {
+        ...screenshotData,
+        screenshotId: screenshotId,
+        windowId: windowId
+      };
+      
+      // Send initial theme data
+      previewWindow.webContents.send('theme-update', {
+        currentTheme: this.currentTheme,
+        effectiveTheme: this.getEffectiveTheme(),
+        systemTheme: this.systemTheme
+      });
+      
+      previewWindow.webContents.send('screenshot-data', enhancedScreenshotData);
+      previewWindow.show();
+      previewWindow.focus();
+    });
 
+    log.info(`Preview window #${this.screenshotCounter} created with ID: ${windowId}`);
     return previewWindow;
   }
 
-  // setupTray method removed - now handled by TrayManager
+  setupTray() {
+    // Create tray icon using global app icon
+    this.tray = new Tray(this.appIcon);
+    
+    this.tray.setToolTip('Offline Screenshot Tool');
+    
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: 'Take Screenshot (Ctrl+Shift+S)',
+        click: () => this.triggerScreenshot()
+      },
+      { type: 'separator' },
+      {
+        label: 'Settings',
+        click: () => this.openSettingsWindow()
+      },
+      { type: 'separator' },
+      {
+        label: 'Quit',
+        click: () => {
+          this.isQuitting = true;
+          app.quit();
+        }
+      }
+    ]);
+
+    this.tray.setContextMenu(contextMenu);
+    
+    // Single click to trigger screenshot
+    this.tray.on('click', () => {
+      this.triggerScreenshot();
+    });
+
+    log.info('System tray setup complete');
+  }
 
   createAbstractIcon() {
     // Create abstract capture icon with vibrant gradient
@@ -270,6 +440,9 @@ class ScreenCaptureApp {
   }
 
   registerGlobalShortcuts() {
+    // Clear any existing shortcuts first
+    globalShortcut.unregisterAll();
+    
     // Register Ctrl+Shift+S for screenshot
     const screenshotShortcut = globalShortcut.register('CommandOrControl+Shift+S', () => {
       log.info('Screenshot hotkey triggered');
@@ -277,7 +450,7 @@ class ScreenCaptureApp {
     });
 
     if (!screenshotShortcut) {
-      log.error('Failed to register screenshot global shortcut');
+      log.error('Failed to register screenshot global shortcut - may be in use by another app');
     } else {
       log.info('Global shortcut Ctrl+Shift+S registered successfully');
     }
@@ -287,21 +460,125 @@ class ScreenCaptureApp {
   }
 
   setupIPC() {
-    // Initialize IPC handler with all dependencies
-    this.ipcHandler.initialize({
-      screenCaptureManager: this.screenCaptureManager,
-      configManager: this.configManager,
-      themeManager: this.themeManager,
-      windowManager: this.windowManager,
-      onPreviewAction: (actionData, windowId) => this.handlePreviewAction(actionData, windowId),
-      onQuit: () => this.quitApp()
+    // Handle screenshot request from renderer
+    ipcMain.handle('trigger-screenshot', async () => {
+      return await this.handleScreenshotCapture();
     });
 
-    // Register custom handler for selection processing (needs main app context)
-    const { ipcMain } = require('electron');
+    // Handle selection processing from overlay
     ipcMain.handle('process-selection', async (event, selectionData) => {
       return await this.handleSelectionProcessing(selectionData);
     });
+
+    // Handle overlay close
+    ipcMain.handle('close-overlay', () => {
+      this.screenCaptureManager.cancelCapture();
+    });
+
+    // Handle preview window actions
+    ipcMain.handle('preview-action', async (event, actionData) => {
+      const windowId = BrowserWindow.fromWebContents(event.sender)?.id;
+      return await this.handlePreviewAction(actionData, windowId);
+    });
+
+    // Handle preview window close
+    ipcMain.handle('close-preview', (event) => {
+      const windowId = BrowserWindow.fromWebContents(event.sender)?.id;
+      if (windowId && this.previewWindows.has(windowId)) {
+        const windowData = this.previewWindows.get(windowId);
+        windowData.window.close();
+      }
+    });
+
+
+    // Handle app quit request
+    ipcMain.handle('quit-app', () => {
+      this.isQuitting = true;
+      app.quit();
+    });
+
+    // Handle get open windows info
+    ipcMain.handle('get-open-windows', () => {
+      const windowsInfo = [];
+      for (const [windowId, windowData] of this.previewWindows.entries()) {
+        windowsInfo.push({
+          windowId: windowId,
+          screenshotId: windowData.screenshotId,
+          title: windowData.window.getTitle()
+        });
+      }
+      return windowsInfo;
+    });
+
+    // Handle theme operations
+    ipcMain.handle('get-theme-info', () => {
+      return {
+        currentTheme: this.currentTheme,
+        effectiveTheme: this.getEffectiveTheme(),
+        systemTheme: this.systemTheme
+      };
+    });
+
+    ipcMain.handle('set-theme', async (event, newTheme) => {
+      if (['light', 'dark', 'system'].includes(newTheme)) {
+        this.currentTheme = newTheme;
+        const effectiveTheme = this.getEffectiveTheme();
+        
+        // Save settings to persist theme choice
+        await this.saveSettings();
+        
+        // Update all windows
+        this.updateAllWindowsTheme(effectiveTheme);
+        
+        log.info(`Theme changed to: ${newTheme} (effective: ${effectiveTheme})`);
+        return {
+          success: true,
+          currentTheme: this.currentTheme,
+          effectiveTheme: effectiveTheme,
+          systemTheme: this.systemTheme
+        };
+      }
+      return { success: false, message: 'Invalid theme' };
+    });
+
+    // Handle settings operations
+    ipcMain.handle('get-settings', async () => {
+      try {
+        const settings = await this.getAllSettings();
+        return settings;
+      } catch (error) {
+        log.error('Failed to get settings:', error);
+        return { theme: 'system', shortcuts: {}, version: '1.0.0' };
+      }
+    });
+
+    ipcMain.handle('save-settings', async (event, settings) => {
+      try {
+        const result = await this.saveSettings(settings);
+        
+        // If theme changed, update it
+        if (settings.theme && settings.theme !== this.currentTheme) {
+          this.currentTheme = settings.theme;
+          const effectiveTheme = this.getEffectiveTheme();
+          this.updateAllWindowsTheme(effectiveTheme);
+          log.info(`Theme updated via settings: ${settings.theme} (effective: ${effectiveTheme})`);
+        }
+        
+        return result;
+      } catch (error) {
+        log.error('Failed to save settings:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // Handle closing settings window
+    ipcMain.handle('close-settings', () => {
+      if (this.settingsWindow && !this.settingsWindow.isDestroyed()) {
+        this.settingsWindow.close();
+      }
+    });
+
+    log.info('IPC handlers setup complete');
   }
 
   async triggerScreenshot() {
@@ -333,17 +610,11 @@ class ScreenCaptureApp {
   }
 
   async handleSelectionProcessing(selectionData) {
-    return ErrorHandler.withErrorHandling(async () => {
+    try {
       log.info('Processing selection for preview');
       
-      // Validate selection data first
-      const validation = ValidationUtils.validateSelectionData(selectionData);
-      if (!validation.isValid) {
-        throw new Error(`Invalid selection data: ${validation.errors.join(', ')}`);
-      }
-      
       // Process the selection using ScreenCaptureManager
-      const captureResult = await this.screenCaptureManager.processSelection(validation.sanitized);
+      const captureResult = await this.screenCaptureManager.processSelection(selectionData);
       
       if (!captureResult.success) {
         throw new Error('Failed to process screen selection');
@@ -367,49 +638,49 @@ class ScreenCaptureApp {
 
       this.createPreviewWindow(screenshotData);
 
-      return ErrorHandler.createSuccessResponse('Screenshot ready for preview', 'handleSelectionProcessing');
-    }, 'handleSelectionProcessing', ErrorHandler.handleScreenCaptureError);
+      return { 
+        success: true, 
+        message: 'Screenshot ready for preview'
+      };
+
+    } catch (error) {
+      log.error('Selection processing failed:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Failed to process selection' 
+      };
+    }
   }
 
+  // New handlers for preview window actions
   async handlePreviewAction(actionData, windowId) {
-    return ErrorHandler.withErrorHandling(async () => {
-      // Validate inputs
-      const actionValidation = ValidationUtils.validatePreviewActionData(actionData);
-      if (!actionValidation.isValid) {
-        throw new Error(`Invalid action data: ${actionValidation.errors.join(', ')}`);
-      }
-      
-      const windowIdValidation = ValidationUtils.validateWindowId(windowId);
-      if (!windowIdValidation.isValid) {
-        throw new Error(`Invalid window ID: ${windowIdValidation.errors.join(', ')}`);
-      }
-      
-      const { action, filePath, borders } = actionValidation.sanitized;
-      const windowData = this.windowManager.getPreviewWindowData(windowId);
-      
-      if (!windowData) {
-        throw new Error(`Window not found: ${windowId}`);
-      }
+    try {
+      const { action, filePath, borders } = actionData;
+      const windowData = this.previewWindows.get(windowId);
       
       switch (action) {
         case 'copy-image':
           if (borders) {
+            // Copy image with borders applied
             await this.fileManager.copyImageWithBorders(borders);
             log.info('Screenshot with borders copied to clipboard');
-            return ErrorHandler.createSuccessResponse('Screenshot with borders copied to clipboard', 'copy-image');
+            return { success: true, message: 'Screenshot with borders copied to clipboard' };
           } else {
+            // Re-copy original image to clipboard
             const imageBuffer = await require('fs').promises.readFile(filePath);
             await this.fileManager.copyImageToClipboard(imageBuffer);
             log.info('Screenshot copied to clipboard');
-            return ErrorHandler.createSuccessResponse('Screenshot copied to clipboard', 'copy-image');
+            return { success: true, message: 'Screenshot copied to clipboard' };
           }
 
         case 'copy-path':
+          // Copy file path to clipboard for Claude Code integration
           await this.fileManager.copyPathToClipboard(filePath);
           log.info('File path copied to clipboard');
-          return ErrorHandler.createSuccessResponse('File path copied to clipboard', 'copy-path');
+          return { success: true, message: 'File path copied to clipboard' };
 
         case 'save':
+          // Save to permanent location
           let saveResult;
           if (borders) {
             saveResult = await this.fileManager.saveImageWithBorders(borders, filePath);
@@ -420,47 +691,85 @@ class ScreenCaptureApp {
           }
           
           if (saveResult.success) {
-            // Clear screenshot path since it's now saved permanently
-            this.windowManager.updatePreviewWindowPath(windowId, null);
+            // Clear screenshot path from window data since it's now saved permanently
+            if (windowData && windowData.screenshotPath === filePath) {
+              windowData.screenshotPath = null;
+            }
             log.info(`Screenshot saved permanently for window ${windowId}`);
-            return ErrorHandler.createSuccessResponse(
-              borders ? 'Screenshot with borders saved successfully' : 'Screenshot saved successfully',
-              'save',
-              { savedPath: saveResult.filePath }
-            );
+            return { 
+              success: true, 
+              message: borders ? 'Screenshot with borders saved successfully' : 'Screenshot saved successfully',
+              savedPath: saveResult.filePath
+            };
           } else {
             throw new Error('Failed to save screenshot');
           }
 
+
         default:
-          throw new Error(`Unknown action: ${action}`);
+          throw new Error('Unknown action: ' + action);
       }
-    }, 'handlePreviewAction', (error, operation) => {
-      return ErrorHandler.handleWindowError(error, operation, windowId);
-    });
+
+    } catch (error) {
+      log.error('Preview action failed:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Action failed' 
+      };
+    }
   }
 
   openSettingsWindow() {
-    // Create settings window using WindowManager
-    const settingsWindow = this.windowManager.createSettingsWindow(() => {
-      // Callback to provide settings data
-      return {
-        theme: this.themeManager.getThemeInfo().currentTheme,
-        systemTheme: this.themeManager.getThemeInfo().systemTheme,
-        settings: {} // Additional settings if needed
-      };
+    // Prevent multiple settings windows
+    if (this.settingsWindow && !this.settingsWindow.isDestroyed()) {
+      this.settingsWindow.focus();
+      return;
+    }
+
+    // Create settings window
+    this.settingsWindow = new BrowserWindow({
+      width: 800,
+      height: 600,
+      show: false,
+      frame: true,
+      transparent: false,
+      alwaysOnTop: false,
+      skipTaskbar: false,
+      resizable: true,
+      maximizable: false,
+      minimizable: true,
+      title: 'Settings - Screenshot Tool',
+      autoHideMenuBar: true,
+      icon: this.appIcon,
+      webPreferences: {
+        contextIsolation: true,
+        enableRemoteModule: false,
+        nodeIntegration: false,
+        preload: path.join(__dirname, 'src', 'renderer', 'settings-preload.js')
+      }
     });
 
-    // Add to theme manager for theme updates
-    this.themeManager.addWindow(settingsWindow);
+    // Load settings HTML
+    this.settingsWindow.loadFile(path.join(__dirname, 'src', 'renderer', 'settings.html'));
 
-    return settingsWindow;
-  }
+    // Show window when ready
+    this.settingsWindow.once('ready-to-show', () => {
+      this.settingsWindow.show();
+      
+      // Send current settings to window
+      this.settingsWindow.webContents.send('settings-data', {
+        theme: this.currentTheme,
+        systemTheme: this.systemTheme,
+        settings: {}
+      });
+    });
 
-  quitApp() {
-    log.info('Quit app requested');
-    this.isQuitting = true;
-    app.quit();
+    // Handle window closed
+    this.settingsWindow.on('closed', () => {
+      this.settingsWindow = null;
+    });
+
+    log.info('Settings window opened');
   }
 
   onWindowAllClosed() {
@@ -481,25 +790,27 @@ const screenshotApp = new ScreenCaptureApp();
 // Handle app termination
 app.on('will-quit', async () => {
   try {
+    // Cleanup components
     if (screenshotApp) {
-      // Cleanup all managers in proper order
-      await screenshotApp.windowManager.cleanup(async (windowData) => {
+      // Clean up all preview windows and their temporary files
+      for (const [windowId, windowData] of screenshotApp.previewWindows.entries()) {
         if (windowData.screenshotPath) {
           try {
             await screenshotApp.fileManager.deleteFile(windowData.screenshotPath);
-            log.info('Cleaned up temporary file during shutdown');
+            log.info(`Cleaned up temporary file for window ${windowId}`);
           } catch (error) {
-            log.warn('Failed to clean up temporary file:', error.message);
+            log.warn(`Failed to clean up temporary file for window ${windowId}:`, error.message);
           }
         }
-      });
+      }
+      screenshotApp.previewWindows.clear();
       
-      // Dispose all managers
-      screenshotApp.screenCaptureManager.dispose();
-      await screenshotApp.fileManager.cleanup();
-      screenshotApp.themeManager.dispose();
-      screenshotApp.trayManager.dispose();
-      screenshotApp.ipcHandler.dispose();
+      if (screenshotApp.screenCaptureManager) {
+        screenshotApp.screenCaptureManager.dispose();
+      }
+      if (screenshotApp.fileManager) {
+        await screenshotApp.fileManager.cleanup();
+      }
     }
     
     // Unregister all global shortcuts only if app is ready
@@ -507,7 +818,7 @@ app.on('will-quit', async () => {
       globalShortcut.unregisterAll();
     }
     
-    log.info('App shutting down, all managers disposed');
+    log.info('App shutting down, components and multiple windows cleaned up');
   } catch (error) {
     log.error('Error during app shutdown:', error);
   }
