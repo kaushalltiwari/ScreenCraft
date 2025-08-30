@@ -12,75 +12,60 @@ permissions:
 
 jobs:
   unit-tests:
-    name: Unit Tests
-    runs-on: ubuntu-latest
+    name: Unit Tests - ${{ matrix.os }} Node ${{ matrix.node-version }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18.x, 20.x]
         
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Setup Node.js
+    - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version: ${{ matrix.node-version }}
         cache: 'npm'
         
     - name: Install dependencies
       run: npm ci
       
-    - name: Install testing dependencies
+    - name: Verify test setup
       run: |
-        npm install --no-save jest @jest/globals jest-environment-node
+        echo "🧪 Verifying Jest configuration and tests..."
         
-    - name: Create test directory
-      run: mkdir -p tests
-      
-    - name: Create basic tests
-      run: |
-        cat > tests/constants.test.js << 'EOF'
-        const CONSTANTS = require('../src/shared/constants');
+        # Check Jest config exists
+        if [ -f "jest.config.js" ]; then
+          echo "✅ Jest configuration found"
+        else
+          echo "❌ Jest configuration missing"
+          exit 1
+        fi
         
-        describe('Constants', () => {
-          test('should have required window constants', () => {
-            expect(CONSTANTS.WINDOW).toBeDefined();
-            expect(CONSTANTS.WINDOW.PREVIEW_MAX_WIDTH).toBeGreaterThan(0);
-            expect(CONSTANTS.WINDOW.PREVIEW_MAX_HEIGHT).toBeGreaterThan(0);
-          });
-          
-          test('should have timeout constants', () => {
-            expect(CONSTANTS.TIMEOUTS).toBeDefined();
-            expect(CONSTANTS.TIMEOUTS.INSTRUCTIONS_FADE).toBeGreaterThan(0);
-          });
-          
-          test('should have file constants', () => {
-            expect(CONSTANTS.FILES).toBeDefined();
-            expect(CONSTANTS.FILES.SCREENSHOT_PREFIX).toBe('screenshot-');
-            expect(CONSTANTS.FILES.EXTENSION).toBe('.png');
-          });
-        });
-        EOF
+        # Check test directory exists with tests
+        if [ -d "tests/unit" ] && [ "$(ls -A tests/unit/*.test.js 2>/dev/null | wc -l)" -gt "0" ]; then
+          echo "✅ Unit tests found: $(ls tests/unit/*.test.js | wc -l) test files"
+        else
+          echo "❌ No unit test files found in tests/unit/"
+          exit 1
+        fi
         
-    - name: Create Jest config
-      run: |
-        cat > jest.config.js << 'EOF'
-        module.exports = {
-          testEnvironment: 'node',
-          testMatch: ['**/tests/**/*.test.js'],
-          collectCoverageFrom: [
-            'src/**/*.js',
-            '!src/renderer/**/*.js',
-            '!**/node_modules/**'
-          ],
-          coverageDirectory: 'coverage',
-          coverageReporters: ['text', 'lcov'],
-          testTimeout: 10000
-        };
-        EOF
-        
-    - name: Run tests
+    - name: Run unit tests
       run: |
         echo "🧪 Running unit tests..."
-        npx jest --verbose --coverage
+        npm test -- --verbose --coverage
+        
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      if: success() && matrix.os == 'ubuntu-latest' && matrix.node-version == '20.x'
+      with:
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: ${{ matrix.os }}-node-${{ matrix.node-version }}
+        fail_ci_if_error: false
 
   integration-tests:
     name: Integration Tests

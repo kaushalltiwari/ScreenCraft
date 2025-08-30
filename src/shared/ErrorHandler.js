@@ -39,7 +39,7 @@ class ErrorHandler {
     const message = `File operation failed: ${operation}`;
     log.error(message, { error: error.message, filePath });
     
-    const response = this.createErrorResponse(message, operation, error);
+    const response = ErrorHandler.createErrorResponse(message, operation, error);
     if (filePath) {
       response.filePath = filePath;
     }
@@ -114,7 +114,7 @@ class ErrorHandler {
     const message = `Window operation failed: ${operation}`;
     log.error(message, { error: error.message, windowId });
     
-    const response = this.createErrorResponse(message, operation, error);
+    const response = ErrorHandler.createErrorResponse(message, operation, error);
     if (windowId) {
       response.windowId = windowId;
     }
@@ -133,7 +133,7 @@ class ErrorHandler {
     const message = `Configuration operation failed: ${operation}`;
     log.error(message, { error: error.message, settings });
     
-    const response = this.createErrorResponse(message, operation, error);
+    const response = ErrorHandler.createErrorResponse(message, operation, error);
     if (settings) {
       response.settingsInvolved = Object.keys(settings);
     }
@@ -152,7 +152,7 @@ class ErrorHandler {
     const message = `Theme operation failed: ${operation}`;
     log.error(message, { error: error.message, theme });
     
-    const response = this.createErrorResponse(message, operation, error);
+    const response = ErrorHandler.createErrorResponse(message, operation, error);
     if (theme) {
       response.theme = theme;
     }
@@ -215,7 +215,7 @@ class ErrorHandler {
       }
       
       // Otherwise, wrap in success response
-      return this.createSuccessResponse('Operation completed successfully', operationName, result);
+      return ErrorHandler.createSuccessResponse('Operation completed successfully', operationName, result);
       
     } catch (error) {
       log.error(`Error in ${operationName}:`, error);
@@ -226,7 +226,7 @@ class ErrorHandler {
       }
       
       // Default error handling
-      return this.createErrorResponse(error.message || 'Unknown error occurred', operationName, error);
+      return ErrorHandler.createErrorResponse(error.message || 'Unknown error occurred', operationName, error);
     }
   }
 
@@ -237,7 +237,7 @@ class ErrorHandler {
    * @returns {Promise<never>} Rejected promise with standardized error
    */
   static rejectWithError(error, context) {
-    const errorResponse = this.createErrorResponse(error.message, context, error);
+    const errorResponse = ErrorHandler.createErrorResponse(error.message, context, error);
     log.error(`Rejecting promise in ${context}:`, errorResponse);
     return Promise.reject(errorResponse);
   }
