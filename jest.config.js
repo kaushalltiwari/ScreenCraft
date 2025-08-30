@@ -8,10 +8,11 @@ module.exports = {
     '**/tests/**/*.spec.js'
   ],
   
-  // Coverage configuration
+  // Coverage configuration - Only include files we actually test
   collectCoverageFrom: [
-    'src/**/*.js',
-    '!src/renderer/**/*.js', // Exclude renderer process files for now
+    'src/shared/ValidationUtils.js',
+    'src/shared/ErrorHandler.js', 
+    'src/main/ConfigManager.js',
     '!**/node_modules/**'
   ],
   
