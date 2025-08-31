@@ -476,6 +476,79 @@
             text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
         }
 
+        /* Border width dropdown */
+        .border-width-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 6px;
+            display: none;
+            grid-template-columns: 1fr;
+            gap: 4px;
+            min-width: 120px;
+            z-index: 1001;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .border-width-dropdown.show {
+            display: grid;
+            opacity: 1;
+            animation: fadeIn 0.15s ease-out;
+        }
+        
+        /* Width option styles */
+        .border-width-dropdown .width-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .border-width-dropdown .width-option:hover {
+            background-color: #f0f0f0;
+            transform: scale(1.02);
+        }
+        
+        .border-width-dropdown .width-option.selected {
+            background-color: #0066cc;
+            color: white;
+        }
+        
+        .border-width-dropdown .width-preview {
+            flex: 1;
+            background-color: #333;
+            border-radius: 1px;
+            min-width: 40px;
+            transition: background-color 0.15s ease;
+        }
+        
+        .border-width-dropdown .width-option.selected .width-preview {
+            background-color: white;
+        }
+        
+        /* Border width indicator */
+        .border-width-indicator {
+            position: absolute;
+            bottom: 1px;
+            right: 1px;
+            font-size: 8px;
+            font-weight: bold;
+            color: #333;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1px 3px;
+            border-radius: 2px;
+            line-height: 1;
+        }
+
         .color-option {
             width: 28px;
             height: 28px;
@@ -669,6 +742,44 @@
             </div>
         </div>
         
+        <div class="toolbar-group">
+            <div class="border-tool">
+                <button class="toolbar-button" id="widthBtn" title="Width - Select stroke width">
+                    <div class="toolbar-icon" style="font-size: 16px;">
+                        ✏️
+                        <span class="border-width-indicator" id="borderWidthIndicator">3px</span>
+                    </div>
+                    <div>Width</div>
+                    <div class="dropdown-arrow">▼</div>
+                </button>
+                <div class="border-width-dropdown" id="borderWidthDropdown">
+                    <div class="width-option" data-width="1" title="Thin - 1px">
+                        <div class="width-preview" style="height: 1px;"></div>
+                        <span>1px</span>
+                    </div>
+                    <div class="width-option" data-width="2" title="Light - 2px">
+                        <div class="width-preview" style="height: 2px;"></div>
+                        <span>2px</span>
+                    </div>
+                    <div class="width-option selected" data-width="3" title="Normal - 3px">
+                        <div class="width-preview" style="height: 3px;"></div>
+                        <span>3px</span>
+                    </div>
+                    <div class="width-option" data-width="5" title="Medium - 5px">
+                        <div class="width-preview" style="height: 5px;"></div>
+                        <span>5px</span>
+                    </div>
+                    <div class="width-option" data-width="8" title="Bold - 8px">
+                        <div class="width-preview" style="height: 8px;"></div>
+                        <span>8px</span>
+                    </div>
+                    <div class="width-option" data-width="12" title="Extra Bold - 12px">
+                        <div class="width-preview" style="height: 12px;"></div>
+                        <span>12px</span>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <div class="toolbar-separator"></div>
         
@@ -711,17 +822,19 @@
         let screenshotData = null;
         let drawingMode = null; // 'rect', 'line', 'arrow', or null
         let currentColor = '#e74c3c';
+        let currentStrokeWidth = 3; // Default stroke width in pixels
         let isDrawing = false;
         let startX, startY;
         let drawings = []; // Store all drawings (rects, lines, arrows)
         let imageWrapper, canvas, ctx;
         let lastImageRect = null; // Store last known image position for scaling
         
-        // Arrow resizing functionality
+        // Drawing resizing functionality
         let selectedDrawing = null; // Currently selected drawing for resizing
-        let resizeMode = null; // 'start', 'end', or null
+        let resizeMode = null; // 'start', 'end', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'width', or null
         let isResizing = false;
         let resizeHandleRadius = 6; // Size of resize handles
+        let widthResizeMode = false; // Special mode for width-only resizing
         
         // Theme management
         let currentTheme = 'system';
@@ -750,6 +863,12 @@
         const borderColorDropdown = document.getElementById('borderColorDropdown');
         const borderColorIndicator = document.getElementById('borderColorIndicator');
         
+        // Width dropdown elements
+        const widthBtn = document.getElementById('widthBtn');
+        const widthTool = document.querySelectorAll('.border-tool')[1]; // Second border-tool is width tool
+        const borderWidthDropdown = document.getElementById('borderWidthDropdown');
+        const borderWidthIndicator = document.getElementById('borderWidthIndicator');
+        
         // Removed buttons - keep functions but remove UI references
         // const clearBordersBtn = document.getElementById('clearBordersBtn');
         // const undoBorderBtn = document.getElementById('undoBorderBtn');
@@ -765,6 +884,8 @@
             'save': 'Ctrl+S',
             'toggle-borders': 'Ctrl+B',
             'undo-border': 'Ctrl+Z',
+            'increase-width': 'Ctrl+Plus',
+            'decrease-width': 'Ctrl+Minus',
             'toggle-theme': 'Ctrl+T',
             'close-window': 'Escape'
         };
@@ -902,18 +1023,60 @@
                     showStatus(`Border color changed. Click and drag to draw borders. Press Escape to exit.`);
                 }
             });
+            
+            // Width tool functionality
+            widthBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                widthTool.classList.toggle('show-dropdown');
+                borderWidthDropdown.classList.toggle('show');
+            });
+            
+            // Handle width selection in border width dropdown
+            borderWidthDropdown?.addEventListener('click', (e) => {
+                if (e.target.closest('.width-option')) {
+                    e.stopPropagation();
+                    const widthOption = e.target.closest('.width-option');
+                    
+                    // Remove selected from all options
+                    borderWidthDropdown.querySelectorAll('.width-option').forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    
+                    // Add selected to clicked option
+                    widthOption.classList.add('selected');
+                    
+                    // Update current stroke width
+                    currentStrokeWidth = parseInt(widthOption.dataset.width);
+                    borderWidthIndicator.textContent = `${currentStrokeWidth}px`;
+                    
+                    // Hide dropdown
+                    widthTool.classList.remove('show-dropdown');
+                    borderWidthDropdown.classList.remove('show');
+                    
+                    // Show feedback animation
+                    borderWidthIndicator.style.transform = 'scale(1.3)';
+                    setTimeout(() => {
+                        borderWidthIndicator.style.transform = 'scale(1)';
+                    }, 200);
+                    
+                    // Update status to show new width
+                    showStatus(`Stroke width changed to ${currentStrokeWidth}px. Click and drag to draw with new width.`);
+                }
+            });
 
             // Close color dropdown when clicking outside
             document.addEventListener('click', () => {
                 colorDropdown.classList.remove('show');
             });
             
-            // Close border color dropdown when clicking outside (but not on canvas for drawing)
+            // Close border color and width dropdowns when clicking outside (but not on canvas for drawing)
             document.addEventListener('click', (e) => {
-                // Don't close if clicking on canvas for drawing or on border tool
-                if (!borderTool?.contains(e.target) && !canvas?.contains(e.target)) {
+                // Don't close if clicking on canvas for drawing or on border/width tools
+                if (!borderTool?.contains(e.target) && !widthTool?.contains(e.target) && !canvas?.contains(e.target)) {
                     borderTool?.classList.remove('show-dropdown');
                     borderColorDropdown?.classList.remove('show');
+                    widthTool?.classList.remove('show-dropdown');
+                    borderWidthDropdown?.classList.remove('show');
                 }
             });
 
@@ -996,6 +1159,12 @@
                     break;
                 case 'undo-border':
                     undoLastDrawing();
+                    break;
+                case 'increase-width':
+                    adjustStrokeWidth(1);
+                    break;
+                case 'decrease-width':
+                    adjustStrokeWidth(-1);
                     break;
                 case 'toggle-theme':
                     cycleTheme();
@@ -1113,7 +1282,7 @@
             // Draw all drawings on the composite image
             drawings.forEach(drawing => {
                 compositeCtx.strokeStyle = drawing.color;
-                compositeCtx.lineWidth = 3 * Math.min(scaleX, scaleY);
+                compositeCtx.lineWidth = (drawing.strokeWidth || 3) * Math.min(scaleX, scaleY);
                 
                 if (drawing.type === 'rect') {
                     // Convert window coordinates to image coordinates
@@ -1332,7 +1501,12 @@
                             if (selectedDrawing && selectedDrawing.type === drawingMode) {
                                 const handleType = getResizeHandleAtPoint(mouseX, mouseY, selectedDrawing);
                                 if (handleType) {
-                                    canvas.style.cursor = 'pointer';
+                                    // Different cursors for different handle types
+                                    if (handleType === 'width' || handleType.startsWith('width-')) {
+                                        canvas.style.cursor = 'ew-resize'; // Double-arrow cursor for width adjustment
+                                    } else {
+                                        canvas.style.cursor = 'pointer'; // Standard pointer for position resize
+                                    }
                                     return;
                                 }
                             }
@@ -1429,10 +1603,14 @@
                     selectedDrawing = null;
                     isDrawing = true;
                     
-                    // Hide color dropdown when drawing starts
+                    // Hide color and width dropdowns when drawing starts
                     if (borderTool.classList.contains('show-dropdown')) {
                         borderTool.classList.remove('show-dropdown');
                         borderColorDropdown.classList.remove('show');
+                    }
+                    if (widthTool.classList.contains('show-dropdown')) {
+                        widthTool.classList.remove('show-dropdown');
+                        borderWidthDropdown.classList.remove('show');
                     }
                     
                     startX = mouseX;
@@ -1446,10 +1624,14 @@
             
             isDrawing = true;
             
-            // Hide color dropdown when drawing starts
+            // Hide color and width dropdowns when drawing starts
             if (borderTool.classList.contains('show-dropdown')) {
                 borderTool.classList.remove('show-dropdown');
                 borderColorDropdown.classList.remove('show');
+            }
+            if (widthTool.classList.contains('show-dropdown')) {
+                widthTool.classList.remove('show-dropdown');
+                borderWidthDropdown.classList.remove('show');
             }
             
             // Use direct window coordinates (canvas is full viewport)
@@ -1470,37 +1652,61 @@
                 const constrainedY = Math.max(toolbarHeight, currentY);
                 
                 if (selectedDrawing.type === 'arrow' || selectedDrawing.type === 'line') {
-                    // Linear drawings: resize start or end points
+                    // Linear drawings: resize start/end points or width
                     if (resizeMode === 'start') {
                         selectedDrawing.x1 = currentX;
                         selectedDrawing.y1 = constrainedY;
                     } else if (resizeMode === 'end') {
                         selectedDrawing.x2 = currentX;
                         selectedDrawing.y2 = constrainedY;
+                    } else if (resizeMode === 'width') {
+                        // Adjust width based on distance from line
+                        const midX = (selectedDrawing.x1 + selectedDrawing.x2) / 2;
+                        const midY = (selectedDrawing.y1 + selectedDrawing.y2) / 2;
+                        const distanceFromLine = Math.sqrt((currentX - midX) ** 2 + (currentY - midY) ** 2);
+                        
+                        // Map distance to stroke width (clamp between 1 and 20)
+                        const newWidth = Math.max(1, Math.min(20, Math.round(distanceFromLine / 10)));
+                        selectedDrawing.strokeWidth = newWidth;
                     }
                 } else if (selectedDrawing.type === 'rect') {
-                    // Rectangle: resize based on which corner handle is being dragged
+                    // Rectangle: resize based on which handle is being dragged
                     const originalX = selectedDrawing.x;
                     const originalY = selectedDrawing.y;
                     const originalWidth = selectedDrawing.width;
                     const originalHeight = selectedDrawing.height;
                     
-                    if (resizeMode === 'top-left') {
-                        selectedDrawing.width = originalWidth + (originalX - currentX);
-                        selectedDrawing.height = originalHeight + (originalY - constrainedY);
-                        selectedDrawing.x = currentX;
-                        selectedDrawing.y = constrainedY;
-                    } else if (resizeMode === 'top-right') {
-                        selectedDrawing.width = currentX - originalX;
-                        selectedDrawing.height = originalHeight + (originalY - constrainedY);
-                        selectedDrawing.y = constrainedY;
-                    } else if (resizeMode === 'bottom-left') {
-                        selectedDrawing.width = originalWidth + (originalX - currentX);
-                        selectedDrawing.height = constrainedY - originalY;
-                        selectedDrawing.x = currentX;
-                    } else if (resizeMode === 'bottom-right') {
-                        selectedDrawing.width = currentX - originalX;
-                        selectedDrawing.height = constrainedY - originalY;
+                    if (resizeMode.startsWith('width-')) {
+                        // Width resizing for rectangles - adjust stroke width based on mouse distance from edge
+                        let distanceFromEdge = 0;
+                        if (resizeMode === 'width-left' || resizeMode === 'width-right') {
+                            distanceFromEdge = Math.abs(currentX - (originalX + originalWidth / 2));
+                        } else if (resizeMode === 'width-top' || resizeMode === 'width-bottom') {
+                            distanceFromEdge = Math.abs(constrainedY - (originalY + originalHeight / 2));
+                        }
+                        
+                        // Map distance to stroke width (clamp between 1 and 20)
+                        const newWidth = Math.max(1, Math.min(20, Math.round(distanceFromEdge / 15)));
+                        selectedDrawing.strokeWidth = newWidth;
+                    } else {
+                        // Position resizing (corner handles)
+                        if (resizeMode === 'top-left') {
+                            selectedDrawing.width = originalWidth + (originalX - currentX);
+                            selectedDrawing.height = originalHeight + (originalY - constrainedY);
+                            selectedDrawing.x = currentX;
+                            selectedDrawing.y = constrainedY;
+                        } else if (resizeMode === 'top-right') {
+                            selectedDrawing.width = currentX - originalX;
+                            selectedDrawing.height = originalHeight + (originalY - constrainedY);
+                            selectedDrawing.y = constrainedY;
+                        } else if (resizeMode === 'bottom-left') {
+                            selectedDrawing.width = originalWidth + (originalX - currentX);
+                            selectedDrawing.height = constrainedY - originalY;
+                            selectedDrawing.x = currentX;
+                        } else if (resizeMode === 'bottom-right') {
+                            selectedDrawing.width = currentX - originalX;
+                            selectedDrawing.height = constrainedY - originalY;
+                        }
                     }
                 }
                 
@@ -1516,11 +1722,11 @@
             
             // Draw current drawing being created
             if (drawingMode === 'rect') {
-                drawRect(startX, startY, currentX - startX, currentY - startY, currentColor, true);
+                drawRect(startX, startY, currentX - startX, currentY - startY, currentColor, currentStrokeWidth, true);
             } else if (drawingMode === 'line') {
-                drawLine(startX, startY, currentX, currentY, currentColor, true);
+                drawLine(startX, startY, currentX, currentY, currentColor, currentStrokeWidth, true);
             } else if (drawingMode === 'arrow') {
-                drawArrow(startX, startY, currentX, currentY, currentColor, true);
+                drawArrow(startX, startY, currentX, currentY, currentColor, currentStrokeWidth, true);
             }
         }
 
@@ -1531,34 +1737,48 @@
                 resizeMode = null;
                 canvas.style.cursor = 'crosshair';
                 
-                // Validate the resized drawing
+                // Validate the resized drawing and provide feedback
                 if (selectedDrawing) {
                     let isValid = true;
                     let typeName = '';
+                    let wasWidthResize = resizeMode === 'width' || (resizeMode && resizeMode.startsWith('width-'));
                     
                     if (selectedDrawing.type === 'arrow' || selectedDrawing.type === 'line') {
-                        const distance = Math.sqrt(
-                            (selectedDrawing.x2 - selectedDrawing.x1) ** 2 + 
-                            (selectedDrawing.y2 - selectedDrawing.y1) ** 2
-                        );
                         typeName = selectedDrawing.type === 'arrow' ? 'Arrow' : 'Line';
                         
-                        if (distance < 15) {
-                            showStatus(`${typeName} too small. Minimum length is 15 pixels.`, 'warning');
-                            isValid = false;
+                        if (wasWidthResize) {
+                            // Width resize feedback
+                            showStatus(`✅ ${typeName} width changed to ${selectedDrawing.strokeWidth}px. Drag width handle to adjust further.`, 'success');
+                        } else {
+                            // Position resize validation
+                            const distance = Math.sqrt(
+                                (selectedDrawing.x2 - selectedDrawing.x1) ** 2 + 
+                                (selectedDrawing.y2 - selectedDrawing.y1) ** 2
+                            );
+                            
+                            if (distance < 15) {
+                                showStatus(`${typeName} too small. Minimum length is 15 pixels.`, 'warning');
+                                isValid = false;
+                            } else {
+                                showStatus(`✅ ${typeName} resized successfully. Click ${typeName.toLowerCase()} to select again.`, 'success');
+                            }
                         }
                     } else if (selectedDrawing.type === 'rect') {
-                        const minSize = 10;
                         typeName = 'Rectangle';
                         
-                        if (Math.abs(selectedDrawing.width) < minSize || Math.abs(selectedDrawing.height) < minSize) {
-                            showStatus(`${typeName} too small. Minimum size is ${minSize}x${minSize} pixels.`, 'warning');
-                            isValid = false;
+                        if (wasWidthResize) {
+                            // Width resize feedback
+                            showStatus(`✅ ${typeName} width changed to ${selectedDrawing.strokeWidth}px. Drag width handles to adjust further.`, 'success');
+                        } else {
+                            // Position resize validation
+                            const minSize = 10;
+                            if (Math.abs(selectedDrawing.width) < minSize || Math.abs(selectedDrawing.height) < minSize) {
+                                showStatus(`${typeName} too small. Minimum size is ${minSize}x${minSize} pixels.`, 'warning');
+                                isValid = false;
+                            } else {
+                                showStatus(`✅ ${typeName} resized successfully. Click ${typeName.toLowerCase()} to select again.`, 'success');
+                            }
                         }
-                    }
-                    
-                    if (isValid) {
-                        showStatus(`✅ ${typeName} resized successfully. Click ${typeName.toLowerCase()} to select again.`, 'success');
                     }
                 }
                 
@@ -1597,7 +1817,8 @@
                         y: Math.min(startY, endY),
                         width: width,
                         height: height,
-                        color: currentColor
+                        color: currentColor,
+                        strokeWidth: currentStrokeWidth
                     });
                     showStatus(`✅ Rectangle added (${drawings.length} total). Ctrl+Z to undo.`, 'success');
                 }
@@ -1611,7 +1832,8 @@
                         y1: startY,
                         x2: endX,
                         y2: endY,
-                        color: currentColor
+                        color: currentColor,
+                        strokeWidth: currentStrokeWidth
                     });
                     showStatus(`✅ Line added (${drawings.length} total). Ctrl+Z to undo.`, 'success');
                 }
@@ -1625,7 +1847,8 @@
                         y1: startY,
                         x2: endX,
                         y2: endY,
-                        color: currentColor
+                        color: currentColor,
+                        strokeWidth: currentStrokeWidth
                     });
                     showStatus(`✅ Arrow added (${drawings.length} total). Ctrl+Z to undo.`, 'success');
                 }
@@ -1634,9 +1857,9 @@
             redrawCanvas();
         }
 
-        function drawRect(x, y, width, height, color, isPreview = false) {
+        function drawRect(x, y, width, height, color, strokeWidth = 3, isPreview = false) {
             ctx.strokeStyle = color;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = strokeWidth;
             ctx.setLineDash(isPreview ? [5, 5] : []);
             
             const rectX = width >= 0 ? x : x + width;
@@ -1660,9 +1883,9 @@
             ctx.setLineDash([]);
         }
         
-        function drawLine(x1, y1, x2, y2, color, isPreview = false) {
+        function drawLine(x1, y1, x2, y2, color, strokeWidth = 3, isPreview = false) {
             ctx.strokeStyle = color;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = strokeWidth;
             ctx.setLineDash(isPreview ? [5, 5] : []);
             
             // Get toolbar height to avoid drawing over it
@@ -1681,10 +1904,10 @@
             ctx.setLineDash([]);
         }
         
-        function drawArrow(x1, y1, x2, y2, color, isPreview = false) {
+        function drawArrow(x1, y1, x2, y2, color, strokeWidth = 3, isPreview = false) {
             ctx.strokeStyle = color;
             ctx.fillStyle = color;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = strokeWidth;
             ctx.setLineDash(isPreview ? [5, 5] : []);
             
             // Get toolbar height to avoid drawing over it
@@ -1740,17 +1963,17 @@
                 if (drawing.type === 'rect') {
                     // Only draw rectangles that don't start in toolbar area
                     if (drawing.y >= toolbarHeight) {
-                        drawRect(drawing.x, drawing.y, drawing.width, drawing.height, drawing.color);
+                        drawRect(drawing.x, drawing.y, drawing.width, drawing.height, drawing.color, drawing.strokeWidth || 3);
                     }
                 } else if (drawing.type === 'line') {
                     // Only draw lines that don't start in toolbar area
                     if (drawing.y1 >= toolbarHeight || drawing.y2 >= toolbarHeight) {
-                        drawLine(drawing.x1, drawing.y1, drawing.x2, drawing.y2, drawing.color);
+                        drawLine(drawing.x1, drawing.y1, drawing.x2, drawing.y2, drawing.color, drawing.strokeWidth || 3);
                     }
                 } else if (drawing.type === 'arrow') {
                     // Only draw arrows that don't start in toolbar area
                     if (drawing.y1 >= toolbarHeight || drawing.y2 >= toolbarHeight) {
-                        drawArrow(drawing.x1, drawing.y1, drawing.x2, drawing.y2, drawing.color);
+                        drawArrow(drawing.x1, drawing.y1, drawing.x2, drawing.y2, drawing.color, drawing.strokeWidth || 3);
                     }
                 }
                 
@@ -1771,26 +1994,56 @@
             ctx.lineWidth = 2;
             
             if (drawing.type === 'arrow' || drawing.type === 'line') {
-                // Linear drawings: two handles at start and end points
+                // Linear drawings: two handles at start and end points, plus width handle at midpoint
                 const clampedY1 = Math.max(toolbarHeight, drawing.y1);
                 const clampedY2 = Math.max(toolbarHeight, drawing.y2);
                 
-                // Draw handle at start point
+                // Draw handle at start point (position resize)
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.strokeStyle = '#0066cc';
                 ctx.beginPath();
                 ctx.arc(drawing.x1, clampedY1, resizeHandleRadius, 0, 2 * Math.PI);
                 ctx.fill();
                 ctx.stroke();
                 
-                // Draw handle at end point
+                // Draw handle at end point (position resize)
                 ctx.beginPath();
                 ctx.arc(drawing.x2, clampedY2, resizeHandleRadius, 0, 2 * Math.PI);
                 ctx.fill();
                 ctx.stroke();
                 
+                // Draw width handle at midpoint (perpendicular to line)
+                const midX = (drawing.x1 + drawing.x2) / 2;
+                const midY = Math.max(toolbarHeight, (drawing.y1 + drawing.y2) / 2);
+                
+                // Calculate perpendicular offset for width handle
+                const lineLength = Math.sqrt((drawing.x2 - drawing.x1) ** 2 + (drawing.y2 - drawing.y1) ** 2);
+                if (lineLength > 0) {
+                    const perpX = -(drawing.y2 - drawing.y1) / lineLength;
+                    const perpY = (drawing.x2 - drawing.x1) / lineLength;
+                    const offset = 15; // Distance from line
+                    
+                    const widthHandleX = midX + perpX * offset;
+                    const widthHandleY = midY + perpY * offset;
+                    
+                    // Draw width handle (different style)
+                    ctx.fillStyle = 'rgba(255, 215, 0, 0.9)'; // Gold color for width handle
+                    ctx.strokeStyle = '#ff8c00';
+                    ctx.beginPath();
+                    ctx.rect(widthHandleX - resizeHandleRadius/2, widthHandleY - resizeHandleRadius/2, 
+                           resizeHandleRadius, resizeHandleRadius);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+                
             } else if (drawing.type === 'rect') {
-                // Rectangle: handles at all four corners
+                // Rectangle: handles at all four corners plus width handles on edges
                 const clampedY1 = Math.max(toolbarHeight, drawing.y);
                 const clampedY2 = Math.max(toolbarHeight, drawing.y + drawing.height);
+                
+                // Corner handles (position resize) - White circles
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.strokeStyle = '#0066cc';
                 
                 // Top-left handle
                 ctx.beginPath();
@@ -1813,6 +2066,41 @@
                 // Bottom-right handle
                 ctx.beginPath();
                 ctx.arc(drawing.x + drawing.width, clampedY2, resizeHandleRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Width handles on edges (stroke width adjustment) - Gold squares
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+                ctx.strokeStyle = '#ff8c00';
+                
+                const midY = Math.max(toolbarHeight, drawing.y + drawing.height / 2);
+                const midX = drawing.x + drawing.width / 2;
+                
+                // Left edge width handle
+                ctx.beginPath();
+                ctx.rect(drawing.x - 8 - resizeHandleRadius/2, midY - resizeHandleRadius/2, 
+                        resizeHandleRadius, resizeHandleRadius);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Right edge width handle
+                ctx.beginPath();
+                ctx.rect(drawing.x + drawing.width + 8 - resizeHandleRadius/2, midY - resizeHandleRadius/2, 
+                        resizeHandleRadius, resizeHandleRadius);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Top edge width handle
+                ctx.beginPath();
+                ctx.rect(midX - resizeHandleRadius/2, clampedY1 - 8 - resizeHandleRadius/2, 
+                        resizeHandleRadius, resizeHandleRadius);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Bottom edge width handle
+                ctx.beginPath();
+                ctx.rect(midX - resizeHandleRadius/2, clampedY2 + 8 - resizeHandleRadius/2, 
+                        resizeHandleRadius, resizeHandleRadius);
                 ctx.fill();
                 ctx.stroke();
             }
@@ -1891,9 +2179,26 @@
             const handleTolerance = resizeHandleRadius + 2;
             
             if (drawing.type === 'arrow' || drawing.type === 'line') {
-                // Linear drawings: check start and end handles
+                // Linear drawings: check start and end handles, plus width handle
                 const clampedY1 = Math.max(toolbarHeight, drawing.y1);
                 const clampedY2 = Math.max(toolbarHeight, drawing.y2);
+                
+                // Check width handle at midpoint first (higher priority)
+                const midX = (drawing.x1 + drawing.x2) / 2;
+                const midY = Math.max(toolbarHeight, (drawing.y1 + drawing.y2) / 2);
+                const lineLength = Math.sqrt((drawing.x2 - drawing.x1) ** 2 + (drawing.y2 - drawing.y1) ** 2);
+                
+                if (lineLength > 0) {
+                    const perpX = -(drawing.y2 - drawing.y1) / lineLength;
+                    const perpY = (drawing.x2 - drawing.x1) / lineLength;
+                    const offset = 15;
+                    const widthHandleX = midX + perpX * offset;
+                    const widthHandleY = midY + perpY * offset;
+                    
+                    if (getDistanceToPoint(x, y, widthHandleX, widthHandleY) <= handleTolerance) {
+                        return 'width';
+                    }
+                }
                 
                 // Check start handle
                 if (getDistanceToPoint(x, y, drawing.x1, clampedY1) <= handleTolerance) {
@@ -1906,10 +2211,34 @@
                 }
                 
             } else if (drawing.type === 'rect') {
-                // Rectangle: check all four corner handles
+                // Rectangle: check width handles first (higher priority), then corner handles
                 const clampedY1 = Math.max(toolbarHeight, drawing.y);
                 const clampedY2 = Math.max(toolbarHeight, drawing.y + drawing.height);
+                const midY = Math.max(toolbarHeight, drawing.y + drawing.height / 2);
+                const midX = drawing.x + drawing.width / 2;
                 
+                // Check width handles first
+                // Left edge width handle
+                if (getDistanceToPoint(x, y, drawing.x - 8, midY) <= handleTolerance) {
+                    return 'width-left';
+                }
+                
+                // Right edge width handle
+                if (getDistanceToPoint(x, y, drawing.x + drawing.width + 8, midY) <= handleTolerance) {
+                    return 'width-right';
+                }
+                
+                // Top edge width handle
+                if (getDistanceToPoint(x, y, midX, clampedY1 - 8) <= handleTolerance) {
+                    return 'width-top';
+                }
+                
+                // Bottom edge width handle
+                if (getDistanceToPoint(x, y, midX, clampedY2 + 8) <= handleTolerance) {
+                    return 'width-bottom';
+                }
+                
+                // Corner handles (position resize)
                 // Top-left handle
                 if (getDistanceToPoint(x, y, drawing.x, clampedY1) <= handleTolerance) {
                     return 'top-left';
@@ -1947,6 +2276,38 @@
                 showStatus(`${removed.type} removed (${drawings.length} remaining)`);
             } else {
                 showStatus('No drawings to undo');
+            }
+        }
+        
+        function adjustStrokeWidth(direction) {
+            // Adjust global stroke width
+            const oldWidth = currentStrokeWidth;
+            currentStrokeWidth = Math.max(1, Math.min(20, currentStrokeWidth + direction));
+            
+            // Update UI indicator
+            borderWidthIndicator.textContent = `${currentStrokeWidth}px`;
+            
+            // Update dropdown selection
+            borderWidthDropdown.querySelectorAll('.width-option').forEach(option => {
+                option.classList.remove('selected');
+                if (parseInt(option.dataset.width) === currentStrokeWidth) {
+                    option.classList.add('selected');
+                }
+            });
+            
+            // Animate indicator
+            borderWidthIndicator.style.transform = 'scale(1.3)';
+            setTimeout(() => {
+                borderWidthIndicator.style.transform = 'scale(1)';
+            }, 200);
+            
+            // Also adjust selected drawing's width if any
+            if (selectedDrawing) {
+                selectedDrawing.strokeWidth = currentStrokeWidth;
+                redrawCanvas();
+                showStatus(`✅ Width changed to ${currentStrokeWidth}px. Selected drawing updated.`, 'success');
+            } else {
+                showStatus(`Width changed to ${currentStrokeWidth}px. New drawings will use this width.`, 'success');
             }
         }
 
