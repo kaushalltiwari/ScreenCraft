@@ -634,6 +634,10 @@
                 <div class="toolbar-icon" style="font-size: 16px;">📏</div>
                 <div>Line</div>
             </button>
+            <button class="toolbar-button" id="arrowBtn" title="Arrow - Draw arrows to point to important areas">
+                <div class="toolbar-icon" style="font-size: 16px;">➡️</div>
+                <div>Arrow</div>
+            </button>
         </div>
         
         <div class="toolbar-separator"></div>
@@ -734,6 +738,7 @@
         const saveBtn = document.getElementById('saveBtn');
         const rectBtn = document.getElementById('rectBtn');
         const lineBtn = document.getElementById('lineBtn');
+        const arrowBtn = document.getElementById('arrowBtn');
         const colorBtn = document.getElementById('colorBtn');
         const borderTool = document.querySelector('.border-tool');
         const borderColorDropdown = document.getElementById('borderColorDropdown');
@@ -848,6 +853,9 @@
             });
             lineBtn?.addEventListener('click', () => {
                 setDrawingMode('line');
+            });
+            arrowBtn?.addEventListener('click', () => {
+                setDrawingMode('arrow');
             });
             
             // Color tool functionality
@@ -1111,6 +1119,38 @@
                     compositeCtx.moveTo(imgX1, imgY1);
                     compositeCtx.lineTo(imgX2, imgY2);
                     compositeCtx.stroke();
+                } else if (drawing.type === 'arrow') {
+                    // Convert arrow coordinates to image coordinates
+                    const imgX1 = (drawing.x1 - imageRect.left) * scaleX;
+                    const imgY1 = (drawing.y1 - imageRect.top) * scaleY;
+                    const imgX2 = (drawing.x2 - imageRect.left) * scaleX;
+                    const imgY2 = (drawing.y2 - imageRect.top) * scaleY;
+                    
+                    // Draw arrow line
+                    compositeCtx.beginPath();
+                    compositeCtx.moveTo(imgX1, imgY1);
+                    compositeCtx.lineTo(imgX2, imgY2);
+                    compositeCtx.stroke();
+                    
+                    // Draw arrow head (scaled appropriately)
+                    const angle = Math.atan2(imgY2 - imgY1, imgX2 - imgX1);
+                    const headLength = 20 * Math.min(scaleX, scaleY); // Scale arrow head size
+                    const headAngle = Math.PI / 6; // 30 degrees
+                    
+                    const headX1 = imgX2 - headLength * Math.cos(angle - headAngle);
+                    const headY1 = imgY2 - headLength * Math.sin(angle - headAngle);
+                    const headX2 = imgX2 - headLength * Math.cos(angle + headAngle);
+                    const headY2 = imgY2 - headLength * Math.sin(angle + headAngle);
+                    
+                    // Draw filled arrow head
+                    compositeCtx.fillStyle = drawing.color;
+                    compositeCtx.beginPath();
+                    compositeCtx.moveTo(imgX2, imgY2);
+                    compositeCtx.lineTo(headX1, headY1);
+                    compositeCtx.lineTo(headX2, headY2);
+                    compositeCtx.closePath();
+                    compositeCtx.fill();
+                    compositeCtx.stroke();
                 }
             });
 
@@ -1265,6 +1305,7 @@
             // Clear previous mode
             rectBtn?.classList.remove('active');
             lineBtn?.classList.remove('active');
+            arrowBtn?.classList.remove('active');
             
             if (drawingMode === mode) {
                 // Toggle off if same mode clicked
@@ -1285,6 +1326,9 @@
                 } else if (mode === 'line') {
                     lineBtn.classList.add('active');
                     showStatus('Line mode active! Click and drag to draw lines. Ctrl+Z to undo. Escape to exit.');
+                } else if (mode === 'arrow') {
+                    arrowBtn.classList.add('active');
+                    showStatus('Arrow mode active! Click and drag to draw arrows. Ctrl+Z to undo. Escape to exit.');
                 }
             }
         }
@@ -1320,6 +1364,8 @@
                 drawRect(startX, startY, currentX - startX, currentY - startY, currentColor, true);
             } else if (drawingMode === 'line') {
                 drawLine(startX, startY, currentX, currentY, currentColor, true);
+            } else if (drawingMode === 'arrow') {
+                drawArrow(startX, startY, currentX, currentY, currentColor, true);
             }
         }
 
@@ -1373,6 +1419,20 @@
                     });
                     showStatus(`✅ Line added (${drawings.length} total). Ctrl+Z to undo.`, 'success');
                 }
+            } else if (drawingMode === 'arrow') {
+                // Add arrow if it has meaningful length (15px minimum)
+                const distance = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+                if (distance > 15) {
+                    drawings.push({
+                        type: 'arrow',
+                        x1: startX,
+                        y1: startY,
+                        x2: endX,
+                        y2: endY,
+                        color: currentColor
+                    });
+                    showStatus(`✅ Arrow added (${drawings.length} total). Ctrl+Z to undo.`, 'success');
+                }
             }
             
             redrawCanvas();
@@ -1424,6 +1484,54 @@
             
             ctx.setLineDash([]);
         }
+        
+        function drawArrow(x1, y1, x2, y2, color, isPreview = false) {
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 3;
+            ctx.setLineDash(isPreview ? [5, 5] : []);
+            
+            // Get toolbar height to avoid drawing over it
+            const toolbar = document.querySelector('.top-toolbar');
+            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+            
+            // Clamp coordinates to avoid toolbar area
+            const clampedY1 = Math.max(toolbarHeight, y1);
+            const clampedY2 = Math.max(toolbarHeight, y2);
+            
+            // Draw the main arrow line
+            ctx.beginPath();
+            ctx.moveTo(x1, clampedY1);
+            ctx.lineTo(x2, clampedY2);
+            ctx.stroke();
+            
+            // Calculate arrow head geometry
+            const angle = Math.atan2(clampedY2 - clampedY1, x2 - x1);
+            const headLength = 20; // Length of the arrow head lines
+            const headAngle = Math.PI / 6; // 30 degrees
+            
+            // Calculate arrow head points
+            const headX1 = x2 - headLength * Math.cos(angle - headAngle);
+            const headY1 = clampedY2 - headLength * Math.sin(angle - headAngle);
+            const headX2 = x2 - headLength * Math.cos(angle + headAngle);
+            const headY2 = clampedY2 - headLength * Math.sin(angle + headAngle);
+            
+            // Draw filled arrow head
+            ctx.beginPath();
+            ctx.moveTo(x2, clampedY2);
+            ctx.lineTo(headX1, headY1);
+            ctx.lineTo(headX2, headY2);
+            ctx.closePath();
+            
+            if (isPreview) {
+                ctx.stroke(); // Just outline for preview
+            } else {
+                ctx.fill(); // Filled arrow head for final
+                ctx.stroke(); // Add outline for better visibility
+            }
+            
+            ctx.setLineDash([]);
+        }
 
         function redrawCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1442,6 +1550,11 @@
                     // Only draw lines that don't start in toolbar area
                     if (drawing.y1 >= toolbarHeight || drawing.y2 >= toolbarHeight) {
                         drawLine(drawing.x1, drawing.y1, drawing.x2, drawing.y2, drawing.color);
+                    }
+                } else if (drawing.type === 'arrow') {
+                    // Only draw arrows that don't start in toolbar area
+                    if (drawing.y1 >= toolbarHeight || drawing.y2 >= toolbarHeight) {
+                        drawArrow(drawing.x1, drawing.y1, drawing.x2, drawing.y2, drawing.color);
                     }
                 }
             });
