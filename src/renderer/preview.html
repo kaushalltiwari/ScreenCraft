@@ -1326,10 +1326,10 @@
                         // Re-enable pointer events for drawing area
                         canvas.style.pointerEvents = 'all';
                         
-                        // Special cursor handling for arrow mode
-                        if (drawingMode === 'arrow') {
-                            // Check if hovering over a resize handle of selected arrow
-                            if (selectedDrawing && selectedDrawing.type === 'arrow') {
+                        // Special cursor handling for all drawing modes
+                        if (drawingMode) {
+                            // Check if hovering over a resize handle of selected drawing
+                            if (selectedDrawing && selectedDrawing.type === drawingMode) {
                                 const handleType = getResizeHandleAtPoint(mouseX, mouseY, selectedDrawing);
                                 if (handleType) {
                                     canvas.style.cursor = 'pointer';
@@ -1337,9 +1337,9 @@
                                 }
                             }
                             
-                            // Check if hovering over any arrow for selection feedback
+                            // Check if hovering over any drawing of the same type for selection feedback
                             const hoveredDrawing = findDrawingAtPoint(mouseX, mouseY);
-                            if (hoveredDrawing && hoveredDrawing.type === 'arrow') {
+                            if (hoveredDrawing && hoveredDrawing.type === drawingMode) {
                                 canvas.style.cursor = 'pointer';
                                 return;
                             }
@@ -1397,10 +1397,10 @@
             const mouseX = Math.max(0, Math.min(canvas.width, e.clientX));
             const mouseY = Math.max(0, Math.min(canvas.height, e.clientY));
             
-            // If we're in arrow mode, first check for existing arrow interaction
-            if (drawingMode === 'arrow') {
-                // Check if clicking on a resize handle of a selected arrow
-                if (selectedDrawing && selectedDrawing.type === 'arrow') {
+            // If we're in any drawing mode, check for existing drawing interaction first
+            if (drawingMode) {
+                // Check if clicking on a resize handle of a selected drawing
+                if (selectedDrawing && selectedDrawing.type === drawingMode) {
                     const handleType = getResizeHandleAtPoint(mouseX, mouseY, selectedDrawing);
                     if (handleType) {
                         // Start resizing
@@ -1410,16 +1410,22 @@
                     }
                 }
                 
-                // Check if clicking on an arrow to select it (while staying in arrow mode)
+                // Check if clicking on a drawing of the same type to select it
                 const clickedDrawing = findDrawingAtPoint(mouseX, mouseY);
-                if (clickedDrawing && clickedDrawing.type === 'arrow') {
-                    // Select the arrow but stay in drawing mode
+                if (clickedDrawing && clickedDrawing.type === drawingMode) {
+                    // Select the drawing but stay in drawing mode
                     selectedDrawing = clickedDrawing;
                     redrawCanvas();
-                    showStatus(`Arrow selected. Drag handles to resize or click empty space to draw new arrows.`);
+                    const drawingTypeNames = {
+                        'rect': 'Rectangle',
+                        'line': 'Line', 
+                        'arrow': 'Arrow'
+                    };
+                    const typeName = drawingTypeNames[drawingMode] || drawingMode;
+                    showStatus(`${typeName} selected. Drag handles to resize or click empty space to draw new ${typeName.toLowerCase()}s.`);
                     return;
                 } else {
-                    // Clicking on empty space - deselect and start drawing new arrow
+                    // Clicking on empty space - deselect and start drawing new shape
                     selectedDrawing = null;
                     isDrawing = true;
                     
@@ -1435,7 +1441,7 @@
                 }
             }
             
-            // Regular drawing mode for other tools
+            // No drawing mode - just return
             if (!drawingMode) return;
             
             isDrawing = true;
@@ -1456,21 +1462,46 @@
             const currentX = Math.max(0, Math.min(canvas.width, e.clientX));
             const currentY = Math.max(0, Math.min(canvas.height, e.clientY));
             
-            // Handle arrow resizing
-            if (isResizing && selectedDrawing && selectedDrawing.type === 'arrow') {
+            // Handle resizing for all drawing types
+            if (isResizing && selectedDrawing) {
                 // Get toolbar height to constrain movement
                 const toolbar = document.querySelector('.top-toolbar');
                 const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
                 const constrainedY = Math.max(toolbarHeight, currentY);
                 
-                if (resizeMode === 'start') {
-                    // Resize the start point (arrow head)
-                    selectedDrawing.x1 = currentX;
-                    selectedDrawing.y1 = constrainedY;
-                } else if (resizeMode === 'end') {
-                    // Resize the end point (arrow tail)
-                    selectedDrawing.x2 = currentX;
-                    selectedDrawing.y2 = constrainedY;
+                if (selectedDrawing.type === 'arrow' || selectedDrawing.type === 'line') {
+                    // Linear drawings: resize start or end points
+                    if (resizeMode === 'start') {
+                        selectedDrawing.x1 = currentX;
+                        selectedDrawing.y1 = constrainedY;
+                    } else if (resizeMode === 'end') {
+                        selectedDrawing.x2 = currentX;
+                        selectedDrawing.y2 = constrainedY;
+                    }
+                } else if (selectedDrawing.type === 'rect') {
+                    // Rectangle: resize based on which corner handle is being dragged
+                    const originalX = selectedDrawing.x;
+                    const originalY = selectedDrawing.y;
+                    const originalWidth = selectedDrawing.width;
+                    const originalHeight = selectedDrawing.height;
+                    
+                    if (resizeMode === 'top-left') {
+                        selectedDrawing.width = originalWidth + (originalX - currentX);
+                        selectedDrawing.height = originalHeight + (originalY - constrainedY);
+                        selectedDrawing.x = currentX;
+                        selectedDrawing.y = constrainedY;
+                    } else if (resizeMode === 'top-right') {
+                        selectedDrawing.width = currentX - originalX;
+                        selectedDrawing.height = originalHeight + (originalY - constrainedY);
+                        selectedDrawing.y = constrainedY;
+                    } else if (resizeMode === 'bottom-left') {
+                        selectedDrawing.width = originalWidth + (originalX - currentX);
+                        selectedDrawing.height = constrainedY - originalY;
+                        selectedDrawing.x = currentX;
+                    } else if (resizeMode === 'bottom-right') {
+                        selectedDrawing.width = currentX - originalX;
+                        selectedDrawing.height = constrainedY - originalY;
+                    }
                 }
                 
                 redrawCanvas();
@@ -1500,18 +1531,34 @@
                 resizeMode = null;
                 canvas.style.cursor = 'crosshair';
                 
-                // Calculate final arrow length to see if it's valid
-                if (selectedDrawing && selectedDrawing.type === 'arrow') {
-                    const distance = Math.sqrt(
-                        (selectedDrawing.x2 - selectedDrawing.x1) ** 2 + 
-                        (selectedDrawing.y2 - selectedDrawing.y1) ** 2
-                    );
+                // Validate the resized drawing
+                if (selectedDrawing) {
+                    let isValid = true;
+                    let typeName = '';
                     
-                    if (distance < 15) {
-                        // Arrow too small, show warning
-                        showStatus(`Arrow too small. Minimum length is 15 pixels.`, 'warning');
-                    } else {
-                        showStatus(`✅ Arrow resized successfully. Click arrow to select again.`, 'success');
+                    if (selectedDrawing.type === 'arrow' || selectedDrawing.type === 'line') {
+                        const distance = Math.sqrt(
+                            (selectedDrawing.x2 - selectedDrawing.x1) ** 2 + 
+                            (selectedDrawing.y2 - selectedDrawing.y1) ** 2
+                        );
+                        typeName = selectedDrawing.type === 'arrow' ? 'Arrow' : 'Line';
+                        
+                        if (distance < 15) {
+                            showStatus(`${typeName} too small. Minimum length is 15 pixels.`, 'warning');
+                            isValid = false;
+                        }
+                    } else if (selectedDrawing.type === 'rect') {
+                        const minSize = 10;
+                        typeName = 'Rectangle';
+                        
+                        if (Math.abs(selectedDrawing.width) < minSize || Math.abs(selectedDrawing.height) < minSize) {
+                            showStatus(`${typeName} too small. Minimum size is ${minSize}x${minSize} pixels.`, 'warning');
+                            isValid = false;
+                        }
+                    }
+                    
+                    if (isValid) {
+                        showStatus(`✅ ${typeName} resized successfully. Click ${typeName.toLowerCase()} to select again.`, 'success');
                     }
                 }
                 
@@ -1704,41 +1751,71 @@
                     // Only draw arrows that don't start in toolbar area
                     if (drawing.y1 >= toolbarHeight || drawing.y2 >= toolbarHeight) {
                         drawArrow(drawing.x1, drawing.y1, drawing.x2, drawing.y2, drawing.color);
-                        
-                        // Draw resize handles if this arrow is selected
-                        if (selectedDrawing === drawing) {
-                            drawResizeHandles(drawing);
-                        }
                     }
+                }
+                
+                // Draw resize handles if this drawing is selected (for all drawing types)
+                if (selectedDrawing === drawing) {
+                    drawResizeHandles(drawing);
                 }
             });
         }
         
         function drawResizeHandles(drawing) {
-            if (drawing.type !== 'arrow') return;
-            
             // Get toolbar height to avoid drawing over it
             const toolbar = document.querySelector('.top-toolbar');
             const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
-            
-            const clampedY1 = Math.max(toolbarHeight, drawing.y1);
-            const clampedY2 = Math.max(toolbarHeight, drawing.y2);
             
             ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
             ctx.strokeStyle = '#0066cc';
             ctx.lineWidth = 2;
             
-            // Draw handle at arrow start (head)
-            ctx.beginPath();
-            ctx.arc(drawing.x1, clampedY1, resizeHandleRadius, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.stroke();
-            
-            // Draw handle at arrow end (tail)
-            ctx.beginPath();
-            ctx.arc(drawing.x2, clampedY2, resizeHandleRadius, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.stroke();
+            if (drawing.type === 'arrow' || drawing.type === 'line') {
+                // Linear drawings: two handles at start and end points
+                const clampedY1 = Math.max(toolbarHeight, drawing.y1);
+                const clampedY2 = Math.max(toolbarHeight, drawing.y2);
+                
+                // Draw handle at start point
+                ctx.beginPath();
+                ctx.arc(drawing.x1, clampedY1, resizeHandleRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Draw handle at end point
+                ctx.beginPath();
+                ctx.arc(drawing.x2, clampedY2, resizeHandleRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                
+            } else if (drawing.type === 'rect') {
+                // Rectangle: handles at all four corners
+                const clampedY1 = Math.max(toolbarHeight, drawing.y);
+                const clampedY2 = Math.max(toolbarHeight, drawing.y + drawing.height);
+                
+                // Top-left handle
+                ctx.beginPath();
+                ctx.arc(drawing.x, clampedY1, resizeHandleRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Top-right handle
+                ctx.beginPath();
+                ctx.arc(drawing.x + drawing.width, clampedY1, resizeHandleRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Bottom-left handle
+                ctx.beginPath();
+                ctx.arc(drawing.x, clampedY2, resizeHandleRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Bottom-right handle
+                ctx.beginPath();
+                ctx.arc(drawing.x + drawing.width, clampedY2, resizeHandleRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+            }
         }
         
         function getDistanceToPoint(x1, y1, x2, y2) {
@@ -1778,36 +1855,80 @@
             for (let i = drawings.length - 1; i >= 0; i--) {
                 const drawing = drawings[i];
                 
-                if (drawing.type === 'arrow') {
-                    // Check if click is near the arrow line
+                if (drawing.type === 'arrow' || drawing.type === 'line') {
+                    // Check if click is near the line/arrow
                     const distanceToLine = getDistanceToLine(x, y, drawing.x1, drawing.y1, drawing.x2, drawing.y2);
-                    if (distanceToLine <= 8) { // 8px tolerance for clicking on arrow
+                    if (distanceToLine <= 8) { // 8px tolerance for clicking on line/arrow
                         return drawing;
                     }
+                } else if (drawing.type === 'rect') {
+                    // Check if click is within rectangle bounds (including border area)
+                    const tolerance = 8;
+                    if (x >= drawing.x - tolerance && 
+                        x <= drawing.x + drawing.width + tolerance &&
+                        y >= drawing.y - tolerance && 
+                        y <= drawing.y + drawing.height + tolerance) {
+                        
+                        // Check if it's near the border (not filled center)
+                        if (x <= drawing.x + tolerance || 
+                            x >= drawing.x + drawing.width - tolerance ||
+                            y <= drawing.y + tolerance || 
+                            y >= drawing.y + drawing.height - tolerance) {
+                            return drawing;
+                        }
+                    }
                 }
-                // Add other drawing types here if needed for resizing
             }
             return null;
         }
         
         function getResizeHandleAtPoint(x, y, drawing) {
-            if (!drawing || drawing.type !== 'arrow') return null;
+            if (!drawing) return null;
             
             // Get toolbar height to avoid drawing over it
             const toolbar = document.querySelector('.top-toolbar');
             const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+            const handleTolerance = resizeHandleRadius + 2;
             
-            const clampedY1 = Math.max(toolbarHeight, drawing.y1);
-            const clampedY2 = Math.max(toolbarHeight, drawing.y2);
-            
-            // Check start handle (arrow head)
-            if (getDistanceToPoint(x, y, drawing.x1, clampedY1) <= resizeHandleRadius + 2) {
-                return 'start';
-            }
-            
-            // Check end handle (arrow tail)
-            if (getDistanceToPoint(x, y, drawing.x2, clampedY2) <= resizeHandleRadius + 2) {
-                return 'end';
+            if (drawing.type === 'arrow' || drawing.type === 'line') {
+                // Linear drawings: check start and end handles
+                const clampedY1 = Math.max(toolbarHeight, drawing.y1);
+                const clampedY2 = Math.max(toolbarHeight, drawing.y2);
+                
+                // Check start handle
+                if (getDistanceToPoint(x, y, drawing.x1, clampedY1) <= handleTolerance) {
+                    return 'start';
+                }
+                
+                // Check end handle
+                if (getDistanceToPoint(x, y, drawing.x2, clampedY2) <= handleTolerance) {
+                    return 'end';
+                }
+                
+            } else if (drawing.type === 'rect') {
+                // Rectangle: check all four corner handles
+                const clampedY1 = Math.max(toolbarHeight, drawing.y);
+                const clampedY2 = Math.max(toolbarHeight, drawing.y + drawing.height);
+                
+                // Top-left handle
+                if (getDistanceToPoint(x, y, drawing.x, clampedY1) <= handleTolerance) {
+                    return 'top-left';
+                }
+                
+                // Top-right handle
+                if (getDistanceToPoint(x, y, drawing.x + drawing.width, clampedY1) <= handleTolerance) {
+                    return 'top-right';
+                }
+                
+                // Bottom-left handle
+                if (getDistanceToPoint(x, y, drawing.x, clampedY2) <= handleTolerance) {
+                    return 'bottom-left';
+                }
+                
+                // Bottom-right handle
+                if (getDistanceToPoint(x, y, drawing.x + drawing.width, clampedY2) <= handleTolerance) {
+                    return 'bottom-right';
+                }
             }
             
             return null;
