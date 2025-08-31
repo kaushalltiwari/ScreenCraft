@@ -1307,8 +1307,9 @@
             document.addEventListener('mouseup', stopDrawing);
             document.addEventListener('mouseleave', stopDrawing);
             
-            // Handle cursor change in toolbar area only
+            // Handle cursor change in toolbar area and arrow hover feedback
             canvas.addEventListener('mousemove', (e) => {
+                const mouseX = e.clientX;
                 const mouseY = e.clientY;
                 
                 // Check if we're in drawing mode
@@ -1324,7 +1325,27 @@
                         canvas.classList.remove('toolbar-area');
                         // Re-enable pointer events for drawing area
                         canvas.style.pointerEvents = 'all';
-                        // Keep crosshair cursor in drawing mode
+                        
+                        // Special cursor handling for arrow mode
+                        if (drawingMode === 'arrow') {
+                            // Check if hovering over a resize handle of selected arrow
+                            if (selectedDrawing && selectedDrawing.type === 'arrow') {
+                                const handleType = getResizeHandleAtPoint(mouseX, mouseY, selectedDrawing);
+                                if (handleType) {
+                                    canvas.style.cursor = 'pointer';
+                                    return;
+                                }
+                            }
+                            
+                            // Check if hovering over any arrow for selection feedback
+                            const hoveredDrawing = findDrawingAtPoint(mouseX, mouseY);
+                            if (hoveredDrawing && hoveredDrawing.type === 'arrow') {
+                                canvas.style.cursor = 'pointer';
+                                return;
+                            }
+                        }
+                        
+                        // Default crosshair cursor in drawing mode
                         canvas.style.cursor = 'crosshair';
                     }
                 } else {
