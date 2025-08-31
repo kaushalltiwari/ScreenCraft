@@ -1657,12 +1657,10 @@
             canvas.addEventListener('mousemove', draw);
             canvas.addEventListener('mouseup', stopDrawing);
             
-            // Right-click to show color picker while in drawing mode
+            // Right-click disabled - no automatic color picker
             canvas.addEventListener('contextmenu', (e) => {
                 if (drawingMode) {
-                    e.preventDefault();
-                    borderTool.classList.add('show-dropdown');
-                    borderColorDropdown.classList.add('show');
+                    e.preventDefault(); // Prevent default context menu but don't open color picker
                 }
             });
             
