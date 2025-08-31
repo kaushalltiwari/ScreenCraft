@@ -954,6 +954,7 @@
         
         // Text annotation functionality
         let activeTextEditor = null; // Currently active text editor
+        let activeTextBox = null; // Currently active text box area (for preview)
         let editingText = null; // Currently editing text drawing
         let isTypingText = false; // Text input mode flag
         
@@ -1763,25 +1764,49 @@
                     showStatus('Arrow mode active! Click where arrow starts, drag to where it points. Ctrl+Z to undo. Escape to exit.');
                 } else if (mode === 'text') {
                     textBtn.classList.add('active');
-                    showStatus('Text mode active! Click anywhere to add text. Type and press Enter to confirm. Escape to exit.');
+                    showStatus('Text mode active! Click and drag to draw text box area. Ctrl+Enter to confirm text.');
                 }
             }
         }
 
         function startDrawing(e) {
+            // If we're currently typing text, don't interfere
+            if (isTypingText && activeTextEditor) {
+                return;
+            }
+            
             // Get mouse coordinates relative to canvas
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
             
-            // Special handling for text mode
-            if (drawingMode === 'text') {
-                startTextEditing(mouseX, mouseY);
-                return;
-            }
+            // Text mode now uses drag-to-draw like other tools
+            // The text editor will be created in stopDrawing after area is drawn
             
             // If we're in any drawing mode, check for existing drawing interaction first
             if (drawingMode) {
+                // Special handling for text mode - always start drawing, no selection
+                if (drawingMode === 'text') {
+                    // Clear any selected drawings
+                    selectedDrawing = null;
+                    isDrawing = true;
+                    
+                    // Hide dropdowns
+                    if (borderTool.classList.contains('show-dropdown')) {
+                        borderTool.classList.remove('show-dropdown');
+                        borderColorDropdown.classList.remove('show');
+                    }
+                    if (widthTool.classList.contains('show-dropdown')) {
+                        widthTool.classList.remove('show-dropdown');
+                        borderWidthDropdown.classList.remove('show');
+                    }
+                    
+                    startX = mouseX;
+                    startY = mouseY;
+                    return;
+                }
+                
+                // For other drawing modes, check for existing drawing interaction
                 // Check if clicking on a resize handle of a selected drawing
                 if (selectedDrawing && selectedDrawing.type === drawingMode) {
                     const handleType = getResizeHandleAtPoint(mouseX, mouseY, selectedDrawing);
@@ -1956,10 +1981,14 @@
                 drawLine(startX, startY, currentX, currentY, currentColor, currentStrokeWidth, true);
             } else if (drawingMode === 'arrow') {
                 drawArrow(startX, startY, currentX, currentY, currentColor, currentStrokeWidth, true);
+            } else if (drawingMode === 'text') {
+                // Draw text box preview with dashed border
+                drawTextBoxPreview(startX, startY, currentX - startX, currentY - startY, currentColor);
             }
         }
 
         function stopDrawing(e) {
+            
             // Handle resize completion
             if (isResizing) {
                 isResizing = false;
@@ -2081,6 +2110,25 @@
                         strokeWidth: currentStrokeWidth
                     });
                     showStatus(`✅ Arrow added (${drawings.length} total). Ctrl+Z to undo.`, 'success');
+                }
+            } else if (drawingMode === 'text') {
+                const width = Math.abs(endX - startX);
+                const height = Math.abs(endY - startY);
+                
+                // Only create text box if it has meaningful size (30px minimum)
+                if (width > 30 && height > 20) {
+                    // Calculate the actual position (handle negative dimensions)
+                    const textBoxX = Math.min(startX, endX);
+                    const textBoxY = Math.min(startY, endY);
+                    
+                    // Create textarea in the drawn area
+                    createTextBoxEditor(textBoxX, textBoxY, width, height);
+                    showStatus('Text box created. Type your text and press Ctrl+Enter to confirm.', 'success');
+                    // Don't call redrawCanvas() here to keep the text box preview visible
+                    return;
+                } else {
+                    showStatus('Text box too small. Minimum size is 30x20 pixels.', 'warning');
+                    return; // Important: return here to prevent redrawCanvas() from being called
                 }
             }
             
@@ -2257,7 +2305,9 @@
             
             // Add event handlers
             activeTextEditor.addEventListener('keydown', handleTextEditorKeydown);
-            activeTextEditor.addEventListener('blur', handleTextEditorBlur);
+            
+            // Add document click handler to finish text when clicking elsewhere
+            document.addEventListener('click', handleDocumentClick, { capture: true });
         }
 
         function handleTextEditorKeydown(e) {
@@ -2271,13 +2321,18 @@
             // Allow normal typing and Enter for new lines
         }
 
-        function handleTextEditorBlur() {
-            // Add a small delay to prevent immediate blur when clicking elsewhere
-            setTimeout(() => {
-                if (activeTextEditor && !activeTextEditor.matches(':focus')) {
-                    finishTextEditing();
-                }
-            }, 150);
+        function handleDocumentClick(e) {
+            // If there's no active text editor, ignore
+            if (!activeTextEditor) return;
+            
+            // If click is on the text editor itself, ignore
+            if (activeTextEditor.contains(e.target)) {
+                return;
+            }
+            
+            // Remove this event handler and finish text editing
+            document.removeEventListener('click', handleDocumentClick, { capture: true });
+            finishTextEditing();
         }
 
         function finishTextEditing() {
@@ -2320,11 +2375,76 @@
         function cleanupTextEditor() {
             if (activeTextEditor) {
                 activeTextEditor.removeEventListener('keydown', handleTextEditorKeydown);
-                activeTextEditor.removeEventListener('blur', handleTextEditorBlur);
+                document.removeEventListener('click', handleDocumentClick, { capture: true });
                 document.body.removeChild(activeTextEditor);
                 activeTextEditor = null;
             }
+            // Clear the active text box
+            activeTextBox = null;
             isTypingText = false;
+            // Redraw canvas to remove text box preview
+            redrawCanvas();
+        }
+
+        function createTextBoxEditor(canvasX, canvasY, width, height) {
+            // Prevent multiple text editors
+            if (activeTextEditor) {
+                finishTextEditing();
+            }
+            
+            // Store the text box area for drawing
+            activeTextBox = {
+                x: canvasX,
+                y: canvasY,
+                width: width,
+                height: height,
+                color: currentColor
+            };
+            
+            // Get canvas position for proper positioning
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            // Create transparent textarea overlay
+            activeTextEditor = document.createElement('textarea');
+            activeTextEditor.style.position = 'absolute';
+            activeTextEditor.style.left = (canvasRect.left + canvasX) + 'px';
+            activeTextEditor.style.top = (canvasRect.top + canvasY) + 'px';
+            activeTextEditor.style.width = width + 'px';
+            activeTextEditor.style.height = height + 'px';
+            activeTextEditor.style.fontSize = currentFontSize + 'px';
+            activeTextEditor.style.fontFamily = 'Arial, sans-serif';
+            activeTextEditor.style.color = currentColor;
+            activeTextEditor.style.background = 'rgba(255, 255, 255, 0.1)';
+            activeTextEditor.style.border = '2px dashed ' + currentColor;
+            activeTextEditor.style.borderRadius = '4px';
+            activeTextEditor.style.padding = '8px';
+            activeTextEditor.style.resize = 'both';
+            activeTextEditor.style.zIndex = '9999';
+            activeTextEditor.style.outline = 'none';
+            activeTextEditor.style.overflow = 'auto'; // Allow scrolling for long text
+            activeTextEditor.placeholder = 'Type your text here...';
+            
+            // Store position for the drawing
+            activeTextEditor.dataset.canvasX = canvasX;
+            activeTextEditor.dataset.canvasY = canvasY;
+            
+            // Add to document body for proper positioning
+            document.body.appendChild(activeTextEditor);
+            
+            // Focus and enable text input mode
+            isTypingText = true;
+            
+            // Use setTimeout to ensure proper focus after DOM manipulation
+            setTimeout(() => {
+                activeTextEditor.focus();
+                activeTextEditor.select(); // Select all placeholder text if any
+            }, 10);
+            
+            // Add event handlers
+            activeTextEditor.addEventListener('keydown', handleTextEditorKeydown);
+            
+            // Add document click handler to finish text when clicking elsewhere
+            document.addEventListener('click', handleDocumentClick, { capture: true });
         }
 
         function getTextWidth(text) {
@@ -2341,6 +2461,15 @@
         function getTextHeight(text) {
             const lines = text.split('\n');
             return lines.length * currentFontSize * 1.2; // 1.2 for line spacing
+        }
+
+        function drawTextBoxPreview(x, y, width, height, color) {
+            // Draw dashed border rectangle to show text box area
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 4]); // Dashed line pattern
+            ctx.strokeRect(x, y, width, height);
+            ctx.setLineDash([]); // Reset line dash
         }
 
 
@@ -2380,6 +2509,11 @@
                     drawResizeHandles(drawing);
                 }
             });
+            
+            // Draw active text box if there is one
+            if (activeTextBox) {
+                drawTextBoxPreview(activeTextBox.x, activeTextBox.y, activeTextBox.width, activeTextBox.height, activeTextBox.color);
+            }
         }
         
         function drawResizeHandles(drawing) {
