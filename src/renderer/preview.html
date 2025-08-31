@@ -709,13 +709,19 @@
 
     <script>
         let screenshotData = null;
-        let drawingMode = null; // 'rect', 'line', or null
+        let drawingMode = null; // 'rect', 'line', 'arrow', or null
         let currentColor = '#e74c3c';
         let isDrawing = false;
         let startX, startY;
-        let drawings = []; // Store all drawings (rects and lines)
+        let drawings = []; // Store all drawings (rects, lines, arrows)
         let imageWrapper, canvas, ctx;
         let lastImageRect = null; // Store last known image position for scaling
+        
+        // Arrow resizing functionality
+        let selectedDrawing = null; // Currently selected drawing for resizing
+        let resizeMode = null; // 'start', 'end', or null
+        let isResizing = false;
+        let resizeHandleRadius = 6; // Size of resize handles
         
         // Theme management
         let currentTheme = 'system';
@@ -921,10 +927,29 @@
 
             // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
-                // Handle Escape key specifically for drawing mode
-                if (e.key === 'Escape' && drawingMode) {
+                // Handle Escape key specifically for drawing mode or selection
+                if (e.key === 'Escape') {
                     e.preventDefault();
-                    setDrawingMode(null);
+                    if (drawingMode) {
+                        setDrawingMode(null);
+                    } else if (selectedDrawing) {
+                        selectedDrawing = null;
+                        redrawCanvas();
+                        showStatus('Arrow deselected.');
+                    }
+                    return;
+                }
+                
+                // Handle Delete key for selected arrows
+                if (e.key === 'Delete' && selectedDrawing) {
+                    e.preventDefault();
+                    const index = drawings.indexOf(selectedDrawing);
+                    if (index > -1) {
+                        drawings.splice(index, 1);
+                        selectedDrawing = null;
+                        redrawCanvas();
+                        showStatus('✅ Arrow deleted.', 'success');
+                    }
                     return;
                 }
                 
@@ -1282,13 +1307,17 @@
             document.addEventListener('mouseup', stopDrawing);
             document.addEventListener('mouseleave', stopDrawing);
             
-            // Handle cursor change in toolbar area
+            // Handle cursor change in toolbar area and for resize handles
             canvas.addEventListener('mousemove', (e) => {
+                const mouseX = e.clientX;
+                const mouseY = e.clientY;
+                
+                // Check if we're in drawing mode
                 if (drawingMode) {
                     const toolbar = document.querySelector('.top-toolbar');
                     const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
                     
-                    if (e.clientY < toolbarHeight) {
+                    if (mouseY < toolbarHeight) {
                         canvas.classList.add('toolbar-area');
                         // Disable pointer events in toolbar area to allow toolbar interactions
                         canvas.style.pointerEvents = 'none';
@@ -1297,6 +1326,25 @@
                         // Re-enable pointer events for drawing area
                         canvas.style.pointerEvents = 'all';
                     }
+                } else {
+                    // Not in drawing mode - handle cursor for arrow selection/resizing
+                    let cursorStyle = 'default';
+                    
+                    // Check if hovering over a selected arrow's resize handle
+                    if (selectedDrawing && selectedDrawing.type === 'arrow') {
+                        const handleType = getResizeHandleAtPoint(mouseX, mouseY, selectedDrawing);
+                        if (handleType) {
+                            cursorStyle = 'pointer';
+                        }
+                    } else {
+                        // Check if hovering over any arrow for selection
+                        const hoveredDrawing = findDrawingAtPoint(mouseX, mouseY);
+                        if (hoveredDrawing && hoveredDrawing.type === 'arrow') {
+                            cursorStyle = 'pointer';
+                        }
+                    }
+                    
+                    canvas.style.cursor = cursorStyle;
                 }
             });
         }
@@ -1307,18 +1355,23 @@
             lineBtn?.classList.remove('active');
             arrowBtn?.classList.remove('active');
             
+            // Clear any selected drawings when entering drawing mode
+            selectedDrawing = null;
+            
             if (drawingMode === mode) {
                 // Toggle off if same mode clicked
                 drawingMode = null;
                 canvas.classList.remove('drawing');
                 canvas.classList.remove('toolbar-area');
                 canvas.style.pointerEvents = 'none';
-                showStatus('Drawing mode disabled');
+                redrawCanvas();
+                showStatus('Drawing mode disabled. Click arrows to select and resize them.');
             } else {
                 // Set new drawing mode
                 drawingMode = mode;
                 canvas.classList.add('drawing');
                 canvas.style.pointerEvents = 'all';
+                redrawCanvas(); // Redraw to clear selection handles
                 
                 if (mode === 'rect') {
                     rectBtn.classList.add('active');
@@ -1334,6 +1387,43 @@
         }
 
         function startDrawing(e) {
+            // Get mouse coordinates
+            const mouseX = Math.max(0, Math.min(canvas.width, e.clientX));
+            const mouseY = Math.max(0, Math.min(canvas.height, e.clientY));
+            
+            // Check if we're clicking on a resize handle of a selected arrow
+            if (selectedDrawing && selectedDrawing.type === 'arrow') {
+                const handleType = getResizeHandleAtPoint(mouseX, mouseY, selectedDrawing);
+                if (handleType) {
+                    // Start resizing
+                    isResizing = true;
+                    resizeMode = handleType;
+                    canvas.style.cursor = 'pointer';
+                    return;
+                }
+            }
+            
+            // Check if we're clicking on an arrow to select it
+            if (!drawingMode) {
+                const clickedDrawing = findDrawingAtPoint(mouseX, mouseY);
+                if (clickedDrawing && clickedDrawing.type === 'arrow') {
+                    // Select the arrow
+                    selectedDrawing = clickedDrawing;
+                    redrawCanvas();
+                    showStatus(`Arrow selected. Click and drag the handles to resize, or click elsewhere to deselect.`);
+                    return;
+                } else {
+                    // Deselect if clicking elsewhere
+                    if (selectedDrawing) {
+                        selectedDrawing = null;
+                        redrawCanvas();
+                        showStatus(`Arrow deselected.`);
+                    }
+                    return;
+                }
+            }
+            
+            // Regular drawing mode
             if (!drawingMode) return;
             
             isDrawing = true;
@@ -1345,16 +1435,38 @@
             }
             
             // Use direct window coordinates (canvas is full viewport)
-            startX = Math.max(0, Math.min(canvas.width, e.clientX));
-            startY = Math.max(0, Math.min(canvas.height, e.clientY));
+            startX = mouseX;
+            startY = mouseY;
         }
 
         function draw(e) {
-            if (!drawingMode || !isDrawing) return;
-            
-            // Use direct window coordinates and constrain to window bounds
+            // Get current mouse position
             const currentX = Math.max(0, Math.min(canvas.width, e.clientX));
             const currentY = Math.max(0, Math.min(canvas.height, e.clientY));
+            
+            // Handle arrow resizing
+            if (isResizing && selectedDrawing && selectedDrawing.type === 'arrow') {
+                // Get toolbar height to constrain movement
+                const toolbar = document.querySelector('.top-toolbar');
+                const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+                const constrainedY = Math.max(toolbarHeight, currentY);
+                
+                if (resizeMode === 'start') {
+                    // Resize the start point (arrow head)
+                    selectedDrawing.x1 = currentX;
+                    selectedDrawing.y1 = constrainedY;
+                } else if (resizeMode === 'end') {
+                    // Resize the end point (arrow tail)
+                    selectedDrawing.x2 = currentX;
+                    selectedDrawing.y2 = constrainedY;
+                }
+                
+                redrawCanvas();
+                return;
+            }
+            
+            // Handle regular drawing
+            if (!drawingMode || !isDrawing) return;
             
             // Clear and redraw all drawings
             redrawCanvas();
@@ -1370,6 +1482,31 @@
         }
 
         function stopDrawing(e) {
+            // Handle resize completion
+            if (isResizing) {
+                isResizing = false;
+                resizeMode = null;
+                canvas.style.cursor = 'crosshair';
+                
+                // Calculate final arrow length to see if it's valid
+                if (selectedDrawing && selectedDrawing.type === 'arrow') {
+                    const distance = Math.sqrt(
+                        (selectedDrawing.x2 - selectedDrawing.x1) ** 2 + 
+                        (selectedDrawing.y2 - selectedDrawing.y1) ** 2
+                    );
+                    
+                    if (distance < 15) {
+                        // Arrow too small, show warning
+                        showStatus(`Arrow too small. Minimum length is 15 pixels.`, 'warning');
+                    } else {
+                        showStatus(`✅ Arrow resized successfully. Click arrow to select again.`, 'success');
+                    }
+                }
+                
+                redrawCanvas();
+                return;
+            }
+            
             if (!drawingMode || !isDrawing) return;
             
             isDrawing = false;
@@ -1555,9 +1692,113 @@
                     // Only draw arrows that don't start in toolbar area
                     if (drawing.y1 >= toolbarHeight || drawing.y2 >= toolbarHeight) {
                         drawArrow(drawing.x1, drawing.y1, drawing.x2, drawing.y2, drawing.color);
+                        
+                        // Draw resize handles if this arrow is selected
+                        if (selectedDrawing === drawing) {
+                            drawResizeHandles(drawing);
+                        }
                     }
                 }
             });
+        }
+        
+        function drawResizeHandles(drawing) {
+            if (drawing.type !== 'arrow') return;
+            
+            // Get toolbar height to avoid drawing over it
+            const toolbar = document.querySelector('.top-toolbar');
+            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+            
+            const clampedY1 = Math.max(toolbarHeight, drawing.y1);
+            const clampedY2 = Math.max(toolbarHeight, drawing.y2);
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.strokeStyle = '#0066cc';
+            ctx.lineWidth = 2;
+            
+            // Draw handle at arrow start (head)
+            ctx.beginPath();
+            ctx.arc(drawing.x1, clampedY1, resizeHandleRadius, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+            
+            // Draw handle at arrow end (tail)
+            ctx.beginPath();
+            ctx.arc(drawing.x2, clampedY2, resizeHandleRadius, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+        }
+        
+        function getDistanceToPoint(x1, y1, x2, y2) {
+            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        }
+        
+        function getDistanceToLine(px, py, x1, y1, x2, y2) {
+            const A = px - x1;
+            const B = py - y1;
+            const C = x2 - x1;
+            const D = y2 - y1;
+            
+            const dot = A * C + B * D;
+            const lenSq = C * C + D * D;
+            
+            if (lenSq === 0) return getDistanceToPoint(px, py, x1, y1);
+            
+            const param = dot / lenSq;
+            let xx, yy;
+            
+            if (param < 0) {
+                xx = x1;
+                yy = y1;
+            } else if (param > 1) {
+                xx = x2;
+                yy = y2;
+            } else {
+                xx = x1 + param * C;
+                yy = y1 + param * D;
+            }
+            
+            return getDistanceToPoint(px, py, xx, yy);
+        }
+        
+        function findDrawingAtPoint(x, y) {
+            // Check in reverse order (top drawings first)
+            for (let i = drawings.length - 1; i >= 0; i--) {
+                const drawing = drawings[i];
+                
+                if (drawing.type === 'arrow') {
+                    // Check if click is near the arrow line
+                    const distanceToLine = getDistanceToLine(x, y, drawing.x1, drawing.y1, drawing.x2, drawing.y2);
+                    if (distanceToLine <= 8) { // 8px tolerance for clicking on arrow
+                        return drawing;
+                    }
+                }
+                // Add other drawing types here if needed for resizing
+            }
+            return null;
+        }
+        
+        function getResizeHandleAtPoint(x, y, drawing) {
+            if (!drawing || drawing.type !== 'arrow') return null;
+            
+            // Get toolbar height to avoid drawing over it
+            const toolbar = document.querySelector('.top-toolbar');
+            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+            
+            const clampedY1 = Math.max(toolbarHeight, drawing.y1);
+            const clampedY2 = Math.max(toolbarHeight, drawing.y2);
+            
+            // Check start handle (arrow head)
+            if (getDistanceToPoint(x, y, drawing.x1, clampedY1) <= resizeHandleRadius + 2) {
+                return 'start';
+            }
+            
+            // Check end handle (arrow tail)
+            if (getDistanceToPoint(x, y, drawing.x2, clampedY2) <= resizeHandleRadius + 2) {
+                return 'end';
+            }
+            
+            return null;
         }
 
         function clearAllDrawings() {
