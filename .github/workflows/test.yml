@@ -51,7 +51,7 @@ jobs:
           if (fs.existsSync('tests/unit')) {
             const testFiles = fs.readdirSync('tests/unit').filter(f => f.endsWith('.test.js'));
             if (testFiles.length > 0) {
-              console.log(\`✅ Unit tests found: \${testFiles.length} test files\`);
+              console.log('✅ Unit tests found: ' + testFiles.length + ' test files');
             } else {
               console.log('❌ No unit test files found in tests/unit/');
               process.exit(1);
@@ -120,9 +120,9 @@ jobs:
           
           requiredFiles.forEach(file => {
             if (fs.existsSync(file)) {
-              console.log(\`✅ \${file} exists\`);
+              console.log('✅ ' + file + ' exists');
             } else {
-              console.log(\`❌ Missing required file: \${file}\`);
+              console.log('❌ Missing required file: ' + file);
               allFilesExist = false;
             }
           });
@@ -254,11 +254,11 @@ jobs:
           }
           
           const nodeModulesSize = getDirSize('node_modules');
-          console.log(\`Node modules size: \${nodeModulesSize}MB\`);
+          console.log('Node modules size: ' + nodeModulesSize + 'MB');
           
           if (nodeModulesSize > 500) {
-            console.log(\`⚠️ Large node_modules size: \${nodeModulesSize}MB\`);
+            console.log('⚠️ Large node_modules size: ' + nodeModulesSize + 'MB');
           } else {
-            console.log(\`✅ Node modules size is acceptable: \${nodeModulesSize}MB\`);
+            console.log('✅ Node modules size is acceptable: ' + nodeModulesSize + 'MB');
           }
         "
