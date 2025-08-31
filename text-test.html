@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Functionality Test</title>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        #testCanvas { 
+            border: 1px solid #ccc; 
+            display: block; 
+            background: #f0f0f0;
+            cursor: crosshair;
+        }
+        .toolbar {
+            padding: 10px;
+            background: #333;
+            color: white;
+        }
+        .btn {
+            padding: 8px 16px;
+            margin: 5px;
+            background: #007acc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn.active {
+            background: #28a745;
+        }
+        .btn:hover {
+            background: #005999;
+        }
+        .btn.active:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <button id="textBtn" class="btn">📝 Text Mode</button>
+        <button id="clearBtn" class="btn">Clear</button>
+        <span style="margin-left: 20px;">Click Text Mode, then click on canvas to place text</span>
+    </div>
+    <canvas id="testCanvas" width="800" height="600"></canvas>
+
+    <script>
+        // Simple test to verify text functionality
+        let canvas = document.getElementById('testCanvas');
+        let ctx = canvas.getContext('2d');
+        let textBtn = document.getElementById('textBtn');
+        let clearBtn = document.getElementById('clearBtn');
+        
+        let drawingMode = null;
+        let textInputElement = null;
+        let drawings = [];
+        let currentColor = '#e74c3c';
+        let currentFontSize = 16;
+        
+        console.log('🔍 Test Elements Found:', {
+            canvas: !!canvas,
+            textBtn: !!textBtn,
+            clearBtn: !!clearBtn
+        });
+
+        // Event handlers
+        textBtn.addEventListener('click', () => {
+            console.log('📝 Text button clicked!');
+            setDrawingMode('text');
+        });
+
+        clearBtn.addEventListener('click', () => {
+            drawings = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            console.log('🧹 Canvas cleared');
+        });
+
+        canvas.addEventListener('mousedown', startDrawing);
+
+        function setDrawingMode(mode) {
+            console.log('🎨 Setting drawing mode to:', mode);
+            textBtn.classList.remove('active');
+            
+            if (drawingMode === mode) {
+                drawingMode = null;
+                console.log('❌ Drawing mode disabled');
+            } else {
+                drawingMode = mode;
+                textBtn.classList.add('active');
+                console.log('✅ Text mode activated');
+            }
+        }
+
+        function startDrawing(e) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            console.log('🖱️ Mouse clicked - Mode:', drawingMode, 'Position:', {x: mouseX, y: mouseY});
+            
+            if (drawingMode === 'text') {
+                console.log('📝 Creating text input');
+                createTextInput(mouseX, mouseY);
+                return;
+            }
+        }
+
+        function createTextInput(x, y) {
+            console.log('📋 Creating text input at:', {x, y});
+            
+            // Remove existing input
+            if (textInputElement) {
+                finalizeTextInput();
+            }
+            
+            // Create input
+            textInputElement = document.createElement('input');
+            textInputElement.type = 'text';
+            textInputElement.placeholder = 'Type text here...';
+            textInputElement.style.position = 'absolute';
+            textInputElement.style.left = (x + rect.left) + 'px';
+            textInputElement.style.top = (y + rect.top) + 'px';
+            textInputElement.style.fontSize = currentFontSize + 'px';
+            textInputElement.style.color = currentColor;
+            textInputElement.style.background = 'rgba(255, 255, 255, 0.9)';
+            textInputElement.style.border = '2px solid ' + currentColor;
+            textInputElement.style.borderRadius = '4px';
+            textInputElement.style.padding = '4px 8px';
+            textInputElement.style.zIndex = '1000';
+            
+            document.body.appendChild(textInputElement);
+            textInputElement.focus();
+            console.log('✅ Text input created and focused');
+            
+            // Store position
+            textInputElement.dataset.x = x;
+            textInputElement.dataset.y = y;
+            
+            // Event listeners
+            textInputElement.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    finalizeTextInput();
+                } else if (e.key === 'Escape') {
+                    cancelTextInput();
+                }
+                e.stopPropagation();
+            });
+            
+            textInputElement.addEventListener('blur', function() {
+                setTimeout(() => {
+                    if (textInputElement && document.activeElement !== textInputElement) {
+                        finalizeTextInput();
+                    }
+                }, 100);
+            });
+        }
+
+        function finalizeTextInput() {
+            if (!textInputElement) return;
+            
+            const text = textInputElement.value.trim();
+            if (text) {
+                const x = parseInt(textInputElement.dataset.x);
+                const y = parseInt(textInputElement.dataset.y);
+                
+                // Add to drawings
+                const textDrawing = {
+                    type: 'text',
+                    x: x,
+                    y: y,
+                    text: text,
+                    color: currentColor,
+                    fontSize: currentFontSize
+                };
+                
+                drawings.push(textDrawing);
+                redrawCanvas();
+                console.log('✅ Text finalized:', textDrawing);
+            }
+            
+            // Clean up
+            if (textInputElement && textInputElement.parentNode) {
+                textInputElement.parentNode.removeChild(textInputElement);
+            }
+            textInputElement = null;
+        }
+
+        function cancelTextInput() {
+            if (textInputElement && textInputElement.parentNode) {
+                textInputElement.parentNode.removeChild(textInputElement);
+            }
+            textInputElement = null;
+            console.log('❌ Text input cancelled');
+        }
+
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawings.forEach(drawing => {
+                if (drawing.type === 'text') {
+                    drawText(drawing.x, drawing.y, drawing.text, drawing.color, drawing.fontSize);
+                }
+            });
+        }
+
+        function drawText(x, y, text, color, fontSize) {
+            ctx.fillStyle = color;
+            ctx.font = `${fontSize}px Arial, sans-serif`;
+            ctx.textBaseline = 'top';
+            ctx.textAlign = 'left';
+            ctx.fillText(text, x, y);
+        }
+
+        // Fix rect reference issue
+        function getCanvasRect() {
+            return canvas.getBoundingClientRect();
+        }
+
+        // Update createTextInput to use proper rect calculation
+        function createTextInput(x, y) {
+            console.log('📋 Creating text input at:', {x, y});
+            
+            // Remove existing input
+            if (textInputElement) {
+                finalizeTextInput();
+            }
+            
+            const rect = getCanvasRect();
+            
+            // Create input
+            textInputElement = document.createElement('input');
+            textInputElement.type = 'text';
+            textInputElement.placeholder = 'Type text here...';
+            textInputElement.style.position = 'absolute';
+            textInputElement.style.left = (x + rect.left) + 'px';
+            textInputElement.style.top = (y + rect.top) + 'px';
+            textInputElement.style.fontSize = currentFontSize + 'px';
+            textInputElement.style.color = currentColor;
+            textInputElement.style.background = 'rgba(255, 255, 255, 0.9)';
+            textInputElement.style.border = '2px solid ' + currentColor;
+            textInputElement.style.borderRadius = '4px';
+            textInputElement.style.padding = '4px 8px';
+            textInputElement.style.zIndex = '1000';
+            
+            document.body.appendChild(textInputElement);
+            textInputElement.focus();
+            console.log('✅ Text input created and focused');
+            
+            // Store position
+            textInputElement.dataset.x = x;
+            textInputElement.dataset.y = y;
+            
+            // Event listeners
+            textInputElement.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    finalizeTextInput();
+                } else if (e.key === 'Escape') {
+                    cancelTextInput();
+                }
+                e.stopPropagation();
+            });
+            
+            textInputElement.addEventListener('blur', function() {
+                setTimeout(() => {
+                    if (textInputElement && document.activeElement !== textInputElement) {
+                        finalizeTextInput();
+                    }
+                }, 100);
+            });
+        }
+
+        console.log('🎯 Test page loaded and ready!');
+    </script>
+</body>
+</html>

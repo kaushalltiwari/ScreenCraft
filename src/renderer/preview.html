@@ -549,6 +549,78 @@
             line-height: 1;
         }
 
+        /* Font size dropdown */
+        .font-size-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 6px;
+            display: none;
+            grid-template-columns: 1fr;
+            gap: 4px;
+            min-width: 120px;
+            z-index: 1001;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .font-size-dropdown.show {
+            display: grid;
+            opacity: 1;
+            animation: fadeIn 0.15s ease-out;
+        }
+        
+        /* Size option styles */
+        .font-size-dropdown .size-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .font-size-dropdown .size-option:hover {
+            background-color: #f0f0f0;
+            transform: scale(1.02);
+        }
+        
+        .font-size-dropdown .size-option.selected {
+            background-color: #0066cc;
+            color: white;
+        }
+        
+        .font-size-dropdown .size-preview {
+            min-width: 20px;
+            text-align: center;
+            font-weight: bold;
+            transition: color 0.15s ease;
+        }
+        
+        .font-size-dropdown .size-option.selected .size-preview {
+            color: white;
+        }
+        
+        /* Font size indicator */
+        .font-size-indicator {
+            position: absolute;
+            bottom: 1px;
+            right: 1px;
+            font-size: 8px;
+            font-weight: bold;
+            color: #333;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1px 3px;
+            border-radius: 2px;
+            line-height: 1;
+        }
+
         .color-option {
             width: 28px;
             height: 28px;
@@ -711,6 +783,10 @@
                 <div class="toolbar-icon" style="font-size: 16px;">➡️</div>
                 <div>Arrow</div>
             </button>
+            <button class="toolbar-button" id="textBtn" title="Text - Add text annotations">
+                <div class="toolbar-icon" style="font-size: 16px;">📝</div>
+                <div>Text</div>
+            </button>
         </div>
         
         <div class="toolbar-separator"></div>
@@ -781,6 +857,45 @@
             </div>
         </div>
         
+        <div class="toolbar-group">
+            <div class="border-tool">
+                <button class="toolbar-button" id="fontSizeBtn" title="Font Size - Select text size">
+                    <div class="toolbar-icon" style="font-size: 16px;">
+                        🔤
+                        <span class="font-size-indicator" id="fontSizeIndicator">16px</span>
+                    </div>
+                    <div>Size</div>
+                    <div class="dropdown-arrow">▼</div>
+                </button>
+                <div class="font-size-dropdown" id="fontSizeDropdown">
+                    <div class="size-option" data-size="12" title="Small - 12px">
+                        <span class="size-preview" style="font-size: 12px;">Aa</span>
+                        <span>12px</span>
+                    </div>
+                    <div class="size-option" data-size="14" title="Normal - 14px">
+                        <span class="size-preview" style="font-size: 14px;">Aa</span>
+                        <span>14px</span>
+                    </div>
+                    <div class="size-option selected" data-size="16" title="Medium - 16px">
+                        <span class="size-preview" style="font-size: 16px;">Aa</span>
+                        <span>16px</span>
+                    </div>
+                    <div class="size-option" data-size="20" title="Large - 20px">
+                        <span class="size-preview" style="font-size: 20px;">Aa</span>
+                        <span>20px</span>
+                    </div>
+                    <div class="size-option" data-size="24" title="Extra Large - 24px">
+                        <span class="size-preview" style="font-size: 24px;">Aa</span>
+                        <span>24px</span>
+                    </div>
+                    <div class="size-option" data-size="32" title="Huge - 32px">
+                        <span class="size-preview" style="font-size: 32px;">Aa</span>
+                        <span>32px</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <div class="toolbar-separator"></div>
         
         <div class="toolbar-group">
@@ -820,12 +935,13 @@
 
     <script>
         let screenshotData = null;
-        let drawingMode = null; // 'rect', 'line', 'arrow', or null
+        let drawingMode = null; // 'rect', 'line', 'arrow', 'text', or null
         let currentColor = '#e74c3c';
         let currentStrokeWidth = 3; // Default stroke width in pixels
+        let currentFontSize = 16; // Default font size in pixels
         let isDrawing = false;
         let startX, startY;
-        let drawings = []; // Store all drawings (rects, lines, arrows)
+        let drawings = []; // Store all drawings (rects, lines, arrows, text)
         let imageWrapper, canvas, ctx;
         let lastImageRect = null; // Store last known image position for scaling
         
@@ -835,6 +951,11 @@
         let isResizing = false;
         let resizeHandleRadius = 6; // Size of resize handles
         let widthResizeMode = false; // Special mode for width-only resizing
+        
+        // Text annotation functionality
+        let activeTextEditor = null; // Currently active text editor
+        let editingText = null; // Currently editing text drawing
+        let isTypingText = false; // Text input mode flag
         
         // Theme management
         let currentTheme = 'system';
@@ -858,6 +979,7 @@
         const rectBtn = document.getElementById('rectBtn');
         const lineBtn = document.getElementById('lineBtn');
         const arrowBtn = document.getElementById('arrowBtn');
+        const textBtn = document.getElementById('textBtn');
         const colorBtn = document.getElementById('colorBtn');
         const borderTool = document.querySelector('.border-tool');
         const borderColorDropdown = document.getElementById('borderColorDropdown');
@@ -868,6 +990,13 @@
         const widthTool = document.querySelectorAll('.border-tool')[1]; // Second border-tool is width tool
         const borderWidthDropdown = document.getElementById('borderWidthDropdown');
         const borderWidthIndicator = document.getElementById('borderWidthIndicator');
+        
+        // Font size dropdown elements
+        const fontSizeBtn = document.getElementById('fontSizeBtn');
+        const fontSizeTool = document.querySelector('#fontSizeBtn')?.closest('.border-tool'); // Font size tool container
+        const fontSizeDropdown = document.getElementById('fontSizeDropdown');
+        const fontSizeIndicator = document.getElementById('fontSizeIndicator');
+        
         
         // Removed buttons - keep functions but remove UI references
         // const clearBordersBtn = document.getElementById('clearBordersBtn');
@@ -895,6 +1024,8 @@
             setupEventListeners();
             initializeColorPicker();
             initializeTheme();
+            // Initialize canvas early to enable drawing tools
+            initializeCanvas();
         });
         
         function initializeColorPicker() {
@@ -984,6 +1115,9 @@
             arrowBtn?.addEventListener('click', () => {
                 setDrawingMode('arrow');
             });
+            textBtn?.addEventListener('click', () => {
+                setDrawingMode('text');
+            });
             
             // Color tool functionality
             colorBtn?.addEventListener('click', (e) => {
@@ -1063,20 +1197,62 @@
                     showStatus(`Stroke width changed to ${currentStrokeWidth}px. Click and drag to draw with new width.`);
                 }
             });
+            
+            // Font size tool functionality
+            fontSizeBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                fontSizeTool.classList.toggle('show-dropdown');
+                fontSizeDropdown.classList.toggle('show');
+            });
+            
+            // Handle font size selection
+            fontSizeDropdown?.addEventListener('click', (e) => {
+                if (e.target.closest('.size-option')) {
+                    e.stopPropagation();
+                    const sizeOption = e.target.closest('.size-option');
+                    
+                    // Remove selected from all options
+                    fontSizeDropdown.querySelectorAll('.size-option').forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    
+                    // Add selected to clicked option
+                    sizeOption.classList.add('selected');
+                    
+                    // Update current font size
+                    currentFontSize = parseInt(sizeOption.dataset.size);
+                    fontSizeIndicator.textContent = `${currentFontSize}px`;
+                    
+                    // Hide dropdown
+                    fontSizeTool.classList.remove('show-dropdown');
+                    fontSizeDropdown.classList.remove('show');
+                    
+                    // Show feedback animation
+                    fontSizeIndicator.style.transform = 'scale(1.3)';
+                    setTimeout(() => {
+                        fontSizeIndicator.style.transform = 'scale(1)';
+                    }, 200);
+                    
+                    // Update status to show new font size
+                    showStatus(`Font size changed to ${currentFontSize}px. Click to add text with new size.`);
+                }
+            });
 
             // Close color dropdown when clicking outside
             document.addEventListener('click', () => {
                 colorDropdown.classList.remove('show');
             });
             
-            // Close border color and width dropdowns when clicking outside (but not on canvas for drawing)
+            // Close border color, width, and font size dropdowns when clicking outside (but not on canvas for drawing)
             document.addEventListener('click', (e) => {
-                // Don't close if clicking on canvas for drawing or on border/width tools
-                if (!borderTool?.contains(e.target) && !widthTool?.contains(e.target) && !canvas?.contains(e.target)) {
+                // Don't close if clicking on canvas for drawing or on border/width/font tools
+                if (!borderTool?.contains(e.target) && !widthTool?.contains(e.target) && !fontSizeTool?.contains(e.target) && !canvas?.contains(e.target)) {
                     borderTool?.classList.remove('show-dropdown');
                     borderColorDropdown?.classList.remove('show');
                     widthTool?.classList.remove('show-dropdown');
                     borderWidthDropdown?.classList.remove('show');
+                    fontSizeTool?.classList.remove('show-dropdown');
+                    fontSizeDropdown?.classList.remove('show');
                 }
             });
 
@@ -1345,6 +1521,23 @@
                     compositeCtx.closePath();
                     compositeCtx.fill();
                     compositeCtx.stroke();
+                } else if (drawing.type === 'text') {
+                    // Convert text coordinates to image coordinates
+                    const imgX = (drawing.x - imageRect.left) * scaleX;
+                    const imgY = (drawing.y - imageRect.top) * scaleY;
+                    
+                    // Set up text styling
+                    compositeCtx.fillStyle = drawing.color;
+                    compositeCtx.font = `${drawing.fontSize * Math.min(scaleX, scaleY)}px Arial, sans-serif`;
+                    compositeCtx.textBaseline = 'top';
+                    compositeCtx.textAlign = 'left';
+                    
+                    // Only draw text that's within image bounds
+                    if (imgX >= 0 && imgY >= 0 && 
+                        imgX < screenshotImage.naturalWidth && 
+                        imgY < screenshotImage.naturalHeight) {
+                        compositeCtx.fillText(drawing.text, imgX, imgY);
+                    }
                 }
             });
 
@@ -1534,9 +1727,15 @@
             rectBtn?.classList.remove('active');
             lineBtn?.classList.remove('active');
             arrowBtn?.classList.remove('active');
+            textBtn?.classList.remove('active');
             
             // Clear any selected drawings when entering drawing mode
             selectedDrawing = null;
+            
+            // Clear any active text editor when changing modes
+            if (activeTextEditor) {
+                finishTextEditing();
+            }
             
             if (drawingMode === mode) {
                 // Toggle off if same mode clicked
@@ -1562,14 +1761,24 @@
                 } else if (mode === 'arrow') {
                     arrowBtn.classList.add('active');
                     showStatus('Arrow mode active! Click where arrow starts, drag to where it points. Ctrl+Z to undo. Escape to exit.');
+                } else if (mode === 'text') {
+                    textBtn.classList.add('active');
+                    showStatus('Text mode active! Click anywhere to add text. Type and press Enter to confirm. Escape to exit.');
                 }
             }
         }
 
         function startDrawing(e) {
-            // Get mouse coordinates
-            const mouseX = Math.max(0, Math.min(canvas.width, e.clientX));
-            const mouseY = Math.max(0, Math.min(canvas.height, e.clientY));
+            // Get mouse coordinates relative to canvas
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Special handling for text mode
+            if (drawingMode === 'text') {
+                startTextEditing(mouseX, mouseY);
+                return;
+            }
             
             // If we're in any drawing mode, check for existing drawing interaction first
             if (drawingMode) {
@@ -1640,9 +1849,10 @@
         }
 
         function draw(e) {
-            // Get current mouse position
-            const currentX = Math.max(0, Math.min(canvas.width, e.clientX));
-            const currentY = Math.max(0, Math.min(canvas.height, e.clientY));
+            // Get current mouse position relative to canvas
+            const rect = canvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
             
             // Handle resizing for all drawing types
             if (isResizing && selectedDrawing) {
@@ -1707,6 +1917,25 @@
                             selectedDrawing.width = currentX - originalX;
                             selectedDrawing.height = constrainedY - originalY;
                         }
+                    }
+                } else if (selectedDrawing.type === 'text') {
+                    // Text: resize position or font size
+                    if (resizeMode === 'text-position') {
+                        // Move text position
+                        selectedDrawing.x = currentX;
+                        selectedDrawing.y = constrainedY;
+                    } else if (resizeMode === 'text-size') {
+                        // Adjust font size based on distance from text start
+                        const distanceFromStart = Math.abs(currentX - selectedDrawing.x);
+                        
+                        // Map distance to font size (clamp between 8 and 72)
+                        const newFontSize = Math.max(8, Math.min(72, Math.round(distanceFromStart / 5) + 8));
+                        selectedDrawing.fontSize = newFontSize;
+                        
+                        // Recalculate text width for new font size
+                        ctx.font = `${newFontSize}px Arial, sans-serif`;
+                        selectedDrawing.width = ctx.measureText(selectedDrawing.text).width;
+                        selectedDrawing.height = newFontSize;
                     }
                 }
                 
@@ -1797,8 +2026,9 @@
             // Use current mouse position or last known position if mouse is outside window
             let endX, endY;
             if (e && e.clientX !== undefined && e.clientY !== undefined) {
-                endX = Math.max(0, Math.min(canvas.width, e.clientX));
-                endY = Math.max(toolbarHeight, Math.min(canvas.height, e.clientY));
+                const rect = canvas.getBoundingClientRect();
+                endX = Math.max(0, Math.min(canvas.width, e.clientX - rect.left));
+                endY = Math.max(toolbarHeight, Math.min(canvas.height, e.clientY - rect.top));
             } else {
                 // Mouse is outside window, use canvas bounds as limits
                 endX = Math.max(0, Math.min(canvas.width, startX));
@@ -1952,6 +2182,169 @@
             ctx.setLineDash([]);
         }
 
+        function drawText(x, y, text, color, fontSize, isPreview = false) {
+            ctx.fillStyle = color;
+            ctx.font = `${fontSize}px Arial, sans-serif`;
+            ctx.textBaseline = 'top';
+            ctx.textAlign = 'left';
+            
+            // Get toolbar height to avoid drawing over it
+            const toolbar = document.querySelector('.top-toolbar');
+            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+            
+            // Clamp Y coordinate to avoid toolbar area
+            const clampedY = Math.max(toolbarHeight, y);
+            
+            if (isPreview) {
+                ctx.globalAlpha = 0.7;
+            }
+            
+            // Handle multiline text
+            const lines = text.split('\n');
+            lines.forEach((line, index) => {
+                ctx.fillText(line, x, clampedY + (index * fontSize * 1.2));
+            });
+            
+            if (isPreview) {
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        function startTextEditing(x, y) {
+            // Prevent multiple text editors
+            if (activeTextEditor) {
+                finishTextEditing();
+            }
+            
+            // Get toolbar height to avoid placing text over it
+            const toolbar = document.querySelector('.top-toolbar');
+            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+            const clampedY = Math.max(toolbarHeight, y);
+            
+            // Get canvas position for proper positioning
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            // Create transparent textarea overlay
+            activeTextEditor = document.createElement('textarea');
+            activeTextEditor.style.position = 'absolute';
+            activeTextEditor.style.left = (canvasRect.left + x) + 'px';
+            activeTextEditor.style.top = (canvasRect.top + clampedY) + 'px';
+            activeTextEditor.style.minWidth = '200px';
+            activeTextEditor.style.minHeight = '30px';
+            activeTextEditor.style.fontSize = currentFontSize + 'px';
+            activeTextEditor.style.fontFamily = 'Arial, sans-serif';
+            activeTextEditor.style.color = currentColor;
+            activeTextEditor.style.background = 'rgba(255, 255, 255, 0.1)';
+            activeTextEditor.style.border = '2px dashed ' + currentColor;
+            activeTextEditor.style.borderRadius = '4px';
+            activeTextEditor.style.padding = '8px';
+            activeTextEditor.style.resize = 'both';
+            activeTextEditor.style.zIndex = '9999';
+            activeTextEditor.style.outline = 'none';
+            activeTextEditor.style.overflow = 'hidden';
+            activeTextEditor.placeholder = 'Type your text here...';
+            
+            // Store position for the drawing
+            activeTextEditor.dataset.canvasX = x;
+            activeTextEditor.dataset.canvasY = clampedY;
+            
+            // Add to document body for proper positioning
+            document.body.appendChild(activeTextEditor);
+            
+            // Focus and enable text input mode
+            activeTextEditor.focus();
+            isTypingText = true;
+            
+            // Add event handlers
+            activeTextEditor.addEventListener('keydown', handleTextEditorKeydown);
+            activeTextEditor.addEventListener('blur', handleTextEditorBlur);
+        }
+
+        function handleTextEditorKeydown(e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelTextEditing();
+            } else if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                finishTextEditing();
+            }
+            // Allow normal typing and Enter for new lines
+        }
+
+        function handleTextEditorBlur() {
+            // Add a small delay to prevent immediate blur when clicking elsewhere
+            setTimeout(() => {
+                if (activeTextEditor && !activeTextEditor.matches(':focus')) {
+                    finishTextEditing();
+                }
+            }, 150);
+        }
+
+        function finishTextEditing() {
+            if (!activeTextEditor) return;
+            
+            const text = activeTextEditor.value.trim();
+            if (text) {
+                const canvasX = parseFloat(activeTextEditor.dataset.canvasX);
+                const canvasY = parseFloat(activeTextEditor.dataset.canvasY);
+                
+                // Create text drawing object
+                const textDrawing = {
+                    type: 'text',
+                    x: canvasX,
+                    y: canvasY,
+                    text: text,
+                    color: currentColor,
+                    fontSize: currentFontSize,
+                    width: getTextWidth(text),
+                    height: getTextHeight(text)
+                };
+                
+                // Add to drawings array
+                drawings.push(textDrawing);
+                redrawCanvas();
+                
+                showStatus(`Text added: "${text.length > 20 ? text.substring(0, 20) + '...' : text}"`);
+            }
+            
+            // Clean up
+            cleanupTextEditor();
+        }
+
+        function cancelTextEditing() {
+            if (activeTextEditor) {
+                cleanupTextEditor();
+            }
+        }
+
+        function cleanupTextEditor() {
+            if (activeTextEditor) {
+                activeTextEditor.removeEventListener('keydown', handleTextEditorKeydown);
+                activeTextEditor.removeEventListener('blur', handleTextEditorBlur);
+                document.body.removeChild(activeTextEditor);
+                activeTextEditor = null;
+            }
+            isTypingText = false;
+        }
+
+        function getTextWidth(text) {
+            ctx.font = `${currentFontSize}px Arial, sans-serif`;
+            const lines = text.split('\n');
+            let maxWidth = 0;
+            lines.forEach(line => {
+                const width = ctx.measureText(line).width;
+                if (width > maxWidth) maxWidth = width;
+            });
+            return maxWidth;
+        }
+
+        function getTextHeight(text) {
+            const lines = text.split('\n');
+            return lines.length * currentFontSize * 1.2; // 1.2 for line spacing
+        }
+
+
+
         function redrawCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
@@ -1974,6 +2367,11 @@
                     // Only draw arrows that don't start in toolbar area
                     if (drawing.y1 >= toolbarHeight || drawing.y2 >= toolbarHeight) {
                         drawArrow(drawing.x1, drawing.y1, drawing.x2, drawing.y2, drawing.color, drawing.strokeWidth || 3);
+                    }
+                } else if (drawing.type === 'text') {
+                    // Only draw text that doesn't overlap with toolbar area
+                    if (drawing.y >= toolbarHeight) {
+                        drawText(drawing.x, drawing.y, drawing.text, drawing.color, drawing.fontSize);
                     }
                 }
                 
@@ -2103,6 +2501,26 @@
                         resizeHandleRadius, resizeHandleRadius);
                 ctx.fill();
                 ctx.stroke();
+            } else if (drawing.type === 'text') {
+                // Text: simple position handle at the text starting point
+                const clampedY = Math.max(toolbarHeight, drawing.y);
+                
+                // Position handle (white circle)
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.strokeStyle = '#0066cc';
+                ctx.beginPath();
+                ctx.arc(drawing.x, clampedY, resizeHandleRadius, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Font size handle (gold square at the end of text)
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+                ctx.strokeStyle = '#ff8c00';
+                ctx.beginPath();
+                ctx.rect(drawing.x + drawing.width + 8 - resizeHandleRadius/2, clampedY - resizeHandleRadius/2, 
+                        resizeHandleRadius, resizeHandleRadius);
+                ctx.fill();
+                ctx.stroke();
             }
         }
         
@@ -2164,6 +2582,18 @@
                             y >= drawing.y + drawing.height - tolerance) {
                             return drawing;
                         }
+                    }
+                } else if (drawing.type === 'text') {
+                    // Check if click is within text bounds
+                    const textWidth = drawing.width || 100; // Use calculated width or fallback
+                    const textHeight = drawing.fontSize || 16; // Use font size as height
+                    const tolerance = 4;
+                    
+                    if (x >= drawing.x - tolerance && 
+                        x <= drawing.x + textWidth + tolerance &&
+                        y >= drawing.y - tolerance && 
+                        y <= drawing.y + textHeight + tolerance) {
+                        return drawing;
                     }
                 }
             }
@@ -2257,6 +2687,19 @@
                 // Bottom-right handle
                 if (getDistanceToPoint(x, y, drawing.x + drawing.width, clampedY2) <= handleTolerance) {
                     return 'bottom-right';
+                }
+            } else if (drawing.type === 'text') {
+                // Text: position handle and font size handle
+                const clampedY = Math.max(toolbarHeight, drawing.y);
+                
+                // Position handle (for moving text)
+                if (getDistanceToPoint(x, y, drawing.x, clampedY) <= handleTolerance) {
+                    return 'text-position';
+                }
+                
+                // Font size handle (for changing font size)
+                if (getDistanceToPoint(x, y, drawing.x + drawing.width + 8, clampedY) <= handleTolerance) {
+                    return 'text-size';
                 }
             }
             
