@@ -1132,20 +1132,20 @@
                     compositeCtx.lineTo(imgX2, imgY2);
                     compositeCtx.stroke();
                     
-                    // Draw arrow head (scaled appropriately)
-                    const angle = Math.atan2(imgY2 - imgY1, imgX2 - imgX1);
+                    // Draw arrow head (scaled appropriately) - REVERSED: at start point
+                    const angle = Math.atan2(imgY1 - imgY2, imgX1 - imgX2); // Reversed direction
                     const headLength = 20 * Math.min(scaleX, scaleY); // Scale arrow head size
                     const headAngle = Math.PI / 6; // 30 degrees
                     
-                    const headX1 = imgX2 - headLength * Math.cos(angle - headAngle);
-                    const headY1 = imgY2 - headLength * Math.sin(angle - headAngle);
-                    const headX2 = imgX2 - headLength * Math.cos(angle + headAngle);
-                    const headY2 = imgY2 - headLength * Math.sin(angle + headAngle);
+                    const headX1 = imgX1 - headLength * Math.cos(angle - headAngle);
+                    const headY1 = imgY1 - headLength * Math.sin(angle - headAngle);
+                    const headX2 = imgX1 - headLength * Math.cos(angle + headAngle);
+                    const headY2 = imgY1 - headLength * Math.sin(angle + headAngle);
                     
-                    // Draw filled arrow head
+                    // Draw filled arrow head at START position
                     compositeCtx.fillStyle = drawing.color;
                     compositeCtx.beginPath();
-                    compositeCtx.moveTo(imgX2, imgY2);
+                    compositeCtx.moveTo(imgX1, imgY1);
                     compositeCtx.lineTo(headX1, headY1);
                     compositeCtx.lineTo(headX2, headY2);
                     compositeCtx.closePath();
@@ -1328,7 +1328,7 @@
                     showStatus('Line mode active! Click and drag to draw lines. Ctrl+Z to undo. Escape to exit.');
                 } else if (mode === 'arrow') {
                     arrowBtn.classList.add('active');
-                    showStatus('Arrow mode active! Click and drag to draw arrows. Ctrl+Z to undo. Escape to exit.');
+                    showStatus('Arrow mode active! Click where arrow starts, drag to where it points. Ctrl+Z to undo. Escape to exit.');
                 }
             }
         }
@@ -1505,20 +1505,20 @@
             ctx.lineTo(x2, clampedY2);
             ctx.stroke();
             
-            // Calculate arrow head geometry
-            const angle = Math.atan2(clampedY2 - clampedY1, x2 - x1);
+            // Calculate arrow head geometry - REVERSED: arrow head points at x1,y1 (start point)
+            const angle = Math.atan2(clampedY1 - clampedY2, x1 - x2); // Reversed direction
             const headLength = 20; // Length of the arrow head lines
             const headAngle = Math.PI / 6; // 30 degrees
             
-            // Calculate arrow head points
-            const headX1 = x2 - headLength * Math.cos(angle - headAngle);
-            const headY1 = clampedY2 - headLength * Math.sin(angle - headAngle);
-            const headX2 = x2 - headLength * Math.cos(angle + headAngle);
-            const headY2 = clampedY2 - headLength * Math.sin(angle + headAngle);
+            // Calculate arrow head points at the START position (x1, y1)
+            const headX1 = x1 - headLength * Math.cos(angle - headAngle);
+            const headY1 = clampedY1 - headLength * Math.sin(angle - headAngle);
+            const headX2 = x1 - headLength * Math.cos(angle + headAngle);
+            const headY2 = clampedY1 - headLength * Math.sin(angle + headAngle);
             
-            // Draw filled arrow head
+            // Draw filled arrow head at START position
             ctx.beginPath();
-            ctx.moveTo(x2, clampedY2);
+            ctx.moveTo(x1, clampedY1);
             ctx.lineTo(headX1, headY1);
             ctx.lineTo(headX2, headY2);
             ctx.closePath();
