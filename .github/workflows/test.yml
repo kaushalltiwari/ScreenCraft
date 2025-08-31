@@ -36,22 +36,31 @@ jobs:
     - name: Verify test setup
       run: |
         echo "🧪 Verifying Jest configuration and tests..."
-        
-        # Check Jest config exists
-        if [ -f "jest.config.js" ]; then
-          echo "✅ Jest configuration found"
-        else
-          echo "❌ Jest configuration missing"
-          exit 1
-        fi
-        
-        # Check test directory exists with tests
-        if [ -d "tests/unit" ] && [ "$(ls -A tests/unit/*.test.js 2>/dev/null | wc -l)" -gt "0" ]; then
-          echo "✅ Unit tests found: $(ls tests/unit/*.test.js | wc -l) test files"
-        else
-          echo "❌ No unit test files found in tests/unit/"
-          exit 1
-        fi
+        node -e "
+          const fs = require('fs');
+          
+          // Check Jest config exists
+          if (fs.existsSync('jest.config.js')) {
+            console.log('✅ Jest configuration found');
+          } else {
+            console.log('❌ Jest configuration missing');
+            process.exit(1);
+          }
+          
+          // Check test directory exists with tests
+          if (fs.existsSync('tests/unit')) {
+            const testFiles = fs.readdirSync('tests/unit').filter(f => f.endsWith('.test.js'));
+            if (testFiles.length > 0) {
+              console.log(\`✅ Unit tests found: \${testFiles.length} test files\`);
+            } else {
+              console.log('❌ No unit test files found in tests/unit/');
+              process.exit(1);
+            }
+          } else {
+            console.log('❌ tests/unit directory not found');
+            process.exit(1);
+          }
+        "
         
     - name: Run unit tests
       run: |
@@ -92,42 +101,53 @@ jobs:
     - name: Test file structure integrity
       run: |
         echo "📁 Testing file structure integrity..."
-        
-        # Check that all required files exist
-        REQUIRED_FILES=(
-          "main.js"
-          "package.json"
-          "src/main/ScreenCaptureManager.js"
-          "src/main/FileManager.js"
-          "src/renderer/preview.html"
-          "src/renderer/overlay.html"
-          "src/renderer/preview-preload.js"
-          "src/renderer/overlay-preload.js"
-          "src/shared/constants.js"
-          "src/shared/preload-utils.js"
-        )
-        
-        for file in "${REQUIRED_FILES[@]}"; do
-          if [ -f "$file" ]; then
-            echo "✅ $file exists"
-          else
-            echo "❌ Missing required file: $file"
-            exit 1
-          fi
-        done
+        node -e "
+          const fs = require('fs');
+          const requiredFiles = [
+            'main.js',
+            'package.json',
+            'src/main/ScreenCaptureManager.js',
+            'src/main/FileManager.js',
+            'src/renderer/preview.html',
+            'src/renderer/overlay.html',
+            'src/renderer/preview-preload.js',
+            'src/renderer/overlay-preload.js',
+            'src/shared/constants.js',
+            'src/shared/preload-utils.js'
+          ];
+          
+          let allFilesExist = true;
+          
+          requiredFiles.forEach(file => {
+            if (fs.existsSync(file)) {
+              console.log(\`✅ \${file} exists\`);
+            } else {
+              console.log(\`❌ Missing required file: \${file}\`);
+              allFilesExist = false;
+            }
+          });
+          
+          if (!allFilesExist) {
+            process.exit(1);
+          }
+        "
         
     - name: Test build process
       run: |
         echo "🔨 Testing build process..."
         npm run build:setup
         
-        # Verify build setup created necessary files
-        if [ -f "assets/ICON-SETUP.md" ]; then
-          echo "✅ Build setup completed successfully"
-        else
-          echo "❌ Build setup failed"
-          exit 1
-        fi
+        node -e "
+          const fs = require('fs');
+          
+          // Verify build setup created necessary files
+          if (fs.existsSync('assets/ICON-SETUP.md')) {
+            console.log('✅ Build setup completed successfully');
+          } else {
+            console.log('❌ Build setup failed');
+            process.exit(1);
+          }
+        "
         
     - name: Run integration tests
       run: |
@@ -205,12 +225,40 @@ jobs:
       run: |
         echo "📏 Analyzing bundle size..."
         
-        # Check node_modules size
-        NODE_MODULES_SIZE=$(du -sm node_modules/ | cut -f1)
-        echo "Node modules size: ${NODE_MODULES_SIZE}MB"
-        
-        if [ "$NODE_MODULES_SIZE" -gt 500 ]; then
-          echo "⚠️ Large node_modules size: ${NODE_MODULES_SIZE}MB"
-        else
-          echo "✅ Node modules size is acceptable: ${NODE_MODULES_SIZE}MB"
-        fi
+        node -e "
+          const fs = require('fs');
+          const path = require('path');
+          
+          function getDirSize(dirPath) {
+            let totalSize = 0;
+            
+            function calculateSize(currentPath) {
+              const stats = fs.statSync(currentPath);
+              
+              if (stats.isDirectory()) {
+                const files = fs.readdirSync(currentPath);
+                files.forEach(file => {
+                  calculateSize(path.join(currentPath, file));
+                });
+              } else {
+                totalSize += stats.size;
+              }
+            }
+            
+            try {
+              calculateSize(dirPath);
+              return Math.round(totalSize / (1024 * 1024)); // Convert to MB
+            } catch (error) {
+              return 0;
+            }
+          }
+          
+          const nodeModulesSize = getDirSize('node_modules');
+          console.log(\`Node modules size: \${nodeModulesSize}MB\`);
+          
+          if (nodeModulesSize > 500) {
+            console.log(\`⚠️ Large node_modules size: \${nodeModulesSize}MB\`);
+          } else {
+            console.log(\`✅ Node modules size is acceptable: \${nodeModulesSize}MB\`);
+          }
+        "
