@@ -1307,9 +1307,8 @@
             document.addEventListener('mouseup', stopDrawing);
             document.addEventListener('mouseleave', stopDrawing);
             
-            // Handle cursor change in toolbar area and for resize handles
+            // Handle cursor change in toolbar area only
             canvas.addEventListener('mousemove', (e) => {
-                const mouseX = e.clientX;
                 const mouseY = e.clientY;
                 
                 // Check if we're in drawing mode
@@ -1325,26 +1324,12 @@
                         canvas.classList.remove('toolbar-area');
                         // Re-enable pointer events for drawing area
                         canvas.style.pointerEvents = 'all';
+                        // Keep crosshair cursor in drawing mode
+                        canvas.style.cursor = 'crosshair';
                     }
                 } else {
-                    // Not in drawing mode - handle cursor for arrow selection/resizing
-                    let cursorStyle = 'default';
-                    
-                    // Check if hovering over a selected arrow's resize handle
-                    if (selectedDrawing && selectedDrawing.type === 'arrow') {
-                        const handleType = getResizeHandleAtPoint(mouseX, mouseY, selectedDrawing);
-                        if (handleType) {
-                            cursorStyle = 'pointer';
-                        }
-                    } else {
-                        // Check if hovering over any arrow for selection
-                        const hoveredDrawing = findDrawingAtPoint(mouseX, mouseY);
-                        if (hoveredDrawing && hoveredDrawing.type === 'arrow') {
-                            cursorStyle = 'pointer';
-                        }
-                    }
-                    
-                    canvas.style.cursor = cursorStyle;
+                    // Not in drawing mode - use default cursor
+                    canvas.style.cursor = 'default';
                 }
             });
         }
@@ -1391,39 +1376,45 @@
             const mouseX = Math.max(0, Math.min(canvas.width, e.clientX));
             const mouseY = Math.max(0, Math.min(canvas.height, e.clientY));
             
-            // Check if we're clicking on a resize handle of a selected arrow
-            if (selectedDrawing && selectedDrawing.type === 'arrow') {
-                const handleType = getResizeHandleAtPoint(mouseX, mouseY, selectedDrawing);
-                if (handleType) {
-                    // Start resizing
-                    isResizing = true;
-                    resizeMode = handleType;
-                    canvas.style.cursor = 'pointer';
-                    return;
+            // If we're in arrow mode, first check for existing arrow interaction
+            if (drawingMode === 'arrow') {
+                // Check if clicking on a resize handle of a selected arrow
+                if (selectedDrawing && selectedDrawing.type === 'arrow') {
+                    const handleType = getResizeHandleAtPoint(mouseX, mouseY, selectedDrawing);
+                    if (handleType) {
+                        // Start resizing
+                        isResizing = true;
+                        resizeMode = handleType;
+                        return;
+                    }
                 }
-            }
-            
-            // Check if we're clicking on an arrow to select it
-            if (!drawingMode) {
+                
+                // Check if clicking on an arrow to select it (while staying in arrow mode)
                 const clickedDrawing = findDrawingAtPoint(mouseX, mouseY);
                 if (clickedDrawing && clickedDrawing.type === 'arrow') {
-                    // Select the arrow
+                    // Select the arrow but stay in drawing mode
                     selectedDrawing = clickedDrawing;
                     redrawCanvas();
-                    showStatus(`Arrow selected. Click and drag the handles to resize, or click elsewhere to deselect.`);
+                    showStatus(`Arrow selected. Drag handles to resize or click empty space to draw new arrows.`);
                     return;
                 } else {
-                    // Deselect if clicking elsewhere
-                    if (selectedDrawing) {
-                        selectedDrawing = null;
-                        redrawCanvas();
-                        showStatus(`Arrow deselected.`);
+                    // Clicking on empty space - deselect and start drawing new arrow
+                    selectedDrawing = null;
+                    isDrawing = true;
+                    
+                    // Hide color dropdown when drawing starts
+                    if (borderTool.classList.contains('show-dropdown')) {
+                        borderTool.classList.remove('show-dropdown');
+                        borderColorDropdown.classList.remove('show');
                     }
+                    
+                    startX = mouseX;
+                    startY = mouseY;
                     return;
                 }
             }
             
-            // Regular drawing mode
+            // Regular drawing mode for other tools
             if (!drawingMode) return;
             
             isDrawing = true;
