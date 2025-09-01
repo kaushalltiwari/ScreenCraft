@@ -177,6 +177,18 @@
             border-color: var(--toolbar-active);
             color: white;
         }
+
+        .toolbar-button.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .toolbar-button.disabled:hover {
+            background: var(--toolbar-button);
+            border-color: var(--toolbar-border);
+            transform: none;
+        }
         
         .toolbar-button:active {
             transform: scale(0.98);
@@ -1081,6 +1093,14 @@
             
         </div>
         
+        <!-- Text Background Tool (only enabled when text is selected) -->
+        <div class="toolbar-group">
+            <button class="toolbar-button disabled" id="textBackgroundBtn" title="Text Background - Configure background for selected text" disabled>
+                <div class="toolbar-icon" style="font-size: 16px;">📦</div>
+                <div>Background</div>
+            </button>
+        </div>
+        
         <div class="toolbar-separator"></div>
         
         <div class="toolbar-group">
@@ -1152,6 +1172,13 @@
                     <span class="overlay-opacity-value" id="overlayOpacityValue">80%</span>
                 </div>
             </div>
+            <div class="overlay-control-row" id="backgroundRadiusRow" style="display: none;">
+                <label class="overlay-label">Corner Radius:</label>
+                <div class="overlay-opacity-control">
+                    <input type="range" id="overlayBackgroundRadius" class="overlay-opacity-slider" min="0" max="20" value="4">
+                    <span class="overlay-opacity-value" id="overlayRadiusValue">4px</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1186,6 +1213,25 @@
         // Text overlay menu
         let selectedTextDrawing = null; // Currently selected text for background editing
         let overlayMenuVisible = false;
+        
+        // Text background button state management
+        function updateTextBackgroundButtonState() {
+            if (!textBackgroundBtn) return;
+            
+            const isTextSelected = selectedDrawing && selectedDrawing.type === 'text';
+            
+            if (isTextSelected) {
+                textBackgroundBtn.disabled = false;
+                textBackgroundBtn.classList.remove('disabled');
+                textBackgroundBtn.style.opacity = '1';
+                textBackgroundBtn.style.cursor = 'pointer';
+            } else {
+                textBackgroundBtn.disabled = true;
+                textBackgroundBtn.classList.add('disabled');
+                textBackgroundBtn.style.opacity = '0.5';
+                textBackgroundBtn.style.cursor = 'not-allowed';
+            }
+        }
         
         // Overlay menu functions
         function showTextOverlayMenu(textDrawing, mouseX, mouseY) {
@@ -1286,6 +1332,15 @@
                 overlayOpacity.value = opacity;
                 overlayOpacityValue.textContent = opacity + '%';
             }
+            
+            // Update border radius
+            const overlayRadius = document.getElementById('overlayBackgroundRadius');
+            const overlayRadiusValue = document.getElementById('overlayRadiusValue');
+            if (overlayRadius && overlayRadiusValue) {
+                const radius = textDrawing.backgroundRadius || 4;
+                overlayRadius.value = radius;
+                overlayRadiusValue.textContent = radius + 'px';
+            }
         }
         
         // Overlay menu event handlers (setup after DOM loads)
@@ -1312,9 +1367,11 @@
                         toggleText.textContent = isEnabled ? 'ON' : 'OFF';
                     }
                     
-                    // Show/hide color and opacity controls
+                    // Show/hide color, opacity and radius controls
                     if (colorRow) colorRow.style.display = isEnabled ? 'flex' : 'none';
                     if (opacityRow) opacityRow.style.display = isEnabled ? 'flex' : 'none';
+                    const radiusRow = document.getElementById('backgroundRadiusRow');
+                    if (radiusRow) radiusRow.style.display = isEnabled ? 'flex' : 'none';
                     
                     // Update selected text
                     if (selectedTextDrawing) {
@@ -1361,6 +1418,22 @@
                     }
                 });
             }
+            
+            // Handle border radius slider
+            const overlayRadius = document.getElementById('overlayBackgroundRadius');
+            const overlayRadiusValue = document.getElementById('overlayRadiusValue');
+            if (overlayRadius && overlayRadiusValue) {
+                overlayRadius.addEventListener('input', (e) => {
+                    const radius = parseInt(e.target.value);
+                    overlayRadiusValue.textContent = radius + 'px';
+                    
+                    if (selectedTextDrawing) {
+                        selectedTextDrawing.backgroundRadius = radius;
+                        redrawCanvas();
+                        showStatus(`Border radius: ${radius}px`);
+                    }
+                });
+            }
         }
         
         // Theme management
@@ -1403,7 +1476,8 @@
         const fontSizeDropdown = document.getElementById('fontSizeDropdown');
         const fontSizeIndicator = document.getElementById('fontSizeIndicator');
         
-        // Text background control elements (removed from toolbar)
+        // Text background control elements
+        const textBackgroundBtn = document.getElementById('textBackgroundBtn');
         
         // Text background settings
         let currentBackgroundEnabled = false;
@@ -1440,6 +1514,8 @@
             setupOverlayMenuHandlers(); // Initialize overlay menu event handlers
             // Initialize canvas early to enable drawing tools
             initializeCanvas();
+            // Initialize button states
+            updateTextBackgroundButtonState();
         });
         
         function initializeColorPicker() {
@@ -1531,6 +1607,23 @@
             });
             textBtn?.addEventListener('click', () => {
                 setDrawingMode('text');
+            });
+            
+            // Text background tool functionality
+            textBackgroundBtn?.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (selectedDrawing && selectedDrawing.type === 'text') {
+                    // Get button position for menu positioning
+                    const buttonRect = textBackgroundBtn.getBoundingClientRect();
+                    const mouseX = buttonRect.left + buttonRect.width / 2 - canvas.getBoundingClientRect().left;
+                    const mouseY = buttonRect.bottom + 10 - canvas.getBoundingClientRect().top;
+                    
+                    showTextOverlayMenu(selectedDrawing, mouseX, mouseY);
+                } else {
+                    showStatus('Please select a text element first to configure its background.');
+                }
             });
             
             // Color tool functionality
@@ -1701,6 +1794,7 @@
                             hideTextOverlayMenu();
                         }
                         selectedDrawing = null;
+                        updateTextBackgroundButtonState();
                         redrawCanvas();
                         showStatus('Selection cleared.');
                     }
@@ -1715,6 +1809,7 @@
                         const wasText = selectedDrawing.type === 'text';
                         drawings.splice(index, 1);
                         selectedDrawing = null;
+                        updateTextBackgroundButtonState();
                         if (wasText) {
                             hideTextOverlayMenu();
                         }
@@ -2187,6 +2282,7 @@
                 hideTextOverlayMenu();
             }
             selectedDrawing = null;
+            updateTextBackgroundButtonState();
             
             // Clear any active text editor when changing modes
             if (activeTextEditor) {
@@ -2252,6 +2348,7 @@
                     if (clickedDrawing && clickedDrawing.type === 'text') {
                         // Select this text and immediately prepare for dragging
                         selectedDrawing = clickedDrawing;
+                        updateTextBackgroundButtonState();
                         isResizing = true;
                         resizeMode = 'text-drag';
                         // Store initial mouse position for dragging offset
@@ -2266,6 +2363,7 @@
                     
                     // No text clicked or clicking empty space - start drawing new text
                     selectedDrawing = null;
+                    updateTextBackgroundButtonState();
                     isDrawing = true;
                     
                     // Hide dropdowns
@@ -2300,6 +2398,7 @@
                 if (clickedDrawing && clickedDrawing.type === drawingMode) {
                     // Select the drawing but stay in drawing mode
                     selectedDrawing = clickedDrawing;
+                    updateTextBackgroundButtonState();
                     redrawCanvas();
                     const drawingTypeNames = {
                         'rect': 'Rectangle',
@@ -2312,6 +2411,7 @@
                 } else {
                     // Clicking on empty space - deselect and start drawing new shape
                     selectedDrawing = null;
+                    updateTextBackgroundButtonState();
                     isDrawing = true;
                     
                     // Hide color and width dropdowns when drawing starts
@@ -2337,6 +2437,7 @@
                 if (clickedDrawing && clickedDrawing.type === 'text') {
                     // Select the text and immediately prepare for dragging
                     selectedDrawing = clickedDrawing;
+                    updateTextBackgroundButtonState();
                     isResizing = true;
                     resizeMode = 'text-drag';
                     // Store initial mouse position for dragging offset
@@ -2350,6 +2451,7 @@
                 } else if (selectedDrawing && selectedDrawing.type === 'text') {
                     // Clicking outside selected text - deselect it
                     selectedDrawing = null;
+                    updateTextBackgroundButtonState();
                     hideTextOverlayMenu();
                     redrawCanvas();
                     showStatus('Text deselected.');
@@ -2359,6 +2461,7 @@
                         hideTextOverlayMenu();
                     }
                     selectedDrawing = null;
+                    updateTextBackgroundButtonState();
                     redrawCanvas();
                 }
                 return;
@@ -2773,7 +2876,7 @@
         }
 
         function drawTextWithBackground(drawing) {
-            const { x, y, text, color, fontSize, hasBackground, backgroundColor, backgroundOpacity, backgroundPadding } = drawing;
+            const { x, y, text, color, fontSize, hasBackground, backgroundColor, backgroundOpacity, backgroundPadding, backgroundRadius } = drawing;
             
             // Get toolbar height to avoid drawing over it
             const toolbar = document.querySelector('.top-toolbar');
@@ -2798,14 +2901,44 @@
                 // Set background opacity
                 ctx.globalAlpha = (backgroundOpacity || 80) / 100;
                 
-                // Draw background rectangle
+                // Draw background rectangle (with rounded corners if specified)
                 ctx.fillStyle = backgroundColor || '#ffffff';
-                ctx.fillRect(
-                    x - padding, 
-                    clampedY - padding, 
-                    textWidth + (padding * 2), 
-                    textHeight + (padding * 2)
-                );
+                const radius = backgroundRadius || 4;
+                
+                if (radius > 0 && ctx.roundRect) {
+                    // Draw rounded rectangle
+                    const rectX = x - padding;
+                    const rectY = clampedY - padding;
+                    const rectWidth = textWidth + (padding * 2);
+                    const rectHeight = textHeight + (padding * 2);
+                    
+                    ctx.beginPath();
+                    ctx.roundRect(rectX, rectY, rectWidth, rectHeight, radius);
+                    ctx.fill();
+                } else if (radius > 0) {
+                    // Fallback for browsers without roundRect - use manual rounded corners
+                    const rectX = x - padding;
+                    const rectY = clampedY - padding;
+                    const rectWidth = textWidth + (padding * 2);
+                    const rectHeight = textHeight + (padding * 2);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(rectX + radius, rectY);
+                    ctx.arcTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + rectHeight, radius);
+                    ctx.arcTo(rectX + rectWidth, rectY + rectHeight, rectX, rectY + rectHeight, radius);
+                    ctx.arcTo(rectX, rectY + rectHeight, rectX, rectY, radius);
+                    ctx.arcTo(rectX, rectY, rectX + rectWidth, rectY, radius);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    // Draw regular rectangle
+                    ctx.fillRect(
+                        x - padding, 
+                        clampedY - padding, 
+                        textWidth + (padding * 2), 
+                        textHeight + (padding * 2)
+                    );
+                }
                 
                 // Restore alpha for text
                 ctx.globalAlpha = originalGlobalAlpha;
