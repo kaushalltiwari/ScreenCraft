@@ -672,6 +672,31 @@
             flex-wrap: wrap;
         }
 
+        /* Background tool indicators */
+        .color-indicator {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .value-indicator {
+            position: absolute;
+            bottom: 1px;
+            right: 1px;
+            font-size: 7px;
+            font-weight: bold;
+            color: #333;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1px 2px;
+            border-radius: 2px;
+            line-height: 1;
+        }
+
         .opacity-slider {
             width: 100px;
             height: 4px;
@@ -979,47 +1004,66 @@
             
         </div>
         
-        <!-- Text Background Tool (only enabled when text is selected) -->
+        <!-- Text Background Tools (only enabled when text is selected) -->
         <div class="toolbar-group">
+            <!-- Background Color Tool -->
             <div class="border-tool">
-                <button class="toolbar-button disabled" id="textBackgroundBtn" title="Text Background - Configure background for selected text" disabled>
-                    <div class="toolbar-icon" style="font-size: 16px;">📦</div>
-                    <div>Background</div>
+                <button class="toolbar-button disabled" id="bgColorBtn" title="Background Color - Change text background color" disabled>
+                    <div class="toolbar-icon" style="font-size: 16px;">🎨</div>
+                    <div style="font-size: 10px;">Color</div>
+                    <div class="color-indicator" id="bgColorIndicator" style="background: #ffffff;"></div>
                     <div class="dropdown-arrow">▼</div>
                 </button>
-                <div class="border-color-dropdown" id="backgroundDropdown">
-                    <div class="dropdown-header">Text Background Options</div>
+                <div class="border-color-dropdown" id="bgColorDropdown">
+                    <div class="dropdown-header">Background Color</div>
                     <div class="background-controls">
-                        <div class="control-row">
-                            <label class="control-label">Enable Background:</label>
-                            <input type="checkbox" id="backgroundToggle" class="background-toggle">
+                        <div class="background-color-options">
+                            <div class="color-option white selected" data-color="#ffffff" title="White" style="background: #ffffff; border: 2px solid #ccc;"></div>
+                            <div class="color-option black" data-color="#000000" title="Black" style="background: #000000;"></div>
+                            <div class="color-option gray" data-color="#808080" title="Gray" style="background: #808080;"></div>
+                            <div class="color-option blue" data-color="#007acc" title="Blue" style="background: #007acc;"></div>
+                            <div class="color-option green" data-color="#28a745" title="Green" style="background: #28a745;"></div>
+                            <div class="color-option yellow" data-color="#ffc107" title="Yellow" style="background: #ffc107;"></div>
+                            <div class="color-option orange" data-color="#fd7e14" title="Orange" style="background: #fd7e14;"></div>
+                            <div class="color-option red" data-color="#dc3545" title="Red" style="background: #dc3545;"></div>
                         </div>
-                        <div class="control-row" id="backgroundColorRow" style="display: none;">
-                            <label class="control-label">Background Color:</label>
-                            <div class="background-color-options">
-                                <div class="color-option white selected" data-color="#ffffff" title="White" style="background: #ffffff; border: 2px solid #ccc;"></div>
-                                <div class="color-option black" data-color="#000000" title="Black" style="background: #000000;"></div>
-                                <div class="color-option gray" data-color="#808080" title="Gray" style="background: #808080;"></div>
-                                <div class="color-option blue" data-color="#007acc" title="Blue" style="background: #007acc;"></div>
-                                <div class="color-option green" data-color="#28a745" title="Green" style="background: #28a745;"></div>
-                                <div class="color-option yellow" data-color="#ffc107" title="Yellow" style="background: #ffc107;"></div>
-                                <div class="color-option orange" data-color="#fd7e14" title="Orange" style="background: #fd7e14;"></div>
-                                <div class="color-option red" data-color="#dc3545" title="Red" style="background: #dc3545;"></div>
-                            </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Background Opacity Tool -->
+            <div class="border-tool">
+                <button class="toolbar-button disabled" id="bgOpacityBtn" title="Background Opacity - Adjust transparency" disabled>
+                    <div class="toolbar-icon" style="font-size: 16px;">💧</div>
+                    <div style="font-size: 10px;">Opacity</div>
+                    <div class="value-indicator" id="bgOpacityIndicator">80%</div>
+                    <div class="dropdown-arrow">▼</div>
+                </button>
+                <div class="border-color-dropdown" id="bgOpacityDropdown">
+                    <div class="dropdown-header">Background Opacity</div>
+                    <div class="background-controls">
+                        <div class="opacity-control">
+                            <input type="range" id="backgroundOpacity" class="opacity-slider" min="0" max="100" value="80">
+                            <span class="opacity-value" id="opacityValue">80%</span>
                         </div>
-                        <div class="control-row" id="backgroundOpacityRow" style="display: none;">
-                            <label class="control-label">Opacity:</label>
-                            <div class="opacity-control">
-                                <input type="range" id="backgroundOpacity" class="opacity-slider" min="0" max="100" value="80">
-                                <span class="opacity-value" id="opacityValue">80%</span>
-                            </div>
-                        </div>
-                        <div class="control-row" id="backgroundRadiusRow" style="display: none;">
-                            <label class="control-label">Corner Radius:</label>
-                            <div class="opacity-control">
-                                <input type="range" id="backgroundRadius" class="opacity-slider" min="0" max="20" value="4">
-                                <span class="opacity-value" id="radiusValue">4px</span>
-                            </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Background Radius Tool -->
+            <div class="border-tool">
+                <button class="toolbar-button disabled" id="bgRadiusBtn" title="Border Radius - Adjust corner roundness" disabled>
+                    <div class="toolbar-icon" style="font-size: 16px;">📐</div>
+                    <div style="font-size: 10px;">Radius</div>
+                    <div class="value-indicator" id="bgRadiusIndicator">4px</div>
+                    <div class="dropdown-arrow">▼</div>
+                </button>
+                <div class="border-color-dropdown" id="bgRadiusDropdown">
+                    <div class="dropdown-header">Border Radius</div>
+                    <div class="background-controls">
+                        <div class="opacity-control">
+                            <input type="range" id="backgroundRadius" class="opacity-slider" min="0" max="20" value="4">
+                            <span class="opacity-value" id="radiusValue">4px</span>
                         </div>
                     </div>
                 </div>
@@ -1093,60 +1137,80 @@
         let isTypingText = false; // Text input mode flag
         
         
-        // Text background button state management
-        function updateTextBackgroundButtonState() {
-            if (!textBackgroundBtn) return;
-            
+        // Text background buttons state management
+        function updateTextBackgroundButtonsState() {
             const isTextSelected = selectedDrawing && selectedDrawing.type === 'text';
+            const buttons = [bgColorBtn, bgOpacityBtn, bgRadiusBtn];
             
-            if (isTextSelected) {
-                textBackgroundBtn.disabled = false;
-                textBackgroundBtn.classList.remove('disabled');
-                textBackgroundBtn.style.opacity = '1';
-                textBackgroundBtn.style.cursor = 'pointer';
-            } else {
-                textBackgroundBtn.disabled = true;
-                textBackgroundBtn.classList.add('disabled');
-                textBackgroundBtn.style.opacity = '0.5';
-                textBackgroundBtn.style.cursor = 'not-allowed';
+            buttons.forEach(btn => {
+                if (!btn) return;
+                
+                if (isTextSelected) {
+                    btn.disabled = false;
+                    btn.classList.remove('disabled');
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                } else {
+                    btn.disabled = true;
+                    btn.classList.add('disabled');
+                    btn.style.opacity = '0.5';
+                    btn.style.cursor = 'not-allowed';
+                }
+            });
+            
+            // Update indicators with current values
+            if (isTextSelected && selectedDrawing) {
+                updateBackgroundIndicators(selectedDrawing);
             }
         }
         
-        // Function to update background dropdown with current text settings
-        function updateBackgroundDropdownFromText(textDrawing) {
-            if (!backgroundToggle || !backgroundDropdown) return;
+        // Update background indicators with current text values
+        function updateBackgroundIndicators(textDrawing) {
+            // Update color indicator
+            if (bgColorIndicator) {
+                const color = textDrawing.backgroundColor || currentBackgroundColor;
+                bgColorIndicator.style.background = color;
+            }
             
-            const hasBackground = textDrawing.hasBackground || false;
+            // Update opacity indicator
+            if (bgOpacityIndicator) {
+                const opacity = textDrawing.backgroundOpacity || currentBackgroundOpacity;
+                bgOpacityIndicator.textContent = opacity + '%';
+            }
             
-            // Update toggle
-            backgroundToggle.checked = hasBackground;
+            // Update radius indicator
+            if (bgRadiusIndicator) {
+                const radius = textDrawing.backgroundRadius || 4;
+                bgRadiusIndicator.textContent = radius + 'px';
+            }
+        }
+        
+        // Function to update individual dropdown controls with current text settings
+        function updateDropdownFromText(textDrawing, dropdown) {
+            if (!textDrawing || !dropdown) return;
             
-            // Show/hide controls based on background state
-            const colorRow = document.getElementById('backgroundColorRow');
-            const opacityRow = document.getElementById('backgroundOpacityRow');
-            const radiusRow = document.getElementById('backgroundRadiusRow');
-            if (colorRow) colorRow.style.display = hasBackground ? 'flex' : 'none';
-            if (opacityRow) opacityRow.style.display = hasBackground ? 'flex' : 'none';
-            if (radiusRow) radiusRow.style.display = hasBackground ? 'flex' : 'none';
-            
-            if (hasBackground) {
-                // Update color selection
-                const colorOptions = backgroundDropdown.querySelectorAll('.color-option');
+            // Update color dropdown
+            if (dropdown === bgColorDropdown) {
+                const colorOptions = dropdown.querySelectorAll('.color-option');
                 colorOptions.forEach(option => {
                     option.classList.remove('selected');
-                    if (option.dataset.color === (textDrawing.backgroundColor || '#ffffff')) {
+                    if (option.dataset.color === (textDrawing.backgroundColor || currentBackgroundColor)) {
                         option.classList.add('selected');
                     }
                 });
-                
-                // Update opacity
+            }
+            
+            // Update opacity dropdown
+            if (dropdown === bgOpacityDropdown) {
                 if (backgroundOpacity && opacityValue) {
-                    const opacity = textDrawing.backgroundOpacity || 80;
+                    const opacity = textDrawing.backgroundOpacity || currentBackgroundOpacity;
                     backgroundOpacity.value = opacity;
                     opacityValue.textContent = opacity + '%';
                 }
-                
-                // Update border radius
+            }
+            
+            // Update radius dropdown
+            if (dropdown === bgRadiusDropdown) {
                 if (backgroundRadius && radiusValue) {
                     const radius = textDrawing.backgroundRadius || 4;
                     backgroundRadius.value = radius;
@@ -1195,11 +1259,23 @@
         const fontSizeDropdown = document.getElementById('fontSizeDropdown');
         const fontSizeIndicator = document.getElementById('fontSizeIndicator');
         
-        // Text background control elements
-        const textBackgroundBtn = document.getElementById('textBackgroundBtn');
-        const backgroundTool = textBackgroundBtn?.closest('.border-tool');
-        const backgroundDropdown = document.getElementById('backgroundDropdown');
-        const backgroundToggle = document.getElementById('backgroundToggle');
+        // Text background control elements - separate tools
+        const bgColorBtn = document.getElementById('bgColorBtn');
+        const bgOpacityBtn = document.getElementById('bgOpacityBtn');
+        const bgRadiusBtn = document.getElementById('bgRadiusBtn');
+        
+        const bgColorTool = bgColorBtn?.closest('.border-tool');
+        const bgOpacityTool = bgOpacityBtn?.closest('.border-tool');
+        const bgRadiusTool = bgRadiusBtn?.closest('.border-tool');
+        
+        const bgColorDropdown = document.getElementById('bgColorDropdown');
+        const bgOpacityDropdown = document.getElementById('bgOpacityDropdown');
+        const bgRadiusDropdown = document.getElementById('bgRadiusDropdown');
+        
+        const bgColorIndicator = document.getElementById('bgColorIndicator');
+        const bgOpacityIndicator = document.getElementById('bgOpacityIndicator');
+        const bgRadiusIndicator = document.getElementById('bgRadiusIndicator');
+        
         const backgroundOpacity = document.getElementById('backgroundOpacity');
         const backgroundRadius = document.getElementById('backgroundRadius');
         const opacityValue = document.getElementById('opacityValue');
@@ -1240,7 +1316,7 @@
             // Initialize canvas early to enable drawing tools
             initializeCanvas();
             // Initialize button states
-            updateTextBackgroundButtonState();
+            updateTextBackgroundButtonsState();
         });
         
         function initializeColorPicker() {
@@ -1334,64 +1410,72 @@
                 setDrawingMode('text');
             });
             
-            // Text background tool functionality
-            textBackgroundBtn?.addEventListener('click', (e) => {
+            // Background Color tool functionality
+            bgColorBtn?.addEventListener('click', (e) => {
                 if (selectedDrawing && selectedDrawing.type === 'text') {
                     e.stopPropagation();
-                    backgroundTool?.classList.toggle('show-dropdown');
-                    backgroundDropdown?.classList.toggle('show');
+                    bgColorTool?.classList.toggle('show-dropdown');
+                    bgColorDropdown?.classList.toggle('show');
                     
                     // Update dropdown with current text background settings
-                    updateBackgroundDropdownFromText(selectedDrawing);
+                    updateDropdownFromText(selectedDrawing, bgColorDropdown);
                 } else {
-                    showStatus('Please select a text element first to configure its background.');
+                    showStatus('Please select a text element first to configure background color.');
                 }
             });
 
-            // Handle background toggle
-            backgroundToggle?.addEventListener('change', (e) => {
+            // Background Opacity tool functionality  
+            bgOpacityBtn?.addEventListener('click', (e) => {
                 if (selectedDrawing && selectedDrawing.type === 'text') {
-                    const isEnabled = e.target.checked;
-                    selectedDrawing.hasBackground = isEnabled;
+                    e.stopPropagation();
+                    bgOpacityTool?.classList.toggle('show-dropdown');
+                    bgOpacityDropdown?.classList.toggle('show');
                     
-                    // Set default properties if enabling for first time
-                    if (isEnabled && !selectedDrawing.backgroundColor) {
-                        selectedDrawing.backgroundColor = currentBackgroundColor;
-                        selectedDrawing.backgroundOpacity = currentBackgroundOpacity;
-                        selectedDrawing.backgroundRadius = 4;
-                        selectedDrawing.backgroundPadding = 4;
-                    }
+                    // Update dropdown with current text background settings
+                    updateDropdownFromText(selectedDrawing, bgOpacityDropdown);
+                } else {
+                    showStatus('Please select a text element first to configure background opacity.');
+                }
+            });
+
+            // Background Radius tool functionality
+            bgRadiusBtn?.addEventListener('click', (e) => {
+                if (selectedDrawing && selectedDrawing.type === 'text') {
+                    e.stopPropagation();
+                    bgRadiusTool?.classList.toggle('show-dropdown');
+                    bgRadiusDropdown?.classList.toggle('show');
                     
-                    // Show/hide color, opacity and radius controls
-                    const colorRow = document.getElementById('backgroundColorRow');
-                    const opacityRow = document.getElementById('backgroundOpacityRow'); 
-                    const radiusRow = document.getElementById('backgroundRadiusRow');
-                    if (colorRow) colorRow.style.display = isEnabled ? 'flex' : 'none';
-                    if (opacityRow) opacityRow.style.display = isEnabled ? 'flex' : 'none';
-                    if (radiusRow) radiusRow.style.display = isEnabled ? 'flex' : 'none';
-                    
-                    redrawCanvas();
-                    showStatus(`Text background ${isEnabled ? 'enabled' : 'disabled'}.`);
+                    // Update dropdown with current text background settings
+                    updateDropdownFromText(selectedDrawing, bgRadiusDropdown);
+                } else {
+                    showStatus('Please select a text element first to configure border radius.');
                 }
             });
 
             // Handle background color selection
-            backgroundDropdown?.addEventListener('click', (e) => {
+            bgColorDropdown?.addEventListener('click', (e) => {
                 if (e.target.closest('.color-option') && selectedDrawing && selectedDrawing.type === 'text') {
                     e.stopPropagation();
                     const colorOption = e.target.closest('.color-option');
                     
-                    // Remove selected from all background color options
-                    backgroundDropdown.querySelectorAll('.color-option').forEach(option => {
+                    // Remove selected from all color options
+                    bgColorDropdown.querySelectorAll('.color-option').forEach(option => {
                         option.classList.remove('selected');
                     });
                     
                     // Add selected to clicked option
                     colorOption.classList.add('selected');
                     
-                    // Update current background color and selected text
-                    currentBackgroundColor = colorOption.dataset.color;
+                    // Auto-enable background and set properties
+                    selectedDrawing.hasBackground = true;
                     selectedDrawing.backgroundColor = colorOption.dataset.color;
+                    selectedDrawing.backgroundOpacity = selectedDrawing.backgroundOpacity || currentBackgroundOpacity;
+                    selectedDrawing.backgroundRadius = selectedDrawing.backgroundRadius || 4;
+                    selectedDrawing.backgroundPadding = selectedDrawing.backgroundPadding || 4;
+                    
+                    // Update current settings and indicators
+                    currentBackgroundColor = colorOption.dataset.color;
+                    updateBackgroundIndicators(selectedDrawing);
                     
                     redrawCanvas();
                     showStatus(`Background color changed to ${colorOption.title.toLowerCase()}.`);
@@ -1402,9 +1486,19 @@
             backgroundOpacity?.addEventListener('input', (e) => {
                 if (selectedDrawing && selectedDrawing.type === 'text') {
                     const opacity = parseInt(e.target.value);
-                    currentBackgroundOpacity = opacity;
+                    
+                    // Auto-enable background and set properties
+                    selectedDrawing.hasBackground = true;
                     selectedDrawing.backgroundOpacity = opacity;
+                    selectedDrawing.backgroundColor = selectedDrawing.backgroundColor || currentBackgroundColor;
+                    selectedDrawing.backgroundRadius = selectedDrawing.backgroundRadius || 4;
+                    selectedDrawing.backgroundPadding = selectedDrawing.backgroundPadding || 4;
+                    
+                    // Update current settings and indicators
+                    currentBackgroundOpacity = opacity;
                     opacityValue.textContent = `${opacity}%`;
+                    updateBackgroundIndicators(selectedDrawing);
+                    
                     redrawCanvas();
                     showStatus(`Background opacity: ${opacity}%`);
                 }
@@ -1414,8 +1508,18 @@
             backgroundRadius?.addEventListener('input', (e) => {
                 if (selectedDrawing && selectedDrawing.type === 'text') {
                     const radius = parseInt(e.target.value);
+                    
+                    // Auto-enable background and set properties
+                    selectedDrawing.hasBackground = true;
                     selectedDrawing.backgroundRadius = radius;
+                    selectedDrawing.backgroundColor = selectedDrawing.backgroundColor || currentBackgroundColor;
+                    selectedDrawing.backgroundOpacity = selectedDrawing.backgroundOpacity || currentBackgroundOpacity;
+                    selectedDrawing.backgroundPadding = selectedDrawing.backgroundPadding || 4;
+                    
+                    // Update indicators
                     radiusValue.textContent = `${radius}px`;
+                    updateBackgroundIndicators(selectedDrawing);
+                    
                     redrawCanvas();
                     showStatus(`Border radius: ${radius}px`);
                 }
@@ -1553,7 +1657,8 @@
                 // Only keep dropdowns open if clicking directly on the tool buttons themselves
                 // Close dropdowns when clicking anywhere else, including the canvas/screenshot area
                 if (!borderTool?.contains(e.target) && !widthTool?.contains(e.target) && 
-                    !fontSizeTool?.contains(e.target) && !backgroundTool?.contains(e.target)) {
+                    !fontSizeTool?.contains(e.target) && !bgColorTool?.contains(e.target) && 
+                    !bgOpacityTool?.contains(e.target) && !bgRadiusTool?.contains(e.target)) {
                     
                     // Close all dropdowns
                     borderTool?.classList.remove('show-dropdown');
@@ -1562,8 +1667,14 @@
                     borderWidthDropdown?.classList.remove('show');
                     fontSizeTool?.classList.remove('show-dropdown');
                     fontSizeDropdown?.classList.remove('show');
-                    backgroundTool?.classList.remove('show-dropdown');
-                    backgroundDropdown?.classList.remove('show');
+                    
+                    // Close background tool dropdowns
+                    bgColorTool?.classList.remove('show-dropdown');
+                    bgColorDropdown?.classList.remove('show');
+                    bgOpacityTool?.classList.remove('show-dropdown');
+                    bgOpacityDropdown?.classList.remove('show');
+                    bgRadiusTool?.classList.remove('show-dropdown');
+                    bgRadiusDropdown?.classList.remove('show');
                 }
             });
 
@@ -1584,7 +1695,7 @@
                         setDrawingMode(null);
                     } else if (selectedDrawing) {
                         selectedDrawing = null;
-                        updateTextBackgroundButtonState();
+                        updateTextBackgroundButtonsState();
                         redrawCanvas();
                         showStatus('Selection cleared.');
                     }
@@ -1598,7 +1709,7 @@
                     if (index > -1) {
                         drawings.splice(index, 1);
                         selectedDrawing = null;
-                        updateTextBackgroundButtonState();
+                        updateTextBackgroundButtonsState();
                         redrawCanvas();
                         showStatus('✅ Drawing deleted.', 'success');
                     }
@@ -2065,7 +2176,7 @@
             
             // Clear any selected drawings when entering drawing mode
             selectedDrawing = null;
-            updateTextBackgroundButtonState();
+            updateTextBackgroundButtonsState();
             
             // Clear any active text editor when changing modes
             if (activeTextEditor) {
@@ -2131,7 +2242,7 @@
                     if (clickedDrawing && clickedDrawing.type === 'text') {
                         // Select this text and immediately prepare for dragging
                         selectedDrawing = clickedDrawing;
-                        updateTextBackgroundButtonState();
+                        updateTextBackgroundButtonsState();
                         isResizing = true;
                         resizeMode = 'text-drag';
                         // Store initial mouse position for dragging offset
@@ -2144,7 +2255,7 @@
                     
                     // No text clicked or clicking empty space - start drawing new text
                     selectedDrawing = null;
-                    updateTextBackgroundButtonState();
+                    updateTextBackgroundButtonsState();
                     isDrawing = true;
                     
                     // Hide dropdowns
@@ -2179,7 +2290,7 @@
                 if (clickedDrawing && clickedDrawing.type === drawingMode) {
                     // Select the drawing but stay in drawing mode
                     selectedDrawing = clickedDrawing;
-                    updateTextBackgroundButtonState();
+                    updateTextBackgroundButtonsState();
                     redrawCanvas();
                     const drawingTypeNames = {
                         'rect': 'Rectangle',
@@ -2192,7 +2303,7 @@
                 } else {
                     // Clicking on empty space - deselect and start drawing new shape
                     selectedDrawing = null;
-                    updateTextBackgroundButtonState();
+                    updateTextBackgroundButtonsState();
                     isDrawing = true;
                     
                     // Hide color and width dropdowns when drawing starts
@@ -2218,7 +2329,7 @@
                 if (clickedDrawing && clickedDrawing.type === 'text') {
                     // Select the text and immediately prepare for dragging
                     selectedDrawing = clickedDrawing;
-                    updateTextBackgroundButtonState();
+                    updateTextBackgroundButtonsState();
                     isResizing = true;
                     resizeMode = 'text-drag';
                     // Store initial mouse position for dragging offset
@@ -2230,13 +2341,13 @@
                 } else if (selectedDrawing && selectedDrawing.type === 'text') {
                     // Clicking outside selected text - deselect it
                     selectedDrawing = null;
-                    updateTextBackgroundButtonState();
+                    updateTextBackgroundButtonsState();
                     redrawCanvas();
                     showStatus('Text deselected.');
                 } else {
                     // Clear any selection if clicking on empty space
                     selectedDrawing = null;
-                    updateTextBackgroundButtonState();
+                    updateTextBackgroundButtonsState();
                     redrawCanvas();
                 }
                 return;
