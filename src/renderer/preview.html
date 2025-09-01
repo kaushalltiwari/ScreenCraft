@@ -1547,13 +1547,15 @@
                 borderColorDropdown.classList.remove('show');
             });
             
-            // Close all dropdowns when clicking outside (but not on canvas for drawing)
+            // Close all dropdowns when clicking outside of tool dropdowns
             document.addEventListener('click', (e) => {
                 
-                // Don't close if clicking on canvas for drawing or on any tool dropdowns
+                // Only keep dropdowns open if clicking directly on the tool buttons themselves
+                // Close dropdowns when clicking anywhere else, including the canvas/screenshot area
                 if (!borderTool?.contains(e.target) && !widthTool?.contains(e.target) && 
-                    !fontSizeTool?.contains(e.target) && !backgroundTool?.contains(e.target) && 
-                    !canvas?.contains(e.target)) {
+                    !fontSizeTool?.contains(e.target) && !backgroundTool?.contains(e.target)) {
+                    
+                    // Close all dropdowns
                     borderTool?.classList.remove('show-dropdown');
                     borderColorDropdown?.classList.remove('show');
                     widthTool?.classList.remove('show-dropdown');
