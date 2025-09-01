@@ -3031,13 +3031,17 @@
             // Calculate text dimensions
             const textWidth = drawing.width || getTextWidth(text, fontSize);
             const textHeight = drawing.height || getTextHeight(text, fontSize);
-            const padding = hasBackground ? (backgroundPadding || 4) : 4;
+            const padding = hasBackground ? (backgroundPadding || 4) : 8; // More padding for better centering
             
-            // Draw dashed border around text area
-            ctx.strokeStyle = '#0066cc'; // Blue selection color
-            ctx.lineWidth = 2;
-            ctx.setLineDash([6, 3]); // Dashed line pattern
+            // Theme-aware border color
+            const borderColor = effectiveTheme === 'dark' ? '#ffffff' : '#000000';
             
+            // Draw thin dashed border around text area
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 1; // Thinner border
+            ctx.setLineDash([4, 2]); // Smaller dashed line pattern
+            
+            // Center the text within the boundary by calculating proper positioning
             const borderX = x - padding;
             const borderY = clampedY - padding;
             const borderWidth = textWidth + (padding * 2);
