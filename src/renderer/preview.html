@@ -3020,6 +3020,33 @@
             ctx.setLineDash([]); // Reset line dash
         }
 
+        function drawTextSelectionBorder(drawing) {
+            const { x, y, text, fontSize, hasBackground, backgroundPadding } = drawing;
+            
+            // Get toolbar height to avoid drawing over it
+            const toolbar = document.querySelector('.top-toolbar');
+            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+            const clampedY = Math.max(toolbarHeight, y);
+            
+            // Calculate text dimensions
+            const textWidth = drawing.width || getTextWidth(text, fontSize);
+            const textHeight = drawing.height || getTextHeight(text, fontSize);
+            const padding = hasBackground ? (backgroundPadding || 4) : 4;
+            
+            // Draw dashed border around text area
+            ctx.strokeStyle = '#0066cc'; // Blue selection color
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 3]); // Dashed line pattern
+            
+            const borderX = x - padding;
+            const borderY = clampedY - padding;
+            const borderWidth = textWidth + (padding * 2);
+            const borderHeight = textHeight + (padding * 2);
+            
+            ctx.strokeRect(borderX, borderY, borderWidth, borderHeight);
+            ctx.setLineDash([]); // Reset line dash
+        }
+
 
 
         function redrawCanvas() {
@@ -3049,6 +3076,11 @@
                     // Only draw text that doesn't overlap with toolbar area
                     if (drawing.y >= toolbarHeight) {
                         drawTextWithBackground(drawing);
+                        
+                        // Draw dashed border if this text is selected
+                        if (selectedDrawing === drawing) {
+                            drawTextSelectionBorder(drawing);
+                        }
                     }
                 }
                 
