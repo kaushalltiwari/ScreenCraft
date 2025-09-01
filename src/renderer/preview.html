@@ -959,7 +959,6 @@
         // Text annotation functionality
         let activeTextEditor = null; // Currently active text editor
         let activeTextBox = null; // Currently active text box area (for preview)
-        let editingText = null; // Currently editing text drawing
         let isTypingText = false; // Text input mode flag
         
         // Theme management
@@ -2332,58 +2331,6 @@
             if (isPreview) {
                 ctx.globalAlpha = 1.0;
             }
-        }
-
-        function startTextEditing(x, y) {
-            // Prevent multiple text editors
-            if (activeTextEditor) {
-                finishTextEditing();
-            }
-            
-            // Get toolbar height to avoid placing text over it
-            const toolbar = document.querySelector('.top-toolbar');
-            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
-            const clampedY = Math.max(toolbarHeight, y);
-            
-            // Get canvas position for proper positioning
-            const canvasRect = canvas.getBoundingClientRect();
-            
-            // Create transparent textarea overlay
-            activeTextEditor = document.createElement('textarea');
-            activeTextEditor.style.position = 'absolute';
-            activeTextEditor.style.left = (canvasRect.left + x) + 'px';
-            activeTextEditor.style.top = (canvasRect.top + clampedY) + 'px';
-            activeTextEditor.style.minWidth = '200px';
-            activeTextEditor.style.minHeight = '30px';
-            activeTextEditor.style.fontSize = currentFontSize + 'px';
-            activeTextEditor.style.fontFamily = 'Arial, sans-serif';
-            activeTextEditor.style.color = currentColor;
-            activeTextEditor.style.background = 'rgba(255, 255, 255, 0.1)';
-            activeTextEditor.style.border = '2px dashed ' + currentColor;
-            activeTextEditor.style.borderRadius = '4px';
-            activeTextEditor.style.padding = '8px';
-            activeTextEditor.style.resize = 'none';
-            activeTextEditor.style.zIndex = '9999';
-            activeTextEditor.style.outline = 'none';
-            activeTextEditor.style.overflow = 'hidden';
-            activeTextEditor.placeholder = 'Type your text here...';
-            
-            // Store position for the drawing
-            activeTextEditor.dataset.canvasX = x;
-            activeTextEditor.dataset.canvasY = clampedY;
-            
-            // Add to document body for proper positioning
-            document.body.appendChild(activeTextEditor);
-            
-            // Focus and enable text input mode
-            activeTextEditor.focus();
-            isTypingText = true;
-            
-            // Add event handlers
-            activeTextEditor.addEventListener('keydown', handleTextEditorKeydown);
-            
-            // Add document click handler to finish text when clicking elsewhere
-            document.addEventListener('click', handleDocumentClick, { capture: true });
         }
 
         function handleTextEditorKeydown(e) {
