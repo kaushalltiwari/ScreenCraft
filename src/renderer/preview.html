@@ -864,6 +864,7 @@
 <body>
     <!-- Top toolbar like Windows Snipping Tool -->
     <div class="top-toolbar">
+        <!-- Group 1: File Operations -->
         <div class="toolbar-group">
             <button class="toolbar-button" id="saveBtn" title="Save">
                 <div class="toolbar-icon" style="color: #4CAF50; font-size: 16px;">💾</div>
@@ -873,10 +874,15 @@
                 <div class="toolbar-icon" style="color: #2196F3; font-size: 16px;">📋</div>
                 <div>Copy</div>
             </button>
+            <button class="toolbar-button" id="copyPathBtn" title="Copy Path">
+                <div class="toolbar-icon" style="font-size: 16px;">📁</div>
+                <div>Path</div>
+            </button>
         </div>
         
         <div class="toolbar-separator"></div>
         
+        <!-- Group 2: Drawing Tools -->
         <div class="toolbar-group">
             <button class="toolbar-button" id="rectBtn" title="Rectangle - Draw rectangular borders">
                 <div class="toolbar-icon" style="font-size: 16px;">⬜</div>
@@ -890,15 +896,7 @@
                 <div class="toolbar-icon" style="font-size: 16px;">➡️</div>
                 <div>Arrow</div>
             </button>
-            <button class="toolbar-button" id="textBtn" title="Text - Add text annotations">
-                <div class="toolbar-icon" style="font-size: 16px;">📝</div>
-                <div>Text</div>
-            </button>
-        </div>
-        
-        <div class="toolbar-separator"></div>
-        
-        <div class="toolbar-group">
+            
             <div class="border-tool">
                 <button class="toolbar-button" id="colorBtn" title="Color - Select drawing color">
                     <div class="toolbar-icon" style="font-size: 16px;">
@@ -923,9 +921,7 @@
                     <div class="color-option" data-color="#ffffff" title="White"></div>
                 </div>
             </div>
-        </div>
-        
-        <div class="toolbar-group">
+            
             <div class="border-tool">
                 <button class="toolbar-button" id="widthBtn" title="Width - Select stroke width">
                     <div class="toolbar-icon" style="font-size: 16px;">
@@ -964,7 +960,15 @@
             </div>
         </div>
         
+        <div class="toolbar-separator"></div>
+        
+        <!-- Group 3: Text Tools -->
         <div class="toolbar-group">
+            <button class="toolbar-button" id="textBtn" title="Text - Add text annotations">
+                <div class="toolbar-icon" style="font-size: 16px;">📝</div>
+                <div>Text</div>
+            </button>
+            
             <div class="border-tool">
                 <button class="toolbar-button" id="fontSizeBtn" title="Font Size - Select text size">
                     <div class="toolbar-icon" style="font-size: 16px;">
@@ -1002,15 +1006,11 @@
                 </div>
             </div>
             
-        </div>
-        
-        <!-- Text Background Tools (only enabled when text is selected) -->
-        <div class="toolbar-group">
             <!-- Background Color Tool -->
             <div class="border-tool">
                 <button class="toolbar-button disabled" id="bgColorBtn" title="Background Color - Change text background color" disabled>
-                    <div class="toolbar-icon" style="font-size: 16px;">🎨</div>
-                    <div style="font-size: 10px;">Color</div>
+                    <div class="toolbar-icon" style="font-size: 16px;">🟫</div>
+                    <div style="font-size: 10px;">BG Color</div>
                     <div class="color-indicator" id="bgColorIndicator" style="background: #ffffff;"></div>
                     <div class="dropdown-arrow">▼</div>
                 </button>
@@ -1068,15 +1068,6 @@
                     </div>
                 </div>
             </div>
-        </div>
-        
-        <div class="toolbar-separator"></div>
-        
-        <div class="toolbar-group">
-            <button class="toolbar-button" id="copyPathBtn" title="Copy Path">
-                <div class="toolbar-icon" style="font-size: 16px;">📁</div>
-                <div>Path</div>
-            </button>
         </div>
     </div>
 
