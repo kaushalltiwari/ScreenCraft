@@ -1241,7 +1241,7 @@
 
             // Close color dropdown when clicking outside
             document.addEventListener('click', () => {
-                colorDropdown.classList.remove('show');
+                borderColorDropdown.classList.remove('show');
             });
             
             // Close border color, width, and font size dropdowns when clicking outside (but not on canvas for drawing)
@@ -1986,6 +1986,10 @@
         }
 
         function stopDrawing(e) {
+            // Prevent double execution - ignore if we're not currently drawing or resizing
+            if (!isDrawing && !isResizing) {
+                return;
+            }
             
             // Handle resize completion
             if (isResizing) {
@@ -2321,10 +2325,17 @@
 
         function handleDocumentClick(e) {
             // If there's no active text editor, ignore
-            if (!activeTextEditor) return;
+            if (!activeTextEditor) {
+                return;
+            }
             
             // If click is on the text editor itself, ignore
             if (activeTextEditor.contains(e.target)) {
+                return;
+            }
+            
+            // If click is on the canvas (drawing area), ignore - this is likely creating a new text box
+            if (e.target.id === 'annotationCanvas') {
                 return;
             }
             
@@ -2434,8 +2445,10 @@
             
             // Use setTimeout to ensure proper focus after DOM manipulation
             setTimeout(() => {
-                activeTextEditor.focus();
-                activeTextEditor.select(); // Select all placeholder text if any
+                if (activeTextEditor) {
+                    activeTextEditor.focus();
+                    activeTextEditor.select(); // Select all placeholder text if any
+                }
             }, 10);
             
             // Add event handlers
