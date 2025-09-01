@@ -2334,11 +2334,6 @@
                 return;
             }
             
-            // If click is on the canvas (drawing area), ignore - this is likely creating a new text box
-            if (e.target.id === 'annotationCanvas') {
-                return;
-            }
-            
             // Remove this event handler and finish text editing
             document.removeEventListener('click', handleDocumentClick, { capture: true });
             finishTextEditing();
@@ -2454,8 +2449,10 @@
             // Add event handlers
             activeTextEditor.addEventListener('keydown', handleTextEditorKeydown);
             
-            // Add document click handler to finish text when clicking elsewhere
-            document.addEventListener('click', handleDocumentClick, { capture: true });
+            // Add document click handler after a small delay to prevent interference with the creating click
+            setTimeout(() => {
+                document.addEventListener('click', handleDocumentClick, { capture: true });
+            }, 100);
         }
 
         function getTextWidth(text) {
