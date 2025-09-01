@@ -621,6 +621,97 @@
             line-height: 1;
         }
 
+        /* Text Background Controls */
+        .background-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: none;
+            opacity: 0;
+            z-index: 1000;
+            min-width: 250px;
+            padding: 12px;
+        }
+
+        .background-dropdown.show {
+            display: block;
+            opacity: 1;
+            animation: fadeIn 0.15s ease-out;
+        }
+
+        .background-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        .background-toggle {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .background-color-options {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .opacity-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .opacity-slider {
+            width: 100px;
+            height: 4px;
+            border-radius: 2px;
+            background: #ddd;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .opacity-value {
+            font-size: 11px;
+            font-weight: bold;
+            color: #333;
+            min-width: 30px;
+            text-align: right;
+        }
+
+        .background-indicator {
+            position: absolute;
+            bottom: 1px;
+            right: 1px;
+            font-size: 8px;
+            font-weight: bold;
+            color: #333;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1px 3px;
+            border-radius: 2px;
+            line-height: 1;
+        }
+
         .color-option {
             width: 28px;
             height: 28px;
@@ -894,6 +985,46 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Text Background Controls -->
+            <div class="border-tool">
+                <button class="toolbar-button" id="textBackgroundBtn" title="Text Background - Add background rectangle behind text">
+                    <div class="toolbar-icon" style="font-size: 16px;">
+                        📦
+                        <span class="background-indicator" id="backgroundIndicator">OFF</span>
+                    </div>
+                    <div>Background</div>
+                    <div class="dropdown-arrow">▼</div>
+                </button>
+                <div class="background-dropdown" id="backgroundDropdown">
+                    <div class="background-controls">
+                        <div class="control-row">
+                            <label class="control-label">Enable Background:</label>
+                            <input type="checkbox" id="backgroundToggle" class="background-toggle">
+                        </div>
+                        <div class="control-row">
+                            <label class="control-label">Background Color:</label>
+                            <div class="background-color-options">
+                                <div class="color-option white selected" data-color="#ffffff" title="White" style="background: #ffffff; border: 2px solid #ccc;"></div>
+                                <div class="color-option black" data-color="#000000" title="Black" style="background: #000000;"></div>
+                                <div class="color-option gray" data-color="#808080" title="Gray" style="background: #808080;"></div>
+                                <div class="color-option blue" data-color="#007acc" title="Blue" style="background: #007acc;"></div>
+                                <div class="color-option green" data-color="#28a745" title="Green" style="background: #28a745;"></div>
+                                <div class="color-option yellow" data-color="#ffc107" title="Yellow" style="background: #ffc107;"></div>
+                                <div class="color-option orange" data-color="#fd7e14" title="Orange" style="background: #fd7e14;"></div>
+                                <div class="color-option red" data-color="#dc3545" title="Red" style="background: #dc3545;"></div>
+                            </div>
+                        </div>
+                        <div class="control-row">
+                            <label class="control-label">Opacity:</label>
+                            <div class="opacity-control">
+                                <input type="range" id="backgroundOpacity" class="opacity-slider" min="0" max="100" value="80">
+                                <span class="opacity-value" id="opacityValue">80%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <div class="toolbar-separator"></div>
@@ -1000,6 +1131,19 @@
         const fontSizeTool = document.querySelector('#fontSizeBtn')?.closest('.border-tool'); // Font size tool container
         const fontSizeDropdown = document.getElementById('fontSizeDropdown');
         const fontSizeIndicator = document.getElementById('fontSizeIndicator');
+        
+        // Text background control elements
+        const textBackgroundBtn = document.getElementById('textBackgroundBtn');
+        const backgroundDropdown = document.getElementById('backgroundDropdown');
+        const backgroundToggle = document.getElementById('backgroundToggle');
+        const backgroundIndicator = document.getElementById('backgroundIndicator');
+        const backgroundOpacity = document.getElementById('backgroundOpacity');
+        const opacityValue = document.getElementById('opacityValue');
+        
+        // Text background settings
+        let currentBackgroundEnabled = false;
+        let currentBackgroundColor = '#ffffff';
+        let currentBackgroundOpacity = 80;
         
         
         // Removed buttons - keep functions but remove UI references
@@ -1242,21 +1386,80 @@
                 }
             });
 
+            // Text Background Controls Event Handlers
+            textBackgroundBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const backgroundTool = textBackgroundBtn.closest('.border-tool');
+                backgroundTool.classList.toggle('show-dropdown');
+                backgroundDropdown.classList.toggle('show');
+            });
+
+            // Handle background toggle
+            backgroundToggle?.addEventListener('change', (e) => {
+                currentBackgroundEnabled = e.target.checked;
+                backgroundIndicator.textContent = currentBackgroundEnabled ? 'ON' : 'OFF';
+                backgroundIndicator.style.color = currentBackgroundEnabled ? '#28a745' : '#333';
+                updateTextEditorBackground(); // Update live preview
+                showStatus(`Text background ${currentBackgroundEnabled ? 'enabled' : 'disabled'}.`);
+            });
+
+            // Handle background color selection
+            backgroundDropdown?.addEventListener('click', (e) => {
+                if (e.target.closest('.color-option')) {
+                    e.stopPropagation();
+                    const colorOption = e.target.closest('.color-option');
+                    
+                    // Remove selected from all background color options
+                    backgroundDropdown.querySelectorAll('.color-option').forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    
+                    // Add selected to clicked option
+                    colorOption.classList.add('selected');
+                    
+                    // Update current background color
+                    currentBackgroundColor = colorOption.dataset.color;
+                    
+                    // Update live preview
+                    updateTextEditorBackground();
+                    
+                    // Close dropdown
+                    const backgroundTool = textBackgroundBtn.closest('.border-tool');
+                    backgroundTool.classList.remove('show-dropdown');
+                    backgroundDropdown.classList.remove('show');
+                    
+                    showStatus(`Background color changed. New text will use ${colorOption.title.toLowerCase()} background.`);
+                }
+            });
+
+            // Handle opacity slider
+            backgroundOpacity?.addEventListener('input', (e) => {
+                currentBackgroundOpacity = parseInt(e.target.value);
+                opacityValue.textContent = `${currentBackgroundOpacity}%`;
+                updateTextEditorBackground(); // Update live preview
+                showStatus(`Background opacity: ${currentBackgroundOpacity}%`);
+            });
+
             // Close color dropdown when clicking outside
             document.addEventListener('click', () => {
                 borderColorDropdown.classList.remove('show');
             });
             
-            // Close border color, width, and font size dropdowns when clicking outside (but not on canvas for drawing)
+            // Close all dropdowns when clicking outside (but not on canvas for drawing)
             document.addEventListener('click', (e) => {
-                // Don't close if clicking on canvas for drawing or on border/width/font tools
-                if (!borderTool?.contains(e.target) && !widthTool?.contains(e.target) && !fontSizeTool?.contains(e.target) && !canvas?.contains(e.target)) {
+                const backgroundTool = textBackgroundBtn?.closest('.border-tool');
+                // Don't close if clicking on canvas for drawing or on any tool dropdowns
+                if (!borderTool?.contains(e.target) && !widthTool?.contains(e.target) && 
+                    !fontSizeTool?.contains(e.target) && !backgroundTool?.contains(e.target) && 
+                    !canvas?.contains(e.target)) {
                     borderTool?.classList.remove('show-dropdown');
                     borderColorDropdown?.classList.remove('show');
                     widthTool?.classList.remove('show-dropdown');
                     borderWidthDropdown?.classList.remove('show');
                     fontSizeTool?.classList.remove('show-dropdown');
                     fontSizeDropdown?.classList.remove('show');
+                    backgroundTool?.classList.remove('show-dropdown');
+                    backgroundDropdown?.classList.remove('show');
                 }
             });
 
@@ -2333,6 +2536,70 @@
             }
         }
 
+        function drawTextWithBackground(drawing) {
+            const { x, y, text, color, fontSize, hasBackground, backgroundColor, backgroundOpacity, backgroundPadding } = drawing;
+            
+            // Get toolbar height to avoid drawing over it
+            const toolbar = document.querySelector('.top-toolbar');
+            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+            const clampedY = Math.max(toolbarHeight, y);
+            
+            // Set up text properties for measurement
+            ctx.font = `${fontSize}px Arial, sans-serif`;
+            ctx.textBaseline = 'top';
+            ctx.textAlign = 'left';
+            
+            // Draw background rectangle if enabled
+            if (hasBackground) {
+                const lines = text.split('\n');
+                const textWidth = drawing.width || getTextWidth(text);
+                const textHeight = drawing.height || getTextHeight(text);
+                const padding = backgroundPadding || 4;
+                
+                // Save current state
+                const originalGlobalAlpha = ctx.globalAlpha;
+                
+                // Set background opacity
+                ctx.globalAlpha = (backgroundOpacity || 80) / 100;
+                
+                // Draw background rectangle
+                ctx.fillStyle = backgroundColor || '#ffffff';
+                ctx.fillRect(
+                    x - padding, 
+                    clampedY - padding, 
+                    textWidth + (padding * 2), 
+                    textHeight + (padding * 2)
+                );
+                
+                // Restore alpha for text
+                ctx.globalAlpha = originalGlobalAlpha;
+            }
+            
+            // Draw text on top of background
+            ctx.fillStyle = color;
+            const lines = text.split('\n');
+            lines.forEach((line, index) => {
+                ctx.fillText(line, x, clampedY + (index * fontSize * 1.2));
+            });
+        }
+
+        function updateTextEditorBackground() {
+            if (activeTextEditor) {
+                if (currentBackgroundEnabled) {
+                    // Convert hex color to rgba with opacity
+                    const hex = currentBackgroundColor.replace('#', '');
+                    const r = parseInt(hex.substr(0, 2), 16);
+                    const g = parseInt(hex.substr(2, 2), 16);
+                    const b = parseInt(hex.substr(4, 2), 16);
+                    const alpha = currentBackgroundOpacity / 100;
+                    activeTextEditor.style.background = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                } else {
+                    // Default transparent background
+                    activeTextEditor.style.background = 'rgba(255, 255, 255, 0.1)';
+                }
+            }
+        }
+
         function handleTextEditorKeydown(e) {
             if (e.key === 'Escape') {
                 e.preventDefault();
@@ -2377,7 +2644,12 @@
                     color: currentColor,
                     fontSize: currentFontSize,
                     width: getTextWidth(text),
-                    height: getTextHeight(text)
+                    height: getTextHeight(text),
+                    // Background properties
+                    hasBackground: currentBackgroundEnabled,
+                    backgroundColor: currentBackgroundColor,
+                    backgroundOpacity: currentBackgroundOpacity,
+                    backgroundPadding: 4 // Default padding around text
                 };
                 
                 // Add to drawings array
@@ -2439,7 +2711,8 @@
             activeTextEditor.style.fontSize = currentFontSize + 'px';
             activeTextEditor.style.fontFamily = 'Arial, sans-serif';
             activeTextEditor.style.color = currentColor;
-            activeTextEditor.style.background = 'rgba(255, 255, 255, 0.1)';
+            // Set background based on current background settings
+            updateTextEditorBackground();
             activeTextEditor.style.border = '2px dashed ' + currentColor;
             activeTextEditor.style.borderRadius = '4px';
             activeTextEditor.style.padding = '8px';
@@ -2529,7 +2802,7 @@
                 } else if (drawing.type === 'text') {
                     // Only draw text that doesn't overlap with toolbar area
                     if (drawing.y >= toolbarHeight) {
-                        drawText(drawing.x, drawing.y, drawing.text, drawing.color, drawing.fontSize);
+                        drawTextWithBackground(drawing);
                     }
                 }
                 
@@ -2669,13 +2942,14 @@
                 const clampedY = Math.max(toolbarHeight, drawing.y);
                 const textWidth = drawing.width || 100;
                 const textHeight = drawing.fontSize || 16;
+                const padding = (drawing.hasBackground && drawing.backgroundPadding) ? drawing.backgroundPadding : 1;
                 
                 // Draw a very thin dotted outline around the text (Inkscape style)
                 ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
                 ctx.lineWidth = 1;
                 ctx.setLineDash([2, 2]); // Shorter dashes like Inkscape
                 ctx.beginPath();
-                ctx.rect(drawing.x - 1, clampedY - 1, textWidth + 2, textHeight + 2);
+                ctx.rect(drawing.x - padding, clampedY - padding, textWidth + (padding * 2), textHeight + (padding * 2));
                 ctx.stroke();
                 ctx.setLineDash([]); // Reset line dash
                 
