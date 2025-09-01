@@ -639,6 +639,39 @@
             gap: 8px;
         }
 
+        /* Text Background Controls */
+        .background-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        .background-toggle {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .background-color-options {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
         .opacity-slider {
             width: 100px;
             height: 4px;
@@ -948,10 +981,49 @@
         
         <!-- Text Background Tool (only enabled when text is selected) -->
         <div class="toolbar-group">
-            <button class="toolbar-button disabled" id="textBackgroundBtn" title="Text Background - Configure background for selected text" disabled>
-                <div class="toolbar-icon" style="font-size: 16px;">📦</div>
-                <div>Background</div>
-            </button>
+            <div class="border-tool">
+                <button class="toolbar-button disabled" id="textBackgroundBtn" title="Text Background - Configure background for selected text" disabled>
+                    <div class="toolbar-icon" style="font-size: 16px;">📦</div>
+                    <div>Background</div>
+                    <div class="dropdown-arrow">▼</div>
+                </button>
+                <div class="border-color-dropdown" id="backgroundDropdown">
+                    <div class="dropdown-header">Text Background Options</div>
+                    <div class="background-controls">
+                        <div class="control-row">
+                            <label class="control-label">Enable Background:</label>
+                            <input type="checkbox" id="backgroundToggle" class="background-toggle">
+                        </div>
+                        <div class="control-row" id="backgroundColorRow" style="display: none;">
+                            <label class="control-label">Background Color:</label>
+                            <div class="background-color-options">
+                                <div class="color-option white selected" data-color="#ffffff" title="White" style="background: #ffffff; border: 2px solid #ccc;"></div>
+                                <div class="color-option black" data-color="#000000" title="Black" style="background: #000000;"></div>
+                                <div class="color-option gray" data-color="#808080" title="Gray" style="background: #808080;"></div>
+                                <div class="color-option blue" data-color="#007acc" title="Blue" style="background: #007acc;"></div>
+                                <div class="color-option green" data-color="#28a745" title="Green" style="background: #28a745;"></div>
+                                <div class="color-option yellow" data-color="#ffc107" title="Yellow" style="background: #ffc107;"></div>
+                                <div class="color-option orange" data-color="#fd7e14" title="Orange" style="background: #fd7e14;"></div>
+                                <div class="color-option red" data-color="#dc3545" title="Red" style="background: #dc3545;"></div>
+                            </div>
+                        </div>
+                        <div class="control-row" id="backgroundOpacityRow" style="display: none;">
+                            <label class="control-label">Opacity:</label>
+                            <div class="opacity-control">
+                                <input type="range" id="backgroundOpacity" class="opacity-slider" min="0" max="100" value="80">
+                                <span class="opacity-value" id="opacityValue">80%</span>
+                            </div>
+                        </div>
+                        <div class="control-row" id="backgroundRadiusRow" style="display: none;">
+                            <label class="control-label">Corner Radius:</label>
+                            <div class="opacity-control">
+                                <input type="range" id="backgroundRadius" class="opacity-slider" min="0" max="20" value="4">
+                                <span class="opacity-value" id="radiusValue">4px</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <div class="toolbar-separator"></div>
@@ -1040,6 +1112,48 @@
             }
         }
         
+        // Function to update background dropdown with current text settings
+        function updateBackgroundDropdownFromText(textDrawing) {
+            if (!backgroundToggle || !backgroundDropdown) return;
+            
+            const hasBackground = textDrawing.hasBackground || false;
+            
+            // Update toggle
+            backgroundToggle.checked = hasBackground;
+            
+            // Show/hide controls based on background state
+            const colorRow = document.getElementById('backgroundColorRow');
+            const opacityRow = document.getElementById('backgroundOpacityRow');
+            const radiusRow = document.getElementById('backgroundRadiusRow');
+            if (colorRow) colorRow.style.display = hasBackground ? 'flex' : 'none';
+            if (opacityRow) opacityRow.style.display = hasBackground ? 'flex' : 'none';
+            if (radiusRow) radiusRow.style.display = hasBackground ? 'flex' : 'none';
+            
+            if (hasBackground) {
+                // Update color selection
+                const colorOptions = backgroundDropdown.querySelectorAll('.color-option');
+                colorOptions.forEach(option => {
+                    option.classList.remove('selected');
+                    if (option.dataset.color === (textDrawing.backgroundColor || '#ffffff')) {
+                        option.classList.add('selected');
+                    }
+                });
+                
+                // Update opacity
+                if (backgroundOpacity && opacityValue) {
+                    const opacity = textDrawing.backgroundOpacity || 80;
+                    backgroundOpacity.value = opacity;
+                    opacityValue.textContent = opacity + '%';
+                }
+                
+                // Update border radius
+                if (backgroundRadius && radiusValue) {
+                    const radius = textDrawing.backgroundRadius || 4;
+                    backgroundRadius.value = radius;
+                    radiusValue.textContent = radius + 'px';
+                }
+            }
+        }
         
         // Theme management
         let currentTheme = 'system';
@@ -1083,6 +1197,13 @@
         
         // Text background control elements
         const textBackgroundBtn = document.getElementById('textBackgroundBtn');
+        const backgroundTool = textBackgroundBtn?.closest('.border-tool');
+        const backgroundDropdown = document.getElementById('backgroundDropdown');
+        const backgroundToggle = document.getElementById('backgroundToggle');
+        const backgroundOpacity = document.getElementById('backgroundOpacity');
+        const backgroundRadius = document.getElementById('backgroundRadius');
+        const opacityValue = document.getElementById('opacityValue');
+        const radiusValue = document.getElementById('radiusValue');
         
         // Text background settings
         let currentBackgroundEnabled = false;
@@ -1215,26 +1336,88 @@
             
             // Text background tool functionality
             textBackgroundBtn?.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                
                 if (selectedDrawing && selectedDrawing.type === 'text') {
-                    // Toggle background on/off
-                    const wasEnabled = selectedDrawing.hasBackground || false;
-                    selectedDrawing.hasBackground = !wasEnabled;
+                    e.stopPropagation();
+                    backgroundTool?.classList.toggle('show-dropdown');
+                    backgroundDropdown?.classList.toggle('show');
                     
-                    // Set default background properties if enabling for first time
-                    if (selectedDrawing.hasBackground && !selectedDrawing.backgroundColor) {
-                        selectedDrawing.backgroundColor = currentBackgroundColor;
-                        selectedDrawing.backgroundOpacity = currentBackgroundOpacity;
-                        selectedDrawing.backgroundRadius = 4; // Default border radius
-                        selectedDrawing.backgroundPadding = 4; // Default padding
-                    }
-                    
-                    redrawCanvas();
-                    showStatus(`Text background ${selectedDrawing.hasBackground ? 'enabled' : 'disabled'}.`);
+                    // Update dropdown with current text background settings
+                    updateBackgroundDropdownFromText(selectedDrawing);
                 } else {
                     showStatus('Please select a text element first to configure its background.');
+                }
+            });
+
+            // Handle background toggle
+            backgroundToggle?.addEventListener('change', (e) => {
+                if (selectedDrawing && selectedDrawing.type === 'text') {
+                    const isEnabled = e.target.checked;
+                    selectedDrawing.hasBackground = isEnabled;
+                    
+                    // Set default properties if enabling for first time
+                    if (isEnabled && !selectedDrawing.backgroundColor) {
+                        selectedDrawing.backgroundColor = currentBackgroundColor;
+                        selectedDrawing.backgroundOpacity = currentBackgroundOpacity;
+                        selectedDrawing.backgroundRadius = 4;
+                        selectedDrawing.backgroundPadding = 4;
+                    }
+                    
+                    // Show/hide color, opacity and radius controls
+                    const colorRow = document.getElementById('backgroundColorRow');
+                    const opacityRow = document.getElementById('backgroundOpacityRow'); 
+                    const radiusRow = document.getElementById('backgroundRadiusRow');
+                    if (colorRow) colorRow.style.display = isEnabled ? 'flex' : 'none';
+                    if (opacityRow) opacityRow.style.display = isEnabled ? 'flex' : 'none';
+                    if (radiusRow) radiusRow.style.display = isEnabled ? 'flex' : 'none';
+                    
+                    redrawCanvas();
+                    showStatus(`Text background ${isEnabled ? 'enabled' : 'disabled'}.`);
+                }
+            });
+
+            // Handle background color selection
+            backgroundDropdown?.addEventListener('click', (e) => {
+                if (e.target.closest('.color-option') && selectedDrawing && selectedDrawing.type === 'text') {
+                    e.stopPropagation();
+                    const colorOption = e.target.closest('.color-option');
+                    
+                    // Remove selected from all background color options
+                    backgroundDropdown.querySelectorAll('.color-option').forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    
+                    // Add selected to clicked option
+                    colorOption.classList.add('selected');
+                    
+                    // Update current background color and selected text
+                    currentBackgroundColor = colorOption.dataset.color;
+                    selectedDrawing.backgroundColor = colorOption.dataset.color;
+                    
+                    redrawCanvas();
+                    showStatus(`Background color changed to ${colorOption.title.toLowerCase()}.`);
+                }
+            });
+
+            // Handle opacity slider
+            backgroundOpacity?.addEventListener('input', (e) => {
+                if (selectedDrawing && selectedDrawing.type === 'text') {
+                    const opacity = parseInt(e.target.value);
+                    currentBackgroundOpacity = opacity;
+                    selectedDrawing.backgroundOpacity = opacity;
+                    opacityValue.textContent = `${opacity}%`;
+                    redrawCanvas();
+                    showStatus(`Background opacity: ${opacity}%`);
+                }
+            });
+
+            // Handle border radius slider
+            backgroundRadius?.addEventListener('input', (e) => {
+                if (selectedDrawing && selectedDrawing.type === 'text') {
+                    const radius = parseInt(e.target.value);
+                    selectedDrawing.backgroundRadius = radius;
+                    radiusValue.textContent = `${radius}px`;
+                    redrawCanvas();
+                    showStatus(`Border radius: ${radius}px`);
                 }
             });
             
@@ -1369,13 +1552,16 @@
                 
                 // Don't close if clicking on canvas for drawing or on any tool dropdowns
                 if (!borderTool?.contains(e.target) && !widthTool?.contains(e.target) && 
-                    !fontSizeTool?.contains(e.target) && !canvas?.contains(e.target)) {
+                    !fontSizeTool?.contains(e.target) && !backgroundTool?.contains(e.target) && 
+                    !canvas?.contains(e.target)) {
                     borderTool?.classList.remove('show-dropdown');
                     borderColorDropdown?.classList.remove('show');
                     widthTool?.classList.remove('show-dropdown');
                     borderWidthDropdown?.classList.remove('show');
                     fontSizeTool?.classList.remove('show-dropdown');
                     fontSizeDropdown?.classList.remove('show');
+                    backgroundTool?.classList.remove('show-dropdown');
+                    backgroundDropdown?.classList.remove('show');
                 }
             });
 
