@@ -1820,21 +1820,16 @@
                     // First check if clicking on existing text to select/drag it
                     const clickedDrawing = findDrawingAtPoint(mouseX, mouseY);
                     if (clickedDrawing && clickedDrawing.type === 'text') {
-                        if (selectedDrawing === clickedDrawing) {
-                            // Already selected - start dragging
-                            isResizing = true;
-                            resizeMode = 'text-drag';
-                            // Store initial mouse position for dragging offset
-                            dragStartX = mouseX;
-                            dragStartY = mouseY;
-                            return;
-                        } else {
-                            // Select this text
-                            selectedDrawing = clickedDrawing;
-                            redrawCanvas();
-                            showStatus('Text selected. Click and drag to move, or click empty space to draw new text.');
-                            return;
-                        }
+                        // Select this text and immediately prepare for dragging
+                        selectedDrawing = clickedDrawing;
+                        isResizing = true;
+                        resizeMode = 'text-drag';
+                        // Store initial mouse position for dragging offset
+                        dragStartX = mouseX;
+                        dragStartY = mouseY;
+                        redrawCanvas();
+                        showStatus('Text selected. Drag to move, or click empty space to draw new text.');
+                        return;
                     }
                     
                     // No text clicked or clicking empty space - start drawing new text
@@ -1908,35 +1903,21 @@
                 // Check if clicking on existing text to select it
                 const clickedDrawing = findDrawingAtPoint(mouseX, mouseY);
                 if (clickedDrawing && clickedDrawing.type === 'text') {
-                    // Select the text and show boundary
+                    // Select the text and immediately prepare for dragging
                     selectedDrawing = clickedDrawing;
+                    isResizing = true;
+                    resizeMode = 'text-drag';
+                    // Store initial mouse position for dragging offset
+                    dragStartX = mouseX;
+                    dragStartY = mouseY;
                     redrawCanvas();
                     showStatus('Text selected. Drag to move or click outside to deselect.');
                     return;
                 } else if (selectedDrawing && selectedDrawing.type === 'text') {
-                    // Check if clicking within selected text boundary to start dragging
-                    const textWidth = selectedDrawing.width || 100;
-                    const textHeight = selectedDrawing.fontSize || 16;
-                    const toolbar = document.querySelector('.top-toolbar');
-                    const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
-                    const clampedY = Math.max(toolbarHeight, selectedDrawing.y);
-                    
-                    
-                    if (mouseX >= selectedDrawing.x && mouseX <= selectedDrawing.x + textWidth && 
-                        mouseY >= clampedY && mouseY <= clampedY + textHeight) {
-                        // Start dragging the selected text
-                        isResizing = true;
-                        resizeMode = 'text-drag';
-                        // Store initial mouse position for dragging offset
-                        dragStartX = mouseX;
-                        dragStartY = mouseY;
-                        return;
-                    } else {
-                        // Clicking outside selected text - deselect
-                        selectedDrawing = null;
-                        redrawCanvas();
-                        showStatus('Text deselected.');
-                    }
+                    // Clicking outside selected text - deselect it
+                    selectedDrawing = null;
+                    redrawCanvas();
+                    showStatus('Text deselected.');
                 } else {
                     // Clear any selection if clicking on empty space
                     selectedDrawing = null;
