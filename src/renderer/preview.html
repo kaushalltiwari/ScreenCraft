@@ -947,10 +947,14 @@
         
         // Drawing resizing functionality
         let selectedDrawing = null; // Currently selected drawing for resizing
-        let resizeMode = null; // 'start', 'end', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'width', or null
+        let resizeMode = null; // 'start', 'end', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'width', 'text-drag', or null
         let isResizing = false;
         let resizeHandleRadius = 6; // Size of resize handles
         let widthResizeMode = false; // Special mode for width-only resizing
+        
+        // Text dragging variables
+        let dragStartX = 0;
+        let dragStartY = 0;
         
         // Text annotation functionality
         let activeTextEditor = null; // Currently active text editor
@@ -1715,7 +1719,30 @@
                         canvas.style.cursor = 'crosshair';
                     }
                 } else {
-                    // Not in drawing mode - use default cursor
+                    // Not in drawing mode - handle text selection cursors
+                    if (selectedDrawing && selectedDrawing.type === 'text') {
+                        // Check if hovering over selected text for drag cursor
+                        const textWidth = selectedDrawing.width || 100;
+                        const textHeight = selectedDrawing.fontSize || 16;
+                        const toolbar = document.querySelector('.top-toolbar');
+                        const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+                        const clampedY = Math.max(toolbarHeight, selectedDrawing.y);
+                        
+                        if (mouseX >= selectedDrawing.x && mouseX <= selectedDrawing.x + textWidth && 
+                            mouseY >= clampedY && mouseY <= clampedY + textHeight) {
+                            canvas.style.cursor = 'move'; // Move cursor for dragging selected text
+                            return;
+                        }
+                    }
+                    
+                    // Check if hovering over any text for selection cursor
+                    const hoveredDrawing = findDrawingAtPoint(mouseX, mouseY);
+                    if (hoveredDrawing && hoveredDrawing.type === 'text') {
+                        canvas.style.cursor = 'pointer'; // Pointer cursor for text selection
+                        return;
+                    }
+                    
+                    // Default cursor
                     canvas.style.cursor = 'default';
                 }
             });
@@ -1768,6 +1795,11 @@
         }
 
         function startDrawing(e) {
+            // Only handle left mouse button (button 0)
+            if (e.button !== 0) {
+                return;
+            }
+            
             // If we're currently typing text, don't interfere
             if (isTypingText && activeTextEditor) {
                 return;
@@ -1783,9 +1815,29 @@
             
             // If we're in any drawing mode, check for existing drawing interaction first
             if (drawingMode) {
-                // Special handling for text mode - always start drawing, no selection
+                // Special handling for text mode - allow text selection and dragging
                 if (drawingMode === 'text') {
-                    // Clear any selected drawings
+                    // First check if clicking on existing text to select/drag it
+                    const clickedDrawing = findDrawingAtPoint(mouseX, mouseY);
+                    if (clickedDrawing && clickedDrawing.type === 'text') {
+                        if (selectedDrawing === clickedDrawing) {
+                            // Already selected - start dragging
+                            isResizing = true;
+                            resizeMode = 'text-drag';
+                            // Store initial mouse position for dragging offset
+                            dragStartX = mouseX;
+                            dragStartY = mouseY;
+                            return;
+                        } else {
+                            // Select this text
+                            selectedDrawing = clickedDrawing;
+                            redrawCanvas();
+                            showStatus('Text selected. Click and drag to move, or click empty space to draw new text.');
+                            return;
+                        }
+                    }
+                    
+                    // No text clicked or clicking empty space - start drawing new text
                     selectedDrawing = null;
                     isDrawing = true;
                     
@@ -1851,8 +1903,47 @@
                 }
             }
             
-            // No drawing mode - just return
-            if (!drawingMode) return;
+            // No drawing mode - handle text selection like Inkscape
+            if (!drawingMode) {
+                // Check if clicking on existing text to select it
+                const clickedDrawing = findDrawingAtPoint(mouseX, mouseY);
+                if (clickedDrawing && clickedDrawing.type === 'text') {
+                    // Select the text and show boundary
+                    selectedDrawing = clickedDrawing;
+                    redrawCanvas();
+                    showStatus('Text selected. Drag to move or click outside to deselect.');
+                    return;
+                } else if (selectedDrawing && selectedDrawing.type === 'text') {
+                    // Check if clicking within selected text boundary to start dragging
+                    const textWidth = selectedDrawing.width || 100;
+                    const textHeight = selectedDrawing.fontSize || 16;
+                    const toolbar = document.querySelector('.top-toolbar');
+                    const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
+                    const clampedY = Math.max(toolbarHeight, selectedDrawing.y);
+                    
+                    
+                    if (mouseX >= selectedDrawing.x && mouseX <= selectedDrawing.x + textWidth && 
+                        mouseY >= clampedY && mouseY <= clampedY + textHeight) {
+                        // Start dragging the selected text
+                        isResizing = true;
+                        resizeMode = 'text-drag';
+                        // Store initial mouse position for dragging offset
+                        dragStartX = mouseX;
+                        dragStartY = mouseY;
+                        return;
+                    } else {
+                        // Clicking outside selected text - deselect
+                        selectedDrawing = null;
+                        redrawCanvas();
+                        showStatus('Text deselected.');
+                    }
+                } else {
+                    // Clear any selection if clicking on empty space
+                    selectedDrawing = null;
+                    redrawCanvas();
+                }
+                return;
+            }
             
             isDrawing = true;
             
@@ -1872,6 +1963,11 @@
         }
 
         function draw(e) {
+            // Only handle drawing if we're actually drawing/resizing (initiated by left-click)
+            if (!isDrawing && !isResizing) {
+                return;
+            }
+            
             // Get current mouse position relative to canvas
             const rect = canvas.getBoundingClientRect();
             const currentX = e.clientX - rect.left;
@@ -1942,23 +2038,20 @@
                         }
                     }
                 } else if (selectedDrawing.type === 'text') {
-                    // Text: resize position or font size
-                    if (resizeMode === 'text-position') {
-                        // Move text position
-                        selectedDrawing.x = currentX;
-                        selectedDrawing.y = constrainedY;
-                    } else if (resizeMode === 'text-size') {
-                        // Adjust font size based on distance from text start
-                        const distanceFromStart = Math.abs(currentX - selectedDrawing.x);
+                    // Text: only support dragging/moving (no resizing)
+                    if (resizeMode === 'text-drag') {
+                        // Calculate offset from drag start position
+                        const deltaX = currentX - dragStartX;
+                        const deltaY = currentY - dragStartY;
                         
-                        // Map distance to font size (clamp between 8 and 72)
-                        const newFontSize = Math.max(8, Math.min(72, Math.round(distanceFromStart / 5) + 8));
-                        selectedDrawing.fontSize = newFontSize;
                         
-                        // Recalculate text width for new font size
-                        ctx.font = `${newFontSize}px Arial, sans-serif`;
-                        selectedDrawing.width = ctx.measureText(selectedDrawing.text).width;
-                        selectedDrawing.height = newFontSize;
+                        // Move text position by offset (relative to original position)
+                        selectedDrawing.x += deltaX;
+                        selectedDrawing.y = Math.max(toolbarHeight, selectedDrawing.y + deltaY);
+                        
+                        // Update drag start position for next frame
+                        dragStartX = currentX;
+                        dragStartY = currentY;
                     }
                 }
                 
@@ -2288,7 +2381,7 @@
             activeTextEditor.style.border = '2px dashed ' + currentColor;
             activeTextEditor.style.borderRadius = '4px';
             activeTextEditor.style.padding = '8px';
-            activeTextEditor.style.resize = 'both';
+            activeTextEditor.style.resize = 'none';
             activeTextEditor.style.zIndex = '9999';
             activeTextEditor.style.outline = 'none';
             activeTextEditor.style.overflow = 'hidden';
@@ -2422,7 +2515,7 @@
             activeTextEditor.style.border = '2px dashed ' + currentColor;
             activeTextEditor.style.borderRadius = '4px';
             activeTextEditor.style.padding = '8px';
-            activeTextEditor.style.resize = 'both';
+            activeTextEditor.style.resize = 'none';
             activeTextEditor.style.zIndex = '9999';
             activeTextEditor.style.outline = 'none';
             activeTextEditor.style.overflow = 'auto'; // Allow scrolling for long text
@@ -2644,25 +2737,21 @@
                 ctx.fill();
                 ctx.stroke();
             } else if (drawing.type === 'text') {
-                // Text: simple position handle at the text starting point
+                // Text: draw a thin dotted boundary like Inkscape
                 const clampedY = Math.max(toolbarHeight, drawing.y);
+                const textWidth = drawing.width || 100;
+                const textHeight = drawing.fontSize || 16;
                 
-                // Position handle (white circle)
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                ctx.strokeStyle = '#0066cc';
+                // Draw a very thin dotted outline around the text (Inkscape style)
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([2, 2]); // Shorter dashes like Inkscape
                 ctx.beginPath();
-                ctx.arc(drawing.x, clampedY, resizeHandleRadius, 0, 2 * Math.PI);
-                ctx.fill();
+                ctx.rect(drawing.x - 1, clampedY - 1, textWidth + 2, textHeight + 2);
                 ctx.stroke();
+                ctx.setLineDash([]); // Reset line dash
                 
-                // Font size handle (gold square at the end of text)
-                ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
-                ctx.strokeStyle = '#ff8c00';
-                ctx.beginPath();
-                ctx.rect(drawing.x + drawing.width + 8 - resizeHandleRadius/2, clampedY - resizeHandleRadius/2, 
-                        resizeHandleRadius, resizeHandleRadius);
-                ctx.fill();
-                ctx.stroke();
+                // No drag handle - entire text area is draggable like Inkscape
             }
         }
         
@@ -2830,19 +2919,6 @@
                 if (getDistanceToPoint(x, y, drawing.x + drawing.width, clampedY2) <= handleTolerance) {
                     return 'bottom-right';
                 }
-            } else if (drawing.type === 'text') {
-                // Text: position handle and font size handle
-                const clampedY = Math.max(toolbarHeight, drawing.y);
-                
-                // Position handle (for moving text)
-                if (getDistanceToPoint(x, y, drawing.x, clampedY) <= handleTolerance) {
-                    return 'text-position';
-                }
-                
-                // Font size handle (for changing font size)
-                if (getDistanceToPoint(x, y, drawing.x + drawing.width + 8, clampedY) <= handleTolerance) {
-                    return 'text-size';
-                }
             }
             
             return null;
@@ -2897,7 +2973,7 @@
         }
 
         function scaleBordersOnResize() {
-            if (!lastImageRect || borders.length === 0 || !screenshotImage) return;
+            if (!lastImageRect || drawings.length === 0 || !screenshotImage) return;
             
             const currentImageRect = screenshotImage.getBoundingClientRect();
             
@@ -2907,17 +2983,32 @@
             const offsetX = currentImageRect.left - lastImageRect.left;
             const offsetY = currentImageRect.top - lastImageRect.top;
             
-            // Scale all existing borders
-            borders.forEach(border => {
-                // Scale position relative to old image position
-                const relativeX = border.x - lastImageRect.left;
-                const relativeY = border.y - lastImageRect.top;
-                
-                // Apply scaling and new offset
-                border.x = currentImageRect.left + (relativeX * scaleX);
-                border.y = currentImageRect.top + (relativeY * scaleY);
-                border.width = border.width * scaleX;
-                border.height = border.height * scaleY;
+            // Scale all existing drawings
+            drawings.forEach(drawing => {
+                if (drawing.type === 'rect' || drawing.type === 'text') {
+                    // Rectangle and text have x, y, width, height properties
+                    const relativeX = drawing.x - lastImageRect.left;
+                    const relativeY = drawing.y - lastImageRect.top;
+                    
+                    // Apply scaling and new offset
+                    drawing.x = currentImageRect.left + (relativeX * scaleX);
+                    drawing.y = currentImageRect.top + (relativeY * scaleY);
+                    
+                    if (drawing.width) drawing.width = drawing.width * scaleX;
+                    if (drawing.height) drawing.height = drawing.height * scaleY;
+                } else if (drawing.type === 'line' || drawing.type === 'arrow') {
+                    // Lines and arrows have x1, y1, x2, y2 properties
+                    const relativeX1 = drawing.x1 - lastImageRect.left;
+                    const relativeY1 = drawing.y1 - lastImageRect.top;
+                    const relativeX2 = drawing.x2 - lastImageRect.left;
+                    const relativeY2 = drawing.y2 - lastImageRect.top;
+                    
+                    // Apply scaling and new offset
+                    drawing.x1 = currentImageRect.left + (relativeX1 * scaleX);
+                    drawing.y1 = currentImageRect.top + (relativeY1 * scaleY);
+                    drawing.x2 = currentImageRect.left + (relativeX2 * scaleX);
+                    drawing.y2 = currentImageRect.top + (relativeY2 * scaleY);
+                }
             });
             
             // Update last known image position
