@@ -621,61 +621,6 @@
             line-height: 1;
         }
 
-        /* Text Background Controls */
-        .background-dropdown {
-            position: absolute;
-            top: calc(100% + 4px);
-            left: 50%;
-            transform: translateX(-50%);
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            display: none;
-            opacity: 0;
-            z-index: 1000;
-            min-width: 250px;
-            padding: 12px;
-        }
-
-        .background-dropdown.show {
-            display: block;
-            opacity: 1;
-            animation: fadeIn 0.15s ease-out;
-        }
-
-        .background-controls {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .control-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-        }
-
-        .control-label {
-            font-size: 12px;
-            font-weight: 500;
-            color: #333;
-            white-space: nowrap;
-        }
-
-        .background-toggle {
-            width: 16px;
-            height: 16px;
-            cursor: pointer;
-        }
-
-        .background-color-options {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
         .opacity-control {
             display: flex;
             align-items: center;
@@ -843,6 +788,154 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Text Background Overlay Menu */
+        .text-overlay-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10000;
+            min-width: 280px;
+            max-width: 320px;
+            font-family: inherit;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .text-overlay-menu.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .overlay-menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .overlay-title {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .overlay-close {
+            background: none;
+            border: none;
+            font-size: 18px;
+            color: #666;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.15s ease;
+        }
+
+        .overlay-close:hover {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .overlay-menu-content {
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .overlay-control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .overlay-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        .overlay-toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .overlay-toggle {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #007acc;
+        }
+
+        .overlay-toggle-text {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            min-width: 30px;
+        }
+
+        .overlay-color-options {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .overlay-color-option {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+
+        .overlay-color-option:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .overlay-color-option.selected {
+            border-color: #007acc;
+            box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.3);
+        }
+
+        .overlay-opacity-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .overlay-opacity-slider {
+            width: 120px;
+            height: 4px;
+            border-radius: 2px;
+            background: #ddd;
+            outline: none;
+            cursor: pointer;
+            accent-color: #007acc;
+        }
+
+        .overlay-opacity-value {
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+            min-width: 35px;
+            text-align: right;
+        }
     </style>
 </head>
 <body>
@@ -986,45 +1079,6 @@
                 </div>
             </div>
             
-            <!-- Text Background Controls -->
-            <div class="border-tool">
-                <button class="toolbar-button" id="textBackgroundBtn" title="Text Background - Add background rectangle behind text">
-                    <div class="toolbar-icon" style="font-size: 16px;">
-                        📦
-                        <span class="background-indicator" id="backgroundIndicator">OFF</span>
-                    </div>
-                    <div>Background</div>
-                    <div class="dropdown-arrow">▼</div>
-                </button>
-                <div class="background-dropdown" id="backgroundDropdown">
-                    <div class="background-controls">
-                        <div class="control-row">
-                            <label class="control-label">Enable Background:</label>
-                            <input type="checkbox" id="backgroundToggle" class="background-toggle">
-                        </div>
-                        <div class="control-row">
-                            <label class="control-label">Background Color:</label>
-                            <div class="background-color-options">
-                                <div class="color-option white selected" data-color="#ffffff" title="White" style="background: #ffffff; border: 2px solid #ccc;"></div>
-                                <div class="color-option black" data-color="#000000" title="Black" style="background: #000000;"></div>
-                                <div class="color-option gray" data-color="#808080" title="Gray" style="background: #808080;"></div>
-                                <div class="color-option blue" data-color="#007acc" title="Blue" style="background: #007acc;"></div>
-                                <div class="color-option green" data-color="#28a745" title="Green" style="background: #28a745;"></div>
-                                <div class="color-option yellow" data-color="#ffc107" title="Yellow" style="background: #ffc107;"></div>
-                                <div class="color-option orange" data-color="#fd7e14" title="Orange" style="background: #fd7e14;"></div>
-                                <div class="color-option red" data-color="#dc3545" title="Red" style="background: #dc3545;"></div>
-                            </div>
-                        </div>
-                        <div class="control-row">
-                            <label class="control-label">Opacity:</label>
-                            <div class="opacity-control">
-                                <input type="range" id="backgroundOpacity" class="opacity-slider" min="0" max="100" value="80">
-                                <span class="opacity-value" id="opacityValue">80%</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
         
         <div class="toolbar-separator"></div>
@@ -1064,6 +1118,43 @@
 
     <div class="status" id="status"></div>
 
+    <!-- Text Background Overlay Menu -->
+    <div class="text-overlay-menu" id="textOverlayMenu" style="display: none;">
+        <div class="overlay-menu-header">
+            <span class="overlay-title">📝 Text Background</span>
+            <button class="overlay-close" id="overlayClose">×</button>
+        </div>
+        <div class="overlay-menu-content">
+            <div class="overlay-control-row">
+                <label class="overlay-label">Background:</label>
+                <div class="overlay-toggle-container">
+                    <input type="checkbox" id="overlayBackgroundToggle" class="overlay-toggle">
+                    <span class="overlay-toggle-text" id="overlayToggleText">OFF</span>
+                </div>
+            </div>
+            <div class="overlay-control-row" id="backgroundColorRow" style="display: none;">
+                <label class="overlay-label">Color:</label>
+                <div class="overlay-color-options">
+                    <div class="overlay-color-option white selected" data-color="#ffffff" title="White" style="background: #ffffff; border: 2px solid #ccc;"></div>
+                    <div class="overlay-color-option black" data-color="#000000" title="Black" style="background: #000000;"></div>
+                    <div class="overlay-color-option gray" data-color="#808080" title="Gray" style="background: #808080;"></div>
+                    <div class="overlay-color-option blue" data-color="#007acc" title="Blue" style="background: #007acc;"></div>
+                    <div class="overlay-color-option green" data-color="#28a745" title="Green" style="background: #28a745;"></div>
+                    <div class="overlay-color-option yellow" data-color="#ffc107" title="Yellow" style="background: #ffc107;"></div>
+                    <div class="overlay-color-option orange" data-color="#fd7e14" title="Orange" style="background: #fd7e14;"></div>
+                    <div class="overlay-color-option red" data-color="#dc3545" title="Red" style="background: #dc3545;"></div>
+                </div>
+            </div>
+            <div class="overlay-control-row" id="backgroundOpacityRow" style="display: none;">
+                <label class="overlay-label">Opacity:</label>
+                <div class="overlay-opacity-control">
+                    <input type="range" id="overlayBackgroundOpacity" class="overlay-opacity-slider" min="0" max="100" value="80">
+                    <span class="overlay-opacity-value" id="overlayOpacityValue">80%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let screenshotData = null;
         let drawingMode = null; // 'rect', 'line', 'arrow', 'text', or null
@@ -1091,6 +1182,186 @@
         let activeTextEditor = null; // Currently active text editor
         let activeTextBox = null; // Currently active text box area (for preview)
         let isTypingText = false; // Text input mode flag
+        
+        // Text overlay menu
+        let selectedTextDrawing = null; // Currently selected text for background editing
+        let overlayMenuVisible = false;
+        
+        // Overlay menu functions
+        function showTextOverlayMenu(textDrawing, mouseX, mouseY) {
+            selectedTextDrawing = textDrawing;
+            overlayMenuVisible = true;
+            
+            const overlayMenu = document.getElementById('textOverlayMenu');
+            if (!overlayMenu) return;
+            
+            // Get canvas position to convert canvas coordinates to screen coordinates
+            const canvasRect = canvas.getBoundingClientRect();
+            const screenX = canvasRect.left + mouseX;
+            const screenY = canvasRect.top + mouseY;
+            
+            // Position the menu near the text but avoid screen edges
+            const menuWidth = 280; // Approximate width of overlay menu
+            const menuHeight = 180; // Approximate height of overlay menu
+            
+            // Calculate optimal position
+            let left = screenX + 20; // Offset from cursor
+            let top = screenY - menuHeight - 10; // Above cursor by default
+            
+            // Adjust if too close to right edge
+            if (left + menuWidth > window.innerWidth - 20) {
+                left = screenX - menuWidth - 20; // Show on left side instead
+            }
+            
+            // Adjust if too close to top edge  
+            if (top < 20) {
+                top = screenY + 20; // Show below cursor instead
+            }
+            
+            // Apply position
+            overlayMenu.style.left = left + 'px';
+            overlayMenu.style.top = top + 'px';
+            overlayMenu.style.display = 'block';
+            
+            // Trigger show animation
+            setTimeout(() => {
+                overlayMenu.classList.add('show');
+            }, 10);
+            
+            // Update overlay controls with current text background settings
+            updateOverlayMenuFromText(textDrawing);
+            
+            showStatus('Background settings opened. Configure text background options.');
+        }
+        
+        function hideTextOverlayMenu() {
+            selectedTextDrawing = null;
+            overlayMenuVisible = false;
+            
+            const overlayMenu = document.getElementById('textOverlayMenu');
+            if (overlayMenu) {
+                overlayMenu.classList.remove('show');
+                setTimeout(() => {
+                    overlayMenu.style.display = 'none';
+                }, 200); // Match transition duration
+            }
+        }
+        
+        function updateOverlayMenuFromText(textDrawing) {
+            const overlayToggle = document.getElementById('overlayBackgroundToggle');
+            const overlayToggleText = document.getElementById('overlayToggleText');
+            const overlayColorOptions = document.querySelectorAll('#textOverlayMenu .overlay-color-option');
+            const overlayOpacity = document.getElementById('overlayBackgroundOpacity');
+            const overlayOpacityValue = document.getElementById('overlayOpacityValue');
+            const colorRow = document.getElementById('backgroundColorRow');
+            const opacityRow = document.getElementById('backgroundOpacityRow');
+            
+            const hasBackground = textDrawing.hasBackground || false;
+            
+            // Update toggle
+            if (overlayToggle) {
+                overlayToggle.checked = hasBackground;
+            }
+            if (overlayToggleText) {
+                overlayToggleText.textContent = hasBackground ? 'ON' : 'OFF';
+            }
+            
+            // Show/hide controls based on background state
+            if (colorRow) colorRow.style.display = hasBackground ? 'flex' : 'none';
+            if (opacityRow) opacityRow.style.display = hasBackground ? 'flex' : 'none';
+            
+            // Update color selection
+            if (overlayColorOptions.length > 0) {
+                overlayColorOptions.forEach(option => {
+                    option.classList.remove('selected');
+                    if (option.dataset.color === (textDrawing.backgroundColor || '#ffffff')) {
+                        option.classList.add('selected');
+                    }
+                });
+            }
+            
+            // Update opacity
+            if (overlayOpacity && overlayOpacityValue) {
+                const opacity = textDrawing.backgroundOpacity || 80;
+                overlayOpacity.value = opacity;
+                overlayOpacityValue.textContent = opacity + '%';
+            }
+        }
+        
+        // Overlay menu event handlers (setup after DOM loads)
+        function setupOverlayMenuHandlers() {
+            const overlayMenu = document.getElementById('textOverlayMenu');
+            const overlayClose = document.getElementById('overlayClose');
+            const overlayToggle = document.getElementById('overlayBackgroundToggle');
+            const overlayOpacity = document.getElementById('overlayBackgroundOpacity');
+            const overlayOpacityValue = document.getElementById('overlayOpacityValue');
+            
+            if (overlayClose) {
+                overlayClose.addEventListener('click', hideTextOverlayMenu);
+            }
+            
+            if (overlayToggle) {
+                overlayToggle.addEventListener('change', (e) => {
+                    const isEnabled = e.target.checked;
+                    const toggleText = document.getElementById('overlayToggleText');
+                    const colorRow = document.getElementById('backgroundColorRow');
+                    const opacityRow = document.getElementById('backgroundOpacityRow');
+                    
+                    // Update toggle text
+                    if (toggleText) {
+                        toggleText.textContent = isEnabled ? 'ON' : 'OFF';
+                    }
+                    
+                    // Show/hide color and opacity controls
+                    if (colorRow) colorRow.style.display = isEnabled ? 'flex' : 'none';
+                    if (opacityRow) opacityRow.style.display = isEnabled ? 'flex' : 'none';
+                    
+                    // Update selected text
+                    if (selectedTextDrawing) {
+                        selectedTextDrawing.hasBackground = isEnabled;
+                        redrawCanvas();
+                        showStatus(`Text background ${isEnabled ? 'enabled' : 'disabled'}.`);
+                    }
+                });
+            }
+            
+            if (overlayMenu) {
+                overlayMenu.addEventListener('click', (e) => {
+                    if (e.target.closest('.overlay-color-option')) {
+                        e.stopPropagation();
+                        const colorOption = e.target.closest('.overlay-color-option');
+                        
+                        // Remove selected from all options
+                        overlayMenu.querySelectorAll('.overlay-color-option').forEach(option => {
+                            option.classList.remove('selected');
+                        });
+                        
+                        // Add selected to clicked option
+                        colorOption.classList.add('selected');
+                        
+                        // Update selected text background color
+                        if (selectedTextDrawing) {
+                            selectedTextDrawing.backgroundColor = colorOption.dataset.color;
+                            redrawCanvas();
+                            showStatus(`Background color changed to ${colorOption.title?.toLowerCase() || 'selected color'}.`);
+                        }
+                    }
+                });
+            }
+            
+            if (overlayOpacity && overlayOpacityValue) {
+                overlayOpacity.addEventListener('input', (e) => {
+                    const opacity = parseInt(e.target.value);
+                    overlayOpacityValue.textContent = opacity + '%';
+                    
+                    if (selectedTextDrawing) {
+                        selectedTextDrawing.backgroundOpacity = opacity;
+                        redrawCanvas();
+                        showStatus(`Background opacity: ${opacity}%`);
+                    }
+                });
+            }
+        }
         
         // Theme management
         let currentTheme = 'system';
@@ -1132,13 +1403,7 @@
         const fontSizeDropdown = document.getElementById('fontSizeDropdown');
         const fontSizeIndicator = document.getElementById('fontSizeIndicator');
         
-        // Text background control elements
-        const textBackgroundBtn = document.getElementById('textBackgroundBtn');
-        const backgroundDropdown = document.getElementById('backgroundDropdown');
-        const backgroundToggle = document.getElementById('backgroundToggle');
-        const backgroundIndicator = document.getElementById('backgroundIndicator');
-        const backgroundOpacity = document.getElementById('backgroundOpacity');
-        const opacityValue = document.getElementById('opacityValue');
+        // Text background control elements (removed from toolbar)
         
         // Text background settings
         let currentBackgroundEnabled = false;
@@ -1172,6 +1437,7 @@
             setupEventListeners();
             initializeColorPicker();
             initializeTheme();
+            setupOverlayMenuHandlers(); // Initialize overlay menu event handlers
             // Initialize canvas early to enable drawing tools
             initializeCanvas();
         });
@@ -1386,59 +1652,7 @@
                 }
             });
 
-            // Text Background Controls Event Handlers
-            textBackgroundBtn?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const backgroundTool = textBackgroundBtn.closest('.border-tool');
-                backgroundTool.classList.toggle('show-dropdown');
-                backgroundDropdown.classList.toggle('show');
-            });
-
-            // Handle background toggle
-            backgroundToggle?.addEventListener('change', (e) => {
-                currentBackgroundEnabled = e.target.checked;
-                backgroundIndicator.textContent = currentBackgroundEnabled ? 'ON' : 'OFF';
-                backgroundIndicator.style.color = currentBackgroundEnabled ? '#28a745' : '#333';
-                updateTextEditorBackground(); // Update live preview
-                showStatus(`Text background ${currentBackgroundEnabled ? 'enabled' : 'disabled'}.`);
-            });
-
-            // Handle background color selection
-            backgroundDropdown?.addEventListener('click', (e) => {
-                if (e.target.closest('.color-option')) {
-                    e.stopPropagation();
-                    const colorOption = e.target.closest('.color-option');
-                    
-                    // Remove selected from all background color options
-                    backgroundDropdown.querySelectorAll('.color-option').forEach(option => {
-                        option.classList.remove('selected');
-                    });
-                    
-                    // Add selected to clicked option
-                    colorOption.classList.add('selected');
-                    
-                    // Update current background color
-                    currentBackgroundColor = colorOption.dataset.color;
-                    
-                    // Update live preview
-                    updateTextEditorBackground();
-                    
-                    // Close dropdown
-                    const backgroundTool = textBackgroundBtn.closest('.border-tool');
-                    backgroundTool.classList.remove('show-dropdown');
-                    backgroundDropdown.classList.remove('show');
-                    
-                    showStatus(`Background color changed. New text will use ${colorOption.title.toLowerCase()} background.`);
-                }
-            });
-
-            // Handle opacity slider
-            backgroundOpacity?.addEventListener('input', (e) => {
-                currentBackgroundOpacity = parseInt(e.target.value);
-                opacityValue.textContent = `${currentBackgroundOpacity}%`;
-                updateTextEditorBackground(); // Update live preview
-                showStatus(`Background opacity: ${currentBackgroundOpacity}%`);
-            });
+            // Text Background Controls Event Handlers (moved to overlay menu)
 
             // Close color dropdown when clicking outside
             document.addEventListener('click', () => {
@@ -1447,10 +1661,11 @@
             
             // Close all dropdowns when clicking outside (but not on canvas for drawing)
             document.addEventListener('click', (e) => {
-                const backgroundTool = textBackgroundBtn?.closest('.border-tool');
-                // Don't close if clicking on canvas for drawing or on any tool dropdowns
+                const textOverlayMenu = document.getElementById('textOverlayMenu');
+                
+                // Don't close if clicking on canvas for drawing or on any tool dropdowns or overlay menu
                 if (!borderTool?.contains(e.target) && !widthTool?.contains(e.target) && 
-                    !fontSizeTool?.contains(e.target) && !backgroundTool?.contains(e.target) && 
+                    !fontSizeTool?.contains(e.target) && !textOverlayMenu?.contains(e.target) &&
                     !canvas?.contains(e.target)) {
                     borderTool?.classList.remove('show-dropdown');
                     borderColorDropdown?.classList.remove('show');
@@ -1458,8 +1673,11 @@
                     borderWidthDropdown?.classList.remove('show');
                     fontSizeTool?.classList.remove('show-dropdown');
                     fontSizeDropdown?.classList.remove('show');
-                    backgroundTool?.classList.remove('show-dropdown');
-                    backgroundDropdown?.classList.remove('show');
+                    
+                    // Close text overlay menu if clicking outside of it
+                    if (overlayMenuVisible) {
+                        hideTextOverlayMenu();
+                    }
                 }
             });
 
@@ -1479,9 +1697,12 @@
                     if (drawingMode) {
                         setDrawingMode(null);
                     } else if (selectedDrawing) {
+                        if (selectedDrawing.type === 'text') {
+                            hideTextOverlayMenu();
+                        }
                         selectedDrawing = null;
                         redrawCanvas();
-                        showStatus('Arrow deselected.');
+                        showStatus('Selection cleared.');
                     }
                     return;
                 }
@@ -1491,10 +1712,14 @@
                     e.preventDefault();
                     const index = drawings.indexOf(selectedDrawing);
                     if (index > -1) {
+                        const wasText = selectedDrawing.type === 'text';
                         drawings.splice(index, 1);
                         selectedDrawing = null;
+                        if (wasText) {
+                            hideTextOverlayMenu();
+                        }
                         redrawCanvas();
-                        showStatus('✅ Arrow deleted.', 'success');
+                        showStatus('✅ Drawing deleted.', 'success');
                     }
                     return;
                 }
@@ -1958,6 +2183,9 @@
             textBtn?.classList.remove('active');
             
             // Clear any selected drawings when entering drawing mode
+            if (selectedDrawing && selectedDrawing.type === 'text') {
+                hideTextOverlayMenu();
+            }
             selectedDrawing = null;
             
             // Clear any active text editor when changing modes
@@ -2030,7 +2258,9 @@
                         dragStartX = mouseX;
                         dragStartY = mouseY;
                         redrawCanvas();
-                        showStatus('Text selected. Drag to move, or click empty space to draw new text.');
+                        // Show overlay menu for background controls
+                        showTextOverlayMenu(clickedDrawing, mouseX, mouseY);
+                        showStatus('Text selected. Drag to move, configure background, or click empty space to draw new text.');
                         return;
                     }
                     
@@ -2113,15 +2343,21 @@
                     dragStartX = mouseX;
                     dragStartY = mouseY;
                     redrawCanvas();
-                    showStatus('Text selected. Drag to move or click outside to deselect.');
+                    // Show overlay menu for background controls
+                    showTextOverlayMenu(clickedDrawing, mouseX, mouseY);
+                    showStatus('Text selected. Configure background, drag to move or click outside to deselect.');
                     return;
                 } else if (selectedDrawing && selectedDrawing.type === 'text') {
                     // Clicking outside selected text - deselect it
                     selectedDrawing = null;
+                    hideTextOverlayMenu();
                     redrawCanvas();
                     showStatus('Text deselected.');
                 } else {
                     // Clear any selection if clicking on empty space
+                    if (selectedDrawing && selectedDrawing.type === 'text') {
+                        hideTextOverlayMenu();
+                    }
                     selectedDrawing = null;
                     redrawCanvas();
                 }
