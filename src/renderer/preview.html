@@ -823,6 +823,16 @@
             color: black;
             text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
         }
+        
+        .background-color-options.disabled .color-option {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .background-color-options.disabled .color-option:hover {
+            transform: none;
+            border-color: #ccc;
+        }
 
         /* Background tool indicators */
         .color-indicator {
@@ -1537,6 +1547,12 @@
             initializeCanvas();
             // Initialize button states
             updateTextBackgroundButtonsState();
+            
+            // Initialize background color options as disabled (checkbox is unchecked by default)
+            const colorOptions = document.querySelector('.background-color-options');
+            if (colorOptions && !bgEnableCheckbox.checked) {
+                colorOptions.classList.add('disabled');
+            }
         });
         
         function initializeColorPicker() {
@@ -1675,6 +1691,13 @@
             bgColorDropdown?.addEventListener('click', (e) => {
                 if (e.target.closest('.color-option') && selectedDrawing && selectedDrawing.type === 'text') {
                     e.stopPropagation();
+                    
+                    // Check if background is enabled
+                    if (!bgEnableCheckbox.checked) {
+                        showStatus('Enable background first to select colors.');
+                        return;
+                    }
+                    
                     const colorOption = e.target.closest('.color-option');
                     
                     // Remove selected from all color options
@@ -1685,7 +1708,7 @@
                     // Add selected to clicked option
                     colorOption.classList.add('selected');
                     
-                    // Auto-enable background and set properties
+                    // Set background properties (only if enabled)
                     selectedDrawing.hasBackground = true;
                     selectedDrawing.backgroundColor = colorOption.dataset.color;
                     selectedDrawing.backgroundOpacity = selectedDrawing.backgroundOpacity || currentBackgroundOpacity;
@@ -1979,6 +2002,16 @@
             bgEnableCheckbox?.addEventListener('change', (e) => {
                 currentBackgroundEnabled = e.target.checked;
                 updateTextBackgroundButtonsState();
+                
+                // Toggle disabled state of color options
+                const colorOptions = document.querySelector('.background-color-options');
+                if (colorOptions) {
+                    if (currentBackgroundEnabled) {
+                        colorOptions.classList.remove('disabled');
+                    } else {
+                        colorOptions.classList.add('disabled');
+                    }
+                }
                 
                 // Update selected text if any
                 if (selectedDrawing && selectedDrawing.type === 'text') {
