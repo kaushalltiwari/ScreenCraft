@@ -1341,7 +1341,6 @@
             // Update theme button
             updateThemeButton();
             
-            console.log(`Theme updated - Current: ${currentTheme}, Effective: ${effectiveTheme}, System: ${systemTheme}`);
         }
 
         // Theme button UI removed - theme switching still available via Ctrl+T
@@ -1540,6 +1539,15 @@
                     currentColor = e.target.dataset.color;
                     borderColorIndicator.style.backgroundColor = currentColor;
                     
+                    // If a text is selected, update its color
+                    if (selectedDrawing && selectedDrawing.type === 'text') {
+                        selectedDrawing.color = currentColor;
+                        redrawCanvas(); // Redraw to show updated text color
+                        showStatus(`Text color changed to ${currentColor}.`);
+                    } else {
+                        showStatus(`Border color changed. Click and drag to draw borders. Press Escape to exit.`);
+                    }
+                    
                     // Hide dropdown (border mode is already active)
                     borderTool.classList.remove('show-dropdown');
                     borderColorDropdown.classList.remove('show');
@@ -1549,9 +1557,6 @@
                     setTimeout(() => {
                         borderColorIndicator.style.transform = 'scale(1)';
                     }, 200);
-                    
-                    // Update status to show new color
-                    showStatus(`Border color changed. Click and drag to draw borders. Press Escape to exit.`);
                 }
             });
             
@@ -1620,6 +1625,18 @@
                     currentFontSize = parseInt(sizeOption.dataset.size);
                     fontSizeIndicator.textContent = `${currentFontSize}px`;
                     
+                    // If a text is selected, update its font size and recalculate dimensions
+                    if (selectedDrawing && selectedDrawing.type === 'text') {
+                        selectedDrawing.fontSize = currentFontSize;
+                        // Recalculate text dimensions with new font size
+                        selectedDrawing.width = getTextWidth(selectedDrawing.text, currentFontSize);
+                        selectedDrawing.height = getTextHeight(selectedDrawing.text, currentFontSize);
+                        redrawCanvas(); // Redraw to show updated text size
+                        showStatus(`Text size changed to ${currentFontSize}px.`);
+                    } else {
+                        showStatus(`Font size changed to ${currentFontSize}px. Click to add text with new size.`);
+                    }
+                    
                     // Hide dropdown
                     fontSizeTool.classList.remove('show-dropdown');
                     fontSizeDropdown.classList.remove('show');
@@ -1629,9 +1646,6 @@
                     setTimeout(() => {
                         fontSizeIndicator.style.transform = 'scale(1)';
                     }, 200);
-                    
-                    // Update status to show new font size
-                    showStatus(`Font size changed to ${currentFontSize}px. Click to add text with new size.`);
                 }
             });
 
@@ -2006,7 +2020,6 @@
 
         async function loadScreenshot(data) {
             try {
-                console.log('Loading screenshot data:', data);
 
                 // Update metadata
                 dimensions.textContent = `${data.dimensions.width} × ${data.dimensions.height}`;
@@ -2995,8 +3008,8 @@
             }, 100);
         }
 
-        function getTextWidth(text) {
-            ctx.font = `${currentFontSize}px Arial, sans-serif`;
+        function getTextWidth(text, fontSize = currentFontSize) {
+            ctx.font = `${fontSize}px Arial, sans-serif`;
             const lines = text.split('\n');
             let maxWidth = 0;
             lines.forEach(line => {
@@ -3006,9 +3019,9 @@
             return maxWidth;
         }
 
-        function getTextHeight(text) {
+        function getTextHeight(text, fontSize = currentFontSize) {
             const lines = text.split('\n');
-            return lines.length * currentFontSize * 1.2; // 1.2 for line spacing
+            return lines.length * fontSize * 1.2; // 1.2 for line spacing
         }
 
         function drawTextBoxPreview(x, y, width, height, color) {
