@@ -3389,8 +3389,8 @@
             // Calculate text dimensions
             const textWidth = drawing.width || getTextWidth(text, fontSize);
             const textHeight = drawing.height || getTextHeight(text, fontSize);
-            // Use consistent padding of 8px for both selection border and background
-            const padding = 8;
+            // Use extra padding for selection border to accommodate bold text sizing changes
+            const padding = 12;
             
             // Theme-aware border color
             const borderColor = effectiveTheme === 'dark' ? '#ffffff' : '#000000';
