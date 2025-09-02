@@ -3034,53 +3034,6 @@
             ctx.setLineDash([]);
         }
 
-        function drawText(x, y, text, color, fontSize, fontFamily = 'Arial, sans-serif', bold = false, italic = false, underline = false, isPreview = false) {
-            ctx.fillStyle = color;
-            
-            // Build font string with style modifiers
-            let fontStyle = '';
-            if (italic) fontStyle += 'italic ';
-            if (bold) fontStyle += 'bold ';
-            
-            ctx.font = `${fontStyle}${fontSize}px ${fontFamily}`;
-            ctx.textBaseline = 'top';
-            ctx.textAlign = 'left';
-            
-            // Get toolbar height to avoid drawing over it
-            const toolbar = document.querySelector('.top-toolbar');
-            const toolbarHeight = toolbar ? toolbar.offsetHeight : 48;
-            
-            // Clamp Y coordinate to avoid toolbar area
-            const clampedY = Math.max(toolbarHeight, y);
-            
-            if (isPreview) {
-                ctx.globalAlpha = 0.7;
-            }
-            
-            // Handle multiline text
-            const lines = text.split('\n');
-            lines.forEach((line, index) => {
-                const lineY = clampedY + (index * fontSize * 1.2);
-                ctx.fillText(line, x, lineY);
-                
-                // Draw underline if enabled
-                if (underline) {
-                    const lineWidth = ctx.measureText(line).width;
-                    const underlineY = lineY + fontSize + 2; // Slight offset below text
-                    ctx.beginPath();
-                    ctx.moveTo(x, underlineY);
-                    ctx.lineTo(x + lineWidth, underlineY);
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = Math.max(1, fontSize / 16); // Scale line width with font size
-                    ctx.stroke();
-                }
-            });
-            
-            if (isPreview) {
-                ctx.globalAlpha = 1.0;
-            }
-        }
-
         function drawTextWithBackground(drawing) {
             const { x, y, text, color, fontSize, fontFamily, bold, italic, underline, hasBackground, backgroundColor, backgroundOpacity, backgroundPadding, backgroundRadius } = drawing;
             
@@ -3579,22 +3532,8 @@
                 ctx.fill();
                 ctx.stroke();
             } else if (drawing.type === 'text') {
-                // Text: draw a thin dotted boundary like Inkscape
-                const clampedY = Math.max(toolbarHeight, drawing.y);
-                const textWidth = drawing.width || 100;
-                const textHeight = drawing.fontSize || 16;
-                const padding = (drawing.hasBackground && drawing.backgroundPadding) ? drawing.backgroundPadding : 1;
-                
-                // Draw a very thin dotted outline around the text (Inkscape style)
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
-                ctx.lineWidth = 1;
-                ctx.setLineDash([2, 2]); // Shorter dashes like Inkscape
-                ctx.beginPath();
-                ctx.rect(drawing.x - padding, clampedY - padding, textWidth + (padding * 2), textHeight + (padding * 2));
-                ctx.stroke();
-                ctx.setLineDash([]); // Reset line dash
-                
-                // No drag handle - entire text area is draggable like Inkscape
+                // Text: No additional border needed - drawTextSelectionBorder handles text selection visualization
+                // Entire text area is draggable like Inkscape without additional visual handles
             }
         }
         
