@@ -1649,6 +1649,13 @@
             bgColorBtn?.addEventListener('click', (e) => {
                 if (selectedDrawing && selectedDrawing.type === 'text') {
                     e.stopPropagation();
+                    
+                    // Close other background dropdowns first
+                    bgOpacityTool?.classList.remove('show-dropdown');
+                    bgOpacityDropdown?.classList.remove('show');
+                    bgRadiusTool?.classList.remove('show-dropdown');
+                    bgRadiusDropdown?.classList.remove('show');
+                    
                     bgColorTool?.classList.toggle('show-dropdown');
                     bgColorDropdown?.classList.toggle('show');
                     
@@ -1663,6 +1670,13 @@
             bgOpacityBtn?.addEventListener('click', (e) => {
                 if (selectedDrawing && selectedDrawing.type === 'text') {
                     e.stopPropagation();
+                    
+                    // Close other background dropdowns first
+                    bgColorTool?.classList.remove('show-dropdown');
+                    bgColorDropdown?.classList.remove('show');
+                    bgRadiusTool?.classList.remove('show-dropdown');
+                    bgRadiusDropdown?.classList.remove('show');
+                    
                     bgOpacityTool?.classList.toggle('show-dropdown');
                     bgOpacityDropdown?.classList.toggle('show');
                     
@@ -1677,6 +1691,13 @@
             bgRadiusBtn?.addEventListener('click', (e) => {
                 if (selectedDrawing && selectedDrawing.type === 'text') {
                     e.stopPropagation();
+                    
+                    // Close other background dropdowns first
+                    bgColorTool?.classList.remove('show-dropdown');
+                    bgColorDropdown?.classList.remove('show');
+                    bgOpacityTool?.classList.remove('show-dropdown');
+                    bgOpacityDropdown?.classList.remove('show');
+                    
                     bgRadiusTool?.classList.toggle('show-dropdown');
                     bgRadiusDropdown?.classList.toggle('show');
                     
