@@ -633,6 +633,99 @@
             line-height: 1;
         }
 
+        /* Font family dropdown */
+        .font-family-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 6px;
+            display: none;
+            grid-template-columns: 1fr;
+            gap: 4px;
+            min-width: 140px;
+            z-index: 1001;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .font-family-dropdown.show {
+            display: grid;
+            opacity: 1;
+            animation: fadeIn 0.15s ease-out;
+        }
+        
+        /* Font option styles */
+        .font-family-dropdown .font-option {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 14px;
+        }
+        
+        .font-family-dropdown .font-option:hover {
+            background-color: #f0f0f0;
+            transform: scale(1.02);
+        }
+        
+        .font-family-dropdown .font-option.selected {
+            background-color: #0066cc;
+            color: white;
+        }
+        
+        .font-family-dropdown .font-preview {
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        /* Font family indicator */
+        .font-family-indicator {
+            position: absolute;
+            bottom: 1px;
+            right: 1px;
+            font-size: 8px;
+            font-weight: bold;
+            color: #333;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1px 3px;
+            border-radius: 2px;
+            line-height: 1;
+            max-width: 40px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Text style group */
+        .text-style-group {
+            display: flex !important;
+            gap: 2px;
+            padding: 4px;
+            background: var(--toolbar-bg);
+            border-radius: 6px;
+        }
+        
+        .text-style-group .toolbar-button {
+            min-width: 45px;
+            padding: 6px 4px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+        
+        .text-style-btn.active {
+            background: var(--toolbar-active) !important;
+            color: white;
+            transform: scale(0.95);
+        }
+        
+        .text-style-btn:hover {
+            background: var(--toolbar-hover);
+        }
+
         .opacity-control {
             display: flex;
             align-items: center;
@@ -1006,6 +1099,54 @@
                 </div>
             </div>
             
+            <!-- Font Family Tool -->
+            <div class="border-tool">
+                <button class="toolbar-button" id="fontFamilyBtn" title="Font Family - Change text font">
+                    <div class="toolbar-icon" style="font-size: 16px;">
+                        🔤
+                        <span class="font-family-indicator" id="fontFamilyIndicator">Arial</span>
+                    </div>
+                    <div>Font</div>
+                    <div class="dropdown-arrow">▼</div>
+                </button>
+                <div class="font-family-dropdown" id="fontFamilyDropdown">
+                    <div class="font-option selected" data-font="Arial, sans-serif" data-display="Arial" title="Arial - Clean and readable">
+                        <span class="font-preview" style="font-family: Arial, sans-serif;">Arial</span>
+                    </div>
+                    <div class="font-option" data-font="'Times New Roman', Times, serif" data-display="Times" title="Times New Roman - Classic serif font">
+                        <span class="font-preview" style="font-family: 'Times New Roman', Times, serif;">Times</span>
+                    </div>
+                    <div class="font-option" data-font="'Courier New', Courier, monospace" data-display="Courier" title="Courier New - Monospace font">
+                        <span class="font-preview" style="font-family: 'Courier New', Courier, monospace;">Courier</span>
+                    </div>
+                    <div class="font-option" data-font="Helvetica, Arial, sans-serif" data-display="Helvetica" title="Helvetica - Modern sans-serif">
+                        <span class="font-preview" style="font-family: Helvetica, Arial, sans-serif;">Helvetica</span>
+                    </div>
+                    <div class="font-option" data-font="Georgia, 'Times New Roman', serif" data-display="Georgia" title="Georgia - Elegant serif font">
+                        <span class="font-preview" style="font-family: Georgia, 'Times New Roman', serif;">Georgia</span>
+                    </div>
+                    <div class="font-option" data-font="Verdana, Geneva, sans-serif" data-display="Verdana" title="Verdana - Web-optimized sans-serif">
+                        <span class="font-preview" style="font-family: Verdana, Geneva, sans-serif;">Verdana</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Text Style Tool -->
+            <div class="border-tool text-style-group">
+                <button class="toolbar-button text-style-btn" id="boldBtn" title="Bold - Make text bold" data-style="bold">
+                    <div class="toolbar-icon" style="font-weight: bold;">B</div>
+                    <div style="font-size: 10px;">Bold</div>
+                </button>
+                <button class="toolbar-button text-style-btn" id="italicBtn" title="Italic - Make text italic" data-style="italic">
+                    <div class="toolbar-icon" style="font-style: italic;">I</div>
+                    <div style="font-size: 10px;">Italic</div>
+                </button>
+                <button class="toolbar-button text-style-btn" id="underlineBtn" title="Underline - Underline text" data-style="underline">
+                    <div class="toolbar-icon" style="text-decoration: underline;">U</div>
+                    <div style="font-size: 10px;">Under</div>
+                </button>
+            </div>
+            
             <!-- Background Color Tool -->
             <div class="border-tool">
                 <button class="toolbar-button disabled" id="bgColorBtn" title="Background Color - Change text background color" disabled>
@@ -1105,6 +1246,10 @@
         let currentColor = '#e74c3c';
         let currentStrokeWidth = 3; // Default stroke width in pixels
         let currentFontSize = 16; // Default font size in pixels
+        let currentFontFamily = 'Arial, sans-serif'; // Default font family
+        let currentBold = false; // Bold text style
+        let currentItalic = false; // Italic text style
+        let currentUnderline = false; // Underline text style
         let isDrawing = false;
         let startX, startY;
         let drawings = []; // Store all drawings (rects, lines, arrows, text)
@@ -1249,6 +1394,17 @@
         const fontSizeTool = document.querySelector('#fontSizeBtn')?.closest('.border-tool'); // Font size tool container
         const fontSizeDropdown = document.getElementById('fontSizeDropdown');
         const fontSizeIndicator = document.getElementById('fontSizeIndicator');
+        
+        // Font family dropdown elements
+        const fontFamilyBtn = document.getElementById('fontFamilyBtn');
+        const fontFamilyTool = document.querySelector('#fontFamilyBtn')?.closest('.border-tool');
+        const fontFamilyDropdown = document.getElementById('fontFamilyDropdown');
+        const fontFamilyIndicator = document.getElementById('fontFamilyIndicator');
+        
+        // Text style button elements
+        const boldBtn = document.getElementById('boldBtn');
+        const italicBtn = document.getElementById('italicBtn');
+        const underlineBtn = document.getElementById('underlineBtn');
         
         // Text background control elements - separate tools
         const bgColorBtn = document.getElementById('bgColorBtn');
@@ -1648,6 +1804,101 @@
                     }, 200);
                 }
             });
+            
+            // Font family tool functionality
+            fontFamilyBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                fontFamilyTool.classList.toggle('show-dropdown');
+                fontFamilyDropdown.classList.toggle('show');
+            });
+            
+            // Handle font family selection
+            fontFamilyDropdown?.addEventListener('click', (e) => {
+                if (e.target.closest('.font-option')) {
+                    e.stopPropagation();
+                    const fontOption = e.target.closest('.font-option');
+                    
+                    // Remove selected from all options
+                    fontFamilyDropdown.querySelectorAll('.font-option').forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    
+                    // Add selected to clicked option
+                    fontOption.classList.add('selected');
+                    
+                    // Update current font family
+                    currentFontFamily = fontOption.dataset.font;
+                    fontFamilyIndicator.textContent = fontOption.dataset.display;
+                    
+                    // If a text is selected, update its font family and recalculate dimensions
+                    if (selectedDrawing && selectedDrawing.type === 'text') {
+                        selectedDrawing.fontFamily = currentFontFamily;
+                        // Recalculate text dimensions with new font family
+                        selectedDrawing.width = getTextWidth(selectedDrawing.text, selectedDrawing.fontSize, currentFontFamily);
+                        selectedDrawing.height = getTextHeight(selectedDrawing.text, selectedDrawing.fontSize);
+                        redrawCanvas(); // Redraw to show updated text font
+                        showStatus(`Text font changed to ${fontOption.dataset.display}.`);
+                    } else {
+                        showStatus(`Font changed to ${fontOption.dataset.display}. Click to add text with new font.`);
+                    }
+                    
+                    // Hide dropdown
+                    fontFamilyTool.classList.remove('show-dropdown');
+                    fontFamilyDropdown.classList.remove('show');
+                    
+                    // Show feedback animation
+                    fontFamilyIndicator.style.transform = 'scale(1.3)';
+                    setTimeout(() => {
+                        fontFamilyIndicator.style.transform = 'scale(1)';
+                    }, 200);
+                }
+            });
+            
+            // Text style buttons functionality
+            boldBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                currentBold = !currentBold;
+                boldBtn.classList.toggle('active', currentBold);
+                
+                // If a text is selected, update its bold style
+                if (selectedDrawing && selectedDrawing.type === 'text') {
+                    selectedDrawing.bold = currentBold;
+                    redrawCanvas();
+                    showStatus(`Text ${currentBold ? 'bolded' : 'unbolded'}.`);
+                } else {
+                    showStatus(`Bold ${currentBold ? 'enabled' : 'disabled'}. Click to add text with bold style.`);
+                }
+            });
+            
+            italicBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                currentItalic = !currentItalic;
+                italicBtn.classList.toggle('active', currentItalic);
+                
+                // If a text is selected, update its italic style
+                if (selectedDrawing && selectedDrawing.type === 'text') {
+                    selectedDrawing.italic = currentItalic;
+                    redrawCanvas();
+                    showStatus(`Text ${currentItalic ? 'italicized' : 'unitalicized'}.`);
+                } else {
+                    showStatus(`Italic ${currentItalic ? 'enabled' : 'disabled'}. Click to add text with italic style.`);
+                }
+            });
+            
+            underlineBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                currentUnderline = !currentUnderline;
+                underlineBtn.classList.toggle('active', currentUnderline);
+                
+                // If a text is selected, update its underline style
+                if (selectedDrawing && selectedDrawing.type === 'text') {
+                    selectedDrawing.underline = currentUnderline;
+                    redrawCanvas();
+                    showStatus(`Text ${currentUnderline ? 'underlined' : 'not underlined'}.`);
+                } else {
+                    showStatus(`Underline ${currentUnderline ? 'enabled' : 'disabled'}. Click to add text with underline style.`);
+                }
+            });
 
             // Text Background Controls Event Handlers (moved to overlay menu)
 
@@ -1662,8 +1913,9 @@
                 // Only keep dropdowns open if clicking directly on the tool buttons themselves
                 // Close dropdowns when clicking anywhere else, including the canvas/screenshot area
                 if (!borderTool?.contains(e.target) && !widthTool?.contains(e.target) && 
-                    !fontSizeTool?.contains(e.target) && !bgColorTool?.contains(e.target) && 
-                    !bgOpacityTool?.contains(e.target) && !bgRadiusTool?.contains(e.target)) {
+                    !fontSizeTool?.contains(e.target) && !fontFamilyTool?.contains(e.target) &&
+                    !bgColorTool?.contains(e.target) && !bgOpacityTool?.contains(e.target) && 
+                    !bgRadiusTool?.contains(e.target)) {
                     
                     // Close all dropdowns
                     borderTool?.classList.remove('show-dropdown');
@@ -1672,6 +1924,8 @@
                     borderWidthDropdown?.classList.remove('show');
                     fontSizeTool?.classList.remove('show-dropdown');
                     fontSizeDropdown?.classList.remove('show');
+                    fontFamilyTool?.classList.remove('show-dropdown');
+                    fontFamilyDropdown?.classList.remove('show');
                     
                     // Close background tool dropdowns
                     bgColorTool?.classList.remove('show-dropdown');
@@ -1957,7 +2211,13 @@
                     
                     // Set up text styling
                     compositeCtx.fillStyle = drawing.color;
-                    compositeCtx.font = `${drawing.fontSize * Math.min(scaleX, scaleY)}px Arial, sans-serif`;
+                    
+                    // Build font string with style modifiers
+                    let fontStyle = '';
+                    if (drawing.italic) fontStyle += 'italic ';
+                    if (drawing.bold) fontStyle += 'bold ';
+                    
+                    compositeCtx.font = `${fontStyle}${drawing.fontSize * Math.min(scaleX, scaleY)}px ${drawing.fontFamily || 'Arial, sans-serif'}`;
                     compositeCtx.textBaseline = 'top';
                     compositeCtx.textAlign = 'left';
                     
@@ -1965,7 +2225,27 @@
                     if (imgX >= 0 && imgY >= 0 && 
                         imgX < screenshotImage.naturalWidth && 
                         imgY < screenshotImage.naturalHeight) {
-                        compositeCtx.fillText(drawing.text, imgX, imgY);
+                        
+                        // Handle multiline text with underline support
+                        const lines = drawing.text.split('\n');
+                        const scaledFontSize = drawing.fontSize * Math.min(scaleX, scaleY);
+                        
+                        lines.forEach((line, index) => {
+                            const lineY = imgY + (index * scaledFontSize * 1.2);
+                            compositeCtx.fillText(line, imgX, lineY);
+                            
+                            // Draw underline if enabled
+                            if (drawing.underline) {
+                                const lineWidth = compositeCtx.measureText(line).width;
+                                const underlineY = lineY + scaledFontSize + 2;
+                                compositeCtx.beginPath();
+                                compositeCtx.moveTo(imgX, underlineY);
+                                compositeCtx.lineTo(imgX + lineWidth, underlineY);
+                                compositeCtx.strokeStyle = drawing.color;
+                                compositeCtx.lineWidth = Math.max(1, scaledFontSize / 16);
+                                compositeCtx.stroke();
+                            }
+                        });
                     }
                 }
             });
@@ -2272,6 +2552,14 @@
                         widthTool.classList.remove('show-dropdown');
                         borderWidthDropdown.classList.remove('show');
                     }
+                    if (fontSizeTool.classList.contains('show-dropdown')) {
+                        fontSizeTool.classList.remove('show-dropdown');
+                        fontSizeDropdown.classList.remove('show');
+                    }
+                    if (fontFamilyTool.classList.contains('show-dropdown')) {
+                        fontFamilyTool.classList.remove('show-dropdown');
+                        fontFamilyDropdown.classList.remove('show');
+                    }
                     
                     startX = mouseX;
                     startY = mouseY;
@@ -2368,6 +2656,14 @@
             if (widthTool.classList.contains('show-dropdown')) {
                 widthTool.classList.remove('show-dropdown');
                 borderWidthDropdown.classList.remove('show');
+            }
+            if (fontSizeTool.classList.contains('show-dropdown')) {
+                fontSizeTool.classList.remove('show-dropdown');
+                fontSizeDropdown.classList.remove('show');
+            }
+            if (fontFamilyTool.classList.contains('show-dropdown')) {
+                fontFamilyTool.classList.remove('show-dropdown');
+                fontFamilyDropdown.classList.remove('show');
             }
             
             // Use direct window coordinates (canvas is full viewport)
@@ -2738,9 +3034,15 @@
             ctx.setLineDash([]);
         }
 
-        function drawText(x, y, text, color, fontSize, isPreview = false) {
+        function drawText(x, y, text, color, fontSize, fontFamily = 'Arial, sans-serif', bold = false, italic = false, underline = false, isPreview = false) {
             ctx.fillStyle = color;
-            ctx.font = `${fontSize}px Arial, sans-serif`;
+            
+            // Build font string with style modifiers
+            let fontStyle = '';
+            if (italic) fontStyle += 'italic ';
+            if (bold) fontStyle += 'bold ';
+            
+            ctx.font = `${fontStyle}${fontSize}px ${fontFamily}`;
             ctx.textBaseline = 'top';
             ctx.textAlign = 'left';
             
@@ -2758,7 +3060,20 @@
             // Handle multiline text
             const lines = text.split('\n');
             lines.forEach((line, index) => {
-                ctx.fillText(line, x, clampedY + (index * fontSize * 1.2));
+                const lineY = clampedY + (index * fontSize * 1.2);
+                ctx.fillText(line, x, lineY);
+                
+                // Draw underline if enabled
+                if (underline) {
+                    const lineWidth = ctx.measureText(line).width;
+                    const underlineY = lineY + fontSize + 2; // Slight offset below text
+                    ctx.beginPath();
+                    ctx.moveTo(x, underlineY);
+                    ctx.lineTo(x + lineWidth, underlineY);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = Math.max(1, fontSize / 16); // Scale line width with font size
+                    ctx.stroke();
+                }
             });
             
             if (isPreview) {
@@ -2767,7 +3082,7 @@
         }
 
         function drawTextWithBackground(drawing) {
-            const { x, y, text, color, fontSize, hasBackground, backgroundColor, backgroundOpacity, backgroundPadding, backgroundRadius } = drawing;
+            const { x, y, text, color, fontSize, fontFamily, bold, italic, underline, hasBackground, backgroundColor, backgroundOpacity, backgroundPadding, backgroundRadius } = drawing;
             
             // Get toolbar height to avoid drawing over it
             const toolbar = document.querySelector('.top-toolbar');
@@ -2775,7 +3090,11 @@
             const clampedY = Math.max(toolbarHeight, y);
             
             // Set up text properties for measurement
-            ctx.font = `${fontSize}px Arial, sans-serif`;
+            let fontStyle = '';
+            if (italic) fontStyle += 'italic ';
+            if (bold) fontStyle += 'bold ';
+            
+            ctx.font = `${fontStyle}${fontSize}px ${fontFamily || 'Arial, sans-serif'}`;
             ctx.textBaseline = 'top';
             ctx.textAlign = 'left';
             
@@ -2839,7 +3158,20 @@
             ctx.fillStyle = color;
             const lines = text.split('\n');
             lines.forEach((line, index) => {
-                ctx.fillText(line, x, clampedY + (index * fontSize * 1.2));
+                const lineY = clampedY + (index * fontSize * 1.2);
+                ctx.fillText(line, x, lineY);
+                
+                // Draw underline if enabled
+                if (underline) {
+                    const lineWidth = ctx.measureText(line).width;
+                    const underlineY = lineY + fontSize + 2; // Slight offset below text
+                    ctx.beginPath();
+                    ctx.moveTo(x, underlineY);
+                    ctx.lineTo(x + lineWidth, underlineY);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = Math.max(1, fontSize / 16); // Scale line width with font size
+                    ctx.stroke();
+                }
             });
         }
 
@@ -2903,8 +3235,12 @@
                     text: text,
                     color: currentColor,
                     fontSize: currentFontSize,
-                    width: getTextWidth(text),
-                    height: getTextHeight(text),
+                    fontFamily: currentFontFamily,
+                    bold: currentBold,
+                    italic: currentItalic,
+                    underline: currentUnderline,
+                    width: getTextWidth(text, currentFontSize, currentFontFamily),
+                    height: getTextHeight(text, currentFontSize),
                     // Background properties
                     hasBackground: currentBackgroundEnabled,
                     backgroundColor: currentBackgroundColor,
@@ -2969,7 +3305,10 @@
             activeTextEditor.style.width = width + 'px';
             activeTextEditor.style.height = height + 'px';
             activeTextEditor.style.fontSize = currentFontSize + 'px';
-            activeTextEditor.style.fontFamily = 'Arial, sans-serif';
+            activeTextEditor.style.fontFamily = currentFontFamily;
+            activeTextEditor.style.fontWeight = currentBold ? 'bold' : 'normal';
+            activeTextEditor.style.fontStyle = currentItalic ? 'italic' : 'normal';
+            activeTextEditor.style.textDecoration = currentUnderline ? 'underline' : 'none';
             activeTextEditor.style.color = currentColor;
             // Set background based on current background settings
             updateTextEditorBackground();
@@ -3009,8 +3348,13 @@
             }, 100);
         }
 
-        function getTextWidth(text, fontSize = currentFontSize) {
-            ctx.font = `${fontSize}px Arial, sans-serif`;
+        function getTextWidth(text, fontSize = currentFontSize, fontFamily = currentFontFamily, bold = currentBold, italic = currentItalic) {
+            // Build font string with style modifiers
+            let fontStyle = '';
+            if (italic) fontStyle += 'italic ';
+            if (bold) fontStyle += 'bold ';
+            
+            ctx.font = `${fontStyle}${fontSize}px ${fontFamily}`;
             const lines = text.split('\n');
             let maxWidth = 0;
             lines.forEach(line => {
