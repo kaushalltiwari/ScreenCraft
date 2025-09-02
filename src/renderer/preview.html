@@ -2795,9 +2795,9 @@
                 drawingMode = null;
                 canvas.classList.remove('drawing');
                 canvas.classList.remove('toolbar-area');
-                canvas.style.pointerEvents = 'none';
+                canvas.style.pointerEvents = 'auto'; // Allow interaction with existing elements
                 redrawCanvas();
-                showStatus('Drawing mode disabled. Click arrows to select and resize them.');
+                showStatus('Drawing mode disabled. Click text to select and edit it.');
             } else {
                 // Set new drawing mode
                 drawingMode = mode;
@@ -3601,10 +3601,16 @@
             // This ensures text appears exactly where user clicked, not offset by border/padding
             const borderOffset = 2;
             const paddingOffset = 8;
-            const totalOffset = borderOffset + paddingOffset; // 10px total offset
+            const totalXOffset = borderOffset + paddingOffset; // 10px total horizontal offset
             
-            activeTextEditor.dataset.canvasX = canvasX + totalOffset;
-            activeTextEditor.dataset.canvasY = canvasY + totalOffset;
+            // For Y position, we need additional adjustment because textarea text baseline
+            // doesn't exactly match canvas textBaseline = 'top'
+            // Add a small font-size dependent offset to account for baseline differences
+            const baselineOffset = Math.round(currentFontSize * 0.1); // ~10% of font size
+            const totalYOffset = borderOffset + paddingOffset + baselineOffset;
+            
+            activeTextEditor.dataset.canvasX = canvasX + totalXOffset;
+            activeTextEditor.dataset.canvasY = canvasY + totalYOffset;
             
             // Add to document body for proper positioning
             document.body.appendChild(activeTextEditor);
@@ -3927,8 +3933,9 @@
                 } else if (drawing.type === 'text') {
                     // Check if click is within text bounds
                     const textWidth = drawing.width || 100; // Use calculated width or fallback
-                    const textHeight = drawing.fontSize || 16; // Use font size as height
-                    const tolerance = 4;
+                    // Use proper text height calculation including background padding if present
+                    const textHeight = drawing.height || (drawing.fontSize * 1.2); // Line height calculation
+                    const tolerance = drawing.hasBackground ? 8 : 4; // Larger tolerance for text with background
                     
                     if (x >= drawing.x - tolerance && 
                         x <= drawing.x + textWidth + tolerance &&
