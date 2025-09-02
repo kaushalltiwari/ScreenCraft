@@ -3597,9 +3597,14 @@
             activeTextEditor.style.overflow = 'auto'; // Allow scrolling for long text
             activeTextEditor.placeholder = 'Type your text here...';
             
-            // Store position for the drawing
-            activeTextEditor.dataset.canvasX = canvasX;
-            activeTextEditor.dataset.canvasY = canvasY;
+            // Store position for the drawing - adjust for border (2px) and padding (8px) offset
+            // This ensures text appears exactly where user clicked, not offset by border/padding
+            const borderOffset = 2;
+            const paddingOffset = 8;
+            const totalOffset = borderOffset + paddingOffset; // 10px total offset
+            
+            activeTextEditor.dataset.canvasX = canvasX + totalOffset;
+            activeTextEditor.dataset.canvasY = canvasY + totalOffset;
             
             // Add to document body for proper positioning
             document.body.appendChild(activeTextEditor);
