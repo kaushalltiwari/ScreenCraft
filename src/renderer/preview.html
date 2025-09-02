@@ -2260,6 +2260,7 @@
                     // No text clicked or clicking empty space - start drawing new text
                     selectedDrawing = null;
                     updateTextBackgroundButtonsState();
+                    redrawCanvas(); // Clear the selection border before starting new text
                     isDrawing = true;
                     
                     // Hide dropdowns
