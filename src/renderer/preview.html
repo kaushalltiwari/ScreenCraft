@@ -759,10 +759,69 @@
             cursor: pointer;
         }
 
-        .background-color-options {
+        .background-enable-option {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .checkbox-container {
             display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
+            align-items: center;
+            cursor: pointer;
+            font-size: 12px;
+            user-select: none;
+        }
+        
+        .checkbox-container input {
+            margin-right: 6px;
+        }
+        
+        .background-color-options {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+            width: 150px;
+        }
+        
+        .background-color-options .color-option {
+            width: 24px;
+            height: 24px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+        
+        .background-color-options .color-option:hover {
+            transform: scale(1.1);
+            border-color: #0066cc;
+        }
+        
+        .background-color-options .color-option.selected {
+            border-color: #0066cc;
+            border-width: 2px;
+            transform: scale(1.05);
+        }
+        
+        .background-color-options .color-option.selected::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .background-color-options .color-option[data-color="#ffffff"].selected::after,
+        .background-color-options .color-option[data-color="#ffff44"].selected::after,
+        .background-color-options .color-option[data-color="#ffaa44"].selected::after {
+            color: black;
+            text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
         }
 
         /* Background tool indicators */
@@ -1158,15 +1217,28 @@
                 <div class="border-color-dropdown" id="bgColorDropdown">
                     <div class="dropdown-header">Background Color</div>
                     <div class="background-controls">
+                        <div class="background-enable-option">
+                            <label class="checkbox-container">
+                                <input type="checkbox" id="bgEnableCheckbox" checked>
+                                <span class="checkmark"></span>
+                                Enable Background
+                            </label>
+                        </div>
                         <div class="background-color-options">
+                            <!-- First Row -->
+                            <div class="color-option" data-color="#ff4444" title="Red" style="background: #ff4444;"></div>
+                            <div class="color-option" data-color="#4488ff" title="Blue" style="background: #4488ff;"></div>
+                            <div class="color-option" data-color="#44ff44" title="Green" style="background: #44ff44;"></div>
+                            <div class="color-option" data-color="#ffaa44" title="Orange" style="background: #ffaa44;"></div>
+                            <div class="color-option" data-color="#aa44ff" title="Purple" style="background: #aa44ff;"></div>
+                            <!-- Second Row -->
+                            <div class="color-option" data-color="#44aaaa" title="Teal" style="background: #44aaaa;"></div>
+                            <div class="color-option" data-color="#333333" title="Dark Gray" style="background: #333333;"></div>
+                            <div class="color-option" data-color="#ffff44" title="Yellow" style="background: #ffff44;"></div>
+                            <div class="color-option" data-color="#ff44aa" title="Pink" style="background: #ff44aa;"></div>
+                            <div class="color-option" data-color="#000000" title="Black" style="background: #000000;"></div>
+                            <!-- Third Row -->
                             <div class="color-option white selected" data-color="#ffffff" title="White" style="background: #ffffff; border: 2px solid #ccc;"></div>
-                            <div class="color-option black" data-color="#000000" title="Black" style="background: #000000;"></div>
-                            <div class="color-option gray" data-color="#808080" title="Gray" style="background: #808080;"></div>
-                            <div class="color-option blue" data-color="#007acc" title="Blue" style="background: #007acc;"></div>
-                            <div class="color-option green" data-color="#28a745" title="Green" style="background: #28a745;"></div>
-                            <div class="color-option yellow" data-color="#ffc107" title="Yellow" style="background: #ffc107;"></div>
-                            <div class="color-option orange" data-color="#fd7e14" title="Orange" style="background: #fd7e14;"></div>
-                            <div class="color-option red" data-color="#dc3545" title="Red" style="background: #dc3545;"></div>
                         </div>
                     </div>
                 </div>
@@ -1421,6 +1493,7 @@
         
         const bgColorIndicator = document.getElementById('bgColorIndicator');
         const bgOpacityIndicator = document.getElementById('bgOpacityIndicator');
+        const bgEnableCheckbox = document.getElementById('bgEnableCheckbox');
         const bgRadiusIndicator = document.getElementById('bgRadiusIndicator');
         
         const backgroundOpacity = document.getElementById('backgroundOpacity');
@@ -1901,6 +1974,21 @@
             });
 
             // Text Background Controls Event Handlers (moved to overlay menu)
+            
+            // Background enable checkbox handler
+            bgEnableCheckbox?.addEventListener('change', (e) => {
+                currentBackgroundEnabled = e.target.checked;
+                updateTextBackgroundButtonsState();
+                
+                // Update selected text if any
+                if (selectedDrawing && selectedDrawing.type === 'text') {
+                    selectedDrawing.hasBackground = currentBackgroundEnabled;
+                    redrawCanvas();
+                    showStatus(`Text background ${currentBackgroundEnabled ? 'enabled' : 'disabled'}.`);
+                } else {
+                    showStatus(`Background ${currentBackgroundEnabled ? 'enabled' : 'disabled'} for new text.`);
+                }
+            });
 
             // Close color dropdown when clicking outside
             document.addEventListener('click', () => {
