@@ -2314,10 +2314,56 @@
                         imgX < screenshotImage.naturalWidth && 
                         imgY < screenshotImage.naturalHeight) {
                         
-                        // Handle multiline text with underline support
                         const lines = drawing.text.split('\n');
                         const scaledFontSize = drawing.fontSize * Math.min(scaleX, scaleY);
                         
+                        // Draw background rectangle if enabled
+                        if (drawing.hasBackground) {
+                            const textWidth = (drawing.width || 100) * Math.min(scaleX, scaleY);
+                            const textHeight = (drawing.height || scaledFontSize) * Math.min(scaleX, scaleY);
+                            const padding = (drawing.backgroundPadding || 8) * Math.min(scaleX, scaleY);
+                            
+                            // Save current state
+                            const originalGlobalAlpha = compositeCtx.globalAlpha;
+                            
+                            // Set background opacity
+                            compositeCtx.globalAlpha = (drawing.backgroundOpacity || 80) / 100;
+                            
+                            // Draw background rectangle
+                            compositeCtx.fillStyle = drawing.backgroundColor || '#ffffff';
+                            const radius = (drawing.backgroundRadius || 4) * Math.min(scaleX, scaleY);
+                            
+                            const rectX = imgX - padding;
+                            const rectY = imgY - padding;
+                            const rectWidth = textWidth + (padding * 2);
+                            const rectHeight = textHeight + (padding * 2);
+                            
+                            if (radius > 0 && compositeCtx.roundRect) {
+                                // Draw rounded rectangle
+                                compositeCtx.beginPath();
+                                compositeCtx.roundRect(rectX, rectY, rectWidth, rectHeight, radius);
+                                compositeCtx.fill();
+                            } else if (radius > 0) {
+                                // Fallback for browsers without roundRect
+                                compositeCtx.beginPath();
+                                compositeCtx.moveTo(rectX + radius, rectY);
+                                compositeCtx.arcTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + rectHeight, radius);
+                                compositeCtx.arcTo(rectX + rectWidth, rectY + rectHeight, rectX, rectY + rectHeight, radius);
+                                compositeCtx.arcTo(rectX, rectY + rectHeight, rectX, rectY, radius);
+                                compositeCtx.arcTo(rectX, rectY, rectX + rectWidth, rectY, radius);
+                                compositeCtx.closePath();
+                                compositeCtx.fill();
+                            } else {
+                                // Draw regular rectangle
+                                compositeCtx.fillRect(rectX, rectY, rectWidth, rectHeight);
+                            }
+                            
+                            // Restore alpha for text
+                            compositeCtx.globalAlpha = originalGlobalAlpha;
+                        }
+                        
+                        // Draw text on top of background
+                        compositeCtx.fillStyle = drawing.color;
                         lines.forEach((line, index) => {
                             const lineY = imgY + (index * scaledFontSize * 1.2);
                             compositeCtx.fillText(line, imgX, lineY);
