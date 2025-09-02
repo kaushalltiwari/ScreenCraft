@@ -1461,7 +1461,7 @@
                     selectedDrawing.backgroundColor = colorOption.dataset.color;
                     selectedDrawing.backgroundOpacity = selectedDrawing.backgroundOpacity || currentBackgroundOpacity;
                     selectedDrawing.backgroundRadius = selectedDrawing.backgroundRadius || 4;
-                    selectedDrawing.backgroundPadding = selectedDrawing.backgroundPadding || 4;
+                    selectedDrawing.backgroundPadding = selectedDrawing.backgroundPadding || 8;
                     
                     // Update current settings and indicators
                     currentBackgroundColor = colorOption.dataset.color;
@@ -1482,7 +1482,7 @@
                     selectedDrawing.backgroundOpacity = opacity;
                     selectedDrawing.backgroundColor = selectedDrawing.backgroundColor || currentBackgroundColor;
                     selectedDrawing.backgroundRadius = selectedDrawing.backgroundRadius || 4;
-                    selectedDrawing.backgroundPadding = selectedDrawing.backgroundPadding || 4;
+                    selectedDrawing.backgroundPadding = selectedDrawing.backgroundPadding || 8;
                     
                     // Update current settings and indicators
                     currentBackgroundOpacity = opacity;
@@ -1504,7 +1504,7 @@
                     selectedDrawing.backgroundRadius = radius;
                     selectedDrawing.backgroundColor = selectedDrawing.backgroundColor || currentBackgroundColor;
                     selectedDrawing.backgroundOpacity = selectedDrawing.backgroundOpacity || currentBackgroundOpacity;
-                    selectedDrawing.backgroundPadding = selectedDrawing.backgroundPadding || 4;
+                    selectedDrawing.backgroundPadding = selectedDrawing.backgroundPadding || 8;
                     
                     // Update indicators
                     radiusValue.textContent = `${radius}px`;
@@ -2783,7 +2783,7 @@
                 const lines = text.split('\n');
                 const textWidth = drawing.width || getTextWidth(text);
                 const textHeight = drawing.height || getTextHeight(text);
-                const padding = backgroundPadding || 4;
+                const padding = backgroundPadding || 8;
                 
                 // Save current state
                 const originalGlobalAlpha = ctx.globalAlpha;
@@ -2908,7 +2908,7 @@
                     hasBackground: currentBackgroundEnabled,
                     backgroundColor: currentBackgroundColor,
                     backgroundOpacity: currentBackgroundOpacity,
-                    backgroundPadding: 4 // Default padding around text
+                    backgroundPadding: 8 // Default padding around text for consistency
                 };
                 
                 // Add to drawings array
@@ -3044,7 +3044,8 @@
             // Calculate text dimensions
             const textWidth = drawing.width || getTextWidth(text, fontSize);
             const textHeight = drawing.height || getTextHeight(text, fontSize);
-            const padding = hasBackground ? (backgroundPadding || 4) : 8; // More padding for better centering
+            // Use consistent padding of 8px for both selection border and background
+            const padding = 8;
             
             // Theme-aware border color
             const borderColor = effectiveTheme === 'dark' ? '#ffffff' : '#000000';
