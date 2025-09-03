@@ -1485,7 +1485,7 @@
             <!-- Background Styling Tool -->
             <div class="border-tool">
                 <button class="toolbar-button disabled" id="backgroundStyleBtn" title="Background Styling - Configure text background appearance" disabled>
-                    <div class="toolbar-icon" style="font-size: 16px;">🎨</div>
+                    <div class="toolbar-icon" style="font-size: 16px;">📦</div>
                     <div style="font-size: 10px;">Background</div>
                     <div class="dropdown-arrow">▼</div>
                 </button>
@@ -1996,7 +1996,7 @@
                     const colorOption = e.target.closest('.color-option');
                     
                     // Remove selected from all color options
-                    bgColorDropdown.querySelectorAll('.color-option').forEach(option => {
+                    backgroundStyleDropdown.querySelectorAll('.color-option').forEach(option => {
                         option.classList.remove('selected');
                     });
                     
