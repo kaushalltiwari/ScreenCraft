@@ -488,6 +488,56 @@
             text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
         }
 
+        /* Background Style Dropdown */
+        .background-style-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 12px;
+            display: none;
+            min-width: 280px;
+            max-width: 320px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+        }
+        
+        .background-style-dropdown.show {
+            display: block;
+            opacity: 1;
+            animation: fadeIn 0.15s ease-out;
+        }
+        
+        .background-controls-unified {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .background-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .section-title {
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         /* Border width dropdown */
         .border-width-dropdown {
             position: absolute;
@@ -1432,17 +1482,16 @@
                 </div>
             </div>
             
-            <!-- Background Color Tool -->
+            <!-- Background Styling Tool -->
             <div class="border-tool">
-                <button class="toolbar-button disabled" id="bgColorBtn" title="Background Color - Change text background color" disabled>
-                    <div class="toolbar-icon" style="font-size: 16px;">🟫</div>
-                    <div style="font-size: 10px;">BG Color</div>
-                    <div class="color-indicator" id="bgColorIndicator" style="background: #ffffff;"></div>
+                <button class="toolbar-button disabled" id="backgroundStyleBtn" title="Background Styling - Configure text background appearance" disabled>
+                    <div class="toolbar-icon" style="font-size: 16px;">🎨</div>
+                    <div style="font-size: 10px;">Background</div>
                     <div class="dropdown-arrow">▼</div>
                 </button>
-                <div class="border-color-dropdown" id="bgColorDropdown">
-                    <div class="dropdown-header">Background Color</div>
-                    <div class="background-controls">
+                <div class="background-style-dropdown" id="backgroundStyleDropdown">
+                    <div class="background-controls-unified">
+                        <!-- Enable Background Toggle -->
                         <div class="background-enable-option">
                             <label class="checkbox-container">
                                 <input type="checkbox" id="bgEnableCheckbox">
@@ -1450,59 +1499,53 @@
                                 Enable Background
                             </label>
                         </div>
-                        <div class="background-color-options">
-                            <!-- First Row -->
-                            <div class="color-option" data-color="#ff4444" title="Red" style="background: #ff4444;"></div>
-                            <div class="color-option" data-color="#4488ff" title="Blue" style="background: #4488ff;"></div>
-                            <div class="color-option" data-color="#44ff44" title="Green" style="background: #44ff44;"></div>
-                            <div class="color-option" data-color="#ffaa44" title="Orange" style="background: #ffaa44;"></div>
-                            <div class="color-option" data-color="#aa44ff" title="Purple" style="background: #aa44ff;"></div>
-                            <!-- Second Row -->
-                            <div class="color-option" data-color="#44aaaa" title="Teal" style="background: #44aaaa;"></div>
-                            <div class="color-option" data-color="#333333" title="Dark Gray" style="background: #333333;"></div>
-                            <div class="color-option" data-color="#ffff44" title="Yellow" style="background: #ffff44;"></div>
-                            <div class="color-option" data-color="#ff44aa" title="Pink" style="background: #ff44aa;"></div>
-                            <div class="color-option" data-color="#000000" title="Black" style="background: #000000;"></div>
-                            <!-- Third Row -->
-                            <div class="color-option white selected" data-color="#ffffff" title="White" style="background: #ffffff; border: 2px solid #ccc;"></div>
+                        
+                        <!-- Background Color Section -->
+                        <div class="background-section">
+                            <div class="section-header">
+                                <span class="section-title">Color</span>
+                                <div class="color-indicator" id="bgColorIndicator" style="background: #ffffff;"></div>
+                            </div>
+                            <div class="background-color-options">
+                                <!-- First Row -->
+                                <div class="color-option" data-color="#ff4444" title="Red" style="background: #ff4444;"></div>
+                                <div class="color-option" data-color="#4488ff" title="Blue" style="background: #4488ff;"></div>
+                                <div class="color-option" data-color="#44ff44" title="Green" style="background: #44ff44;"></div>
+                                <div class="color-option" data-color="#ffaa44" title="Orange" style="background: #ffaa44;"></div>
+                                <div class="color-option" data-color="#aa44ff" title="Purple" style="background: #aa44ff;"></div>
+                                <!-- Second Row -->
+                                <div class="color-option" data-color="#44aaaa" title="Teal" style="background: #44aaaa;"></div>
+                                <div class="color-option" data-color="#333333" title="Dark Gray" style="background: #333333;"></div>
+                                <div class="color-option" data-color="#ffff44" title="Yellow" style="background: #ffff44;"></div>
+                                <div class="color-option" data-color="#ff44aa" title="Pink" style="background: #ff44aa;"></div>
+                                <div class="color-option" data-color="#000000" title="Black" style="background: #000000;"></div>
+                                <!-- Third Row -->
+                                <div class="color-option white selected" data-color="#ffffff" title="White" style="background: #ffffff; border: 2px solid #ccc;"></div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Background Opacity Tool -->
-            <div class="border-tool">
-                <button class="toolbar-button disabled" id="bgOpacityBtn" title="Background Opacity - Adjust transparency" disabled>
-                    <div class="toolbar-icon" style="font-size: 16px;">💧</div>
-                    <div style="font-size: 10px;">Opacity</div>
-                    <div class="value-indicator" id="bgOpacityIndicator">80%</div>
-                    <div class="dropdown-arrow">▼</div>
-                </button>
-                <div class="border-color-dropdown" id="bgOpacityDropdown">
-                    <div class="dropdown-header">Background Opacity</div>
-                    <div class="background-controls">
-                        <div class="opacity-control">
-                            <input type="range" id="backgroundOpacity" class="opacity-slider" min="0" max="100" value="80">
-                            <span class="opacity-value" id="opacityValue">80%</span>
+                        
+                        <!-- Background Opacity Section -->
+                        <div class="background-section">
+                            <div class="section-header">
+                                <span class="section-title">Opacity</span>
+                                <div class="value-indicator" id="bgOpacityIndicator">80%</div>
+                            </div>
+                            <div class="opacity-control">
+                                <input type="range" id="backgroundOpacity" class="opacity-slider" min="0" max="100" value="80">
+                                <span class="opacity-value" id="opacityValue">80%</span>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Background Radius Tool -->
-            <div class="border-tool">
-                <button class="toolbar-button disabled" id="bgRadiusBtn" title="Border Radius - Adjust corner roundness" disabled>
-                    <div class="toolbar-icon" style="font-size: 16px;">📐</div>
-                    <div style="font-size: 10px;">Radius</div>
-                    <div class="value-indicator" id="bgRadiusIndicator">4px</div>
-                    <div class="dropdown-arrow">▼</div>
-                </button>
-                <div class="border-color-dropdown" id="bgRadiusDropdown">
-                    <div class="dropdown-header">Border Radius</div>
-                    <div class="background-controls">
-                        <div class="opacity-control">
-                            <input type="range" id="backgroundRadius" class="opacity-slider" min="0" max="20" value="4">
-                            <span class="opacity-value" id="radiusValue">4px</span>
+                        
+                        <!-- Background Radius Section -->
+                        <div class="background-section">
+                            <div class="section-header">
+                                <span class="section-title">Radius</span>
+                                <div class="value-indicator" id="bgRadiusIndicator">4px</div>
+                            </div>
+                            <div class="opacity-control">
+                                <input type="range" id="backgroundRadius" class="opacity-slider" min="0" max="20" value="4">
+                                <span class="opacity-value" id="radiusValue">4px</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1574,23 +1617,20 @@
         // Text background buttons state management
         function updateTextBackgroundButtonsState() {
             const isTextSelected = selectedDrawing && selectedDrawing.type === 'text';
-            const buttons = [bgColorBtn, bgOpacityBtn, bgRadiusBtn];
             
-            buttons.forEach(btn => {
-                if (!btn) return;
-                
+            if (backgroundStyleBtn) {
                 if (isTextSelected) {
-                    btn.disabled = false;
-                    btn.classList.remove('disabled');
-                    btn.style.opacity = '1';
-                    btn.style.cursor = 'pointer';
+                    backgroundStyleBtn.disabled = false;
+                    backgroundStyleBtn.classList.remove('disabled');
+                    backgroundStyleBtn.style.opacity = '1';
+                    backgroundStyleBtn.style.cursor = 'pointer';
                 } else {
-                    btn.disabled = true;
-                    btn.classList.add('disabled');
-                    btn.style.opacity = '0.5';
-                    btn.style.cursor = 'not-allowed';
+                    backgroundStyleBtn.disabled = true;
+                    backgroundStyleBtn.classList.add('disabled');
+                    backgroundStyleBtn.style.opacity = '0.5';
+                    backgroundStyleBtn.style.cursor = 'not-allowed';
                 }
-            });
+            }
             
             // Update indicators with current values
             if (isTextSelected && selectedDrawing) {
@@ -1619,12 +1659,13 @@
             }
         }
         
-        // Function to update individual dropdown controls with current text settings
+        // Function to update unified dropdown controls with current text settings
         function updateDropdownFromText(textDrawing, dropdown) {
             if (!textDrawing || !dropdown) return;
             
-            // Update color dropdown
-            if (dropdown === bgColorDropdown) {
+            // Update unified background dropdown
+            if (dropdown === backgroundStyleDropdown) {
+                // Update color options
                 const colorOptions = dropdown.querySelectorAll('.color-option');
                 colorOptions.forEach(option => {
                     option.classList.remove('selected');
@@ -1632,23 +1673,34 @@
                         option.classList.add('selected');
                     }
                 });
-            }
-            
-            // Update opacity dropdown
-            if (dropdown === bgOpacityDropdown) {
+                
+                // Update opacity controls
                 if (backgroundOpacity && opacityValue) {
                     const opacity = textDrawing.backgroundOpacity || currentBackgroundOpacity;
                     backgroundOpacity.value = opacity;
                     opacityValue.textContent = opacity + '%';
                 }
-            }
-            
-            // Update radius dropdown
-            if (dropdown === bgRadiusDropdown) {
+                
+                // Update radius controls
                 if (backgroundRadius && radiusValue) {
                     const radius = textDrawing.backgroundRadius || 4;
                     backgroundRadius.value = radius;
                     radiusValue.textContent = radius + 'px';
+                }
+                
+                // Update checkbox state
+                if (bgEnableCheckbox) {
+                    bgEnableCheckbox.checked = textDrawing.hasBackground || false;
+                    
+                    // Enable/disable color options based on checkbox
+                    const colorOptions = dropdown.querySelector('.background-color-options');
+                    if (colorOptions) {
+                        if (bgEnableCheckbox.checked) {
+                            colorOptions.classList.remove('disabled');
+                        } else {
+                            colorOptions.classList.add('disabled');
+                        }
+                    }
                 }
             }
         }
@@ -1715,18 +1767,10 @@
         const italicIndicator = document.getElementById('italicIndicator');
         const underlineIndicator = document.getElementById('underlineIndicator');
         
-        // Text background control elements - separate tools
-        const bgColorBtn = document.getElementById('bgColorBtn');
-        const bgOpacityBtn = document.getElementById('bgOpacityBtn');
-        const bgRadiusBtn = document.getElementById('bgRadiusBtn');
-        
-        const bgColorTool = bgColorBtn?.closest('.border-tool');
-        const bgOpacityTool = bgOpacityBtn?.closest('.border-tool');
-        const bgRadiusTool = bgRadiusBtn?.closest('.border-tool');
-        
-        const bgColorDropdown = document.getElementById('bgColorDropdown');
-        const bgOpacityDropdown = document.getElementById('bgOpacityDropdown');
-        const bgRadiusDropdown = document.getElementById('bgRadiusDropdown');
+        // Text background control elements - unified tool
+        const backgroundStyleBtn = document.getElementById('backgroundStyleBtn');
+        const backgroundStyleTool = backgroundStyleBtn?.closest('.border-tool');
+        const backgroundStyleDropdown = document.getElementById('backgroundStyleDropdown');
         
         const bgColorIndicator = document.getElementById('bgColorIndicator');
         const bgOpacityIndicator = document.getElementById('bgOpacityIndicator');
@@ -1923,71 +1967,23 @@
                 setDrawingMode('text');
             });
             
-            // Background Color tool functionality
-            bgColorBtn?.addEventListener('click', (e) => {
+            // Background Styling tool functionality
+            backgroundStyleBtn?.addEventListener('click', (e) => {
                 if (selectedDrawing && selectedDrawing.type === 'text') {
                     e.stopPropagation();
                     
-                    // Close other background dropdowns first
-                    bgOpacityTool?.classList.remove('show-dropdown');
-                    bgOpacityDropdown?.classList.remove('show');
-                    bgRadiusTool?.classList.remove('show-dropdown');
-                    bgRadiusDropdown?.classList.remove('show');
-                    
-                    bgColorTool?.classList.toggle('show-dropdown');
-                    bgColorDropdown?.classList.toggle('show');
+                    backgroundStyleTool?.classList.toggle('show-dropdown');
+                    backgroundStyleDropdown?.classList.toggle('show');
                     
                     // Update dropdown with current text background settings
-                    updateDropdownFromText(selectedDrawing, bgColorDropdown);
+                    updateDropdownFromText(selectedDrawing, backgroundStyleDropdown);
                 } else {
-                    showStatus('Please select a text element first to configure background color.');
-                }
-            });
-
-            // Background Opacity tool functionality  
-            bgOpacityBtn?.addEventListener('click', (e) => {
-                if (selectedDrawing && selectedDrawing.type === 'text') {
-                    e.stopPropagation();
-                    
-                    // Close other background dropdowns first
-                    bgColorTool?.classList.remove('show-dropdown');
-                    bgColorDropdown?.classList.remove('show');
-                    bgRadiusTool?.classList.remove('show-dropdown');
-                    bgRadiusDropdown?.classList.remove('show');
-                    
-                    bgOpacityTool?.classList.toggle('show-dropdown');
-                    bgOpacityDropdown?.classList.toggle('show');
-                    
-                    // Update dropdown with current text background settings
-                    updateDropdownFromText(selectedDrawing, bgOpacityDropdown);
-                } else {
-                    showStatus('Please select a text element first to configure background opacity.');
-                }
-            });
-
-            // Background Radius tool functionality
-            bgRadiusBtn?.addEventListener('click', (e) => {
-                if (selectedDrawing && selectedDrawing.type === 'text') {
-                    e.stopPropagation();
-                    
-                    // Close other background dropdowns first
-                    bgColorTool?.classList.remove('show-dropdown');
-                    bgColorDropdown?.classList.remove('show');
-                    bgOpacityTool?.classList.remove('show-dropdown');
-                    bgOpacityDropdown?.classList.remove('show');
-                    
-                    bgRadiusTool?.classList.toggle('show-dropdown');
-                    bgRadiusDropdown?.classList.toggle('show');
-                    
-                    // Update dropdown with current text background settings
-                    updateDropdownFromText(selectedDrawing, bgRadiusDropdown);
-                } else {
-                    showStatus('Please select a text element first to configure border radius.');
+                    showStatus('Please select a text element first to configure background styling.');
                 }
             });
 
             // Handle background color selection
-            bgColorDropdown?.addEventListener('click', (e) => {
+            backgroundStyleDropdown?.addEventListener('click', (e) => {
                 if (e.target.closest('.color-option') && selectedDrawing && selectedDrawing.type === 'text') {
                     e.stopPropagation();
                     
@@ -2347,8 +2343,7 @@
                 if (!borderTool?.contains(e.target) && !widthTool?.contains(e.target) && 
                     !fontSizeTool?.contains(e.target) && !fontFamilyTool?.contains(e.target) &&
                     !textStyleTool?.contains(e.target) && !shapesTool?.contains(e.target) &&
-                    !bgColorTool?.contains(e.target) && !bgOpacityTool?.contains(e.target) && 
-                    !bgRadiusTool?.contains(e.target)) {
+                    !backgroundStyleTool?.contains(e.target)) {
                     
                     // Close all dropdowns
                     borderTool?.classList.remove('show-dropdown');
@@ -2364,13 +2359,9 @@
                     shapesTool?.classList.remove('show-dropdown');
                     shapesDropdown?.classList.remove('show');
                     
-                    // Close background tool dropdowns
-                    bgColorTool?.classList.remove('show-dropdown');
-                    bgColorDropdown?.classList.remove('show');
-                    bgOpacityTool?.classList.remove('show-dropdown');
-                    bgOpacityDropdown?.classList.remove('show');
-                    bgRadiusTool?.classList.remove('show-dropdown');
-                    bgRadiusDropdown?.classList.remove('show');
+                    // Close background tool dropdown
+                    backgroundStyleTool?.classList.remove('show-dropdown');
+                    backgroundStyleDropdown?.classList.remove('show');
                 }
             });
 
