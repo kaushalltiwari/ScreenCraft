@@ -823,6 +823,84 @@
             text-decoration: underline;
         }
 
+        /* Shapes Dropdown Styles */
+        .shape-indicators {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            display: flex;
+            gap: 1px;
+        }
+        
+        .shape-indicator {
+            font-size: 6px;
+            font-weight: bold;
+            color: #333;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1px 2px;
+            border-radius: 2px;
+            line-height: 1;
+        }
+
+        .shapes-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: var(--dropdown-background);
+            border: 1px solid var(--dropdown-border);
+            border-radius: var(--border-radius);
+            box-shadow: var(--dropdown-shadow);
+            padding: 8px;
+            width: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .shapes-dropdown.show {
+            display: block;
+        }
+
+        .shape-options {
+            display: flex;
+            flex-direction: row;
+            gap: 4px;
+        }
+
+        .shape-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            background: none;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            color: var(--text-primary);
+            min-width: 32px;
+            height: 32px;
+        }
+
+        .shape-option:hover {
+            background-color: var(--hover-background);
+        }
+
+        .shape-option.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .shape-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .shape-label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
         .opacity-control {
             display: flex;
             align-items: center;
@@ -1143,18 +1221,34 @@
         
         <!-- Group 2: Drawing Tools -->
         <div class="toolbar-group">
-            <button class="toolbar-button" id="rectBtn" title="Rectangle - Draw rectangular borders">
-                <div class="toolbar-icon" style="font-size: 16px;">⬜</div>
-                <div>Rect</div>
-            </button>
-            <button class="toolbar-button" id="lineBtn" title="Line - Draw straight lines">
-                <div class="toolbar-icon" style="font-size: 16px;">📏</div>
-                <div>Line</div>
-            </button>
-            <button class="toolbar-button" id="arrowBtn" title="Arrow - Draw arrows to point to important areas">
-                <div class="toolbar-icon" style="font-size: 16px;">➡️</div>
-                <div>Arrow</div>
-            </button>
+            <!-- Shapes Tool -->
+            <div class="border-tool">
+                <button class="toolbar-button" id="shapesBtn" title="Shapes - Draw rectangles, lines, and arrows">
+                    <div class="toolbar-icon" style="font-size: 16px;">
+                        🔷
+                        <div class="shape-indicators">
+                            <span class="shape-indicator rect-indicator" id="rectIndicator" style="display: none;">⬜</span>
+                            <span class="shape-indicator line-indicator" id="lineIndicator" style="display: none;">📏</span>
+                            <span class="shape-indicator arrow-indicator" id="arrowIndicator" style="display: none;">➡️</span>
+                        </div>
+                    </div>
+                    <div>Shapes</div>
+                    <div class="dropdown-arrow">▼</div>
+                </button>
+                <div class="shapes-dropdown" id="shapesDropdown">
+                    <div class="shape-options">
+                        <button class="shape-option" id="rectOption" data-shape="rect" title="Rectangle - Draw rectangular borders">
+                            <span class="shape-icon">⬜</span>
+                        </button>
+                        <button class="shape-option" id="lineOption" data-shape="line" title="Line - Draw straight lines">
+                            <span class="shape-icon">📏</span>
+                        </button>
+                        <button class="shape-option" id="arrowOption" data-shape="arrow" title="Arrow - Draw arrows to point to important areas">
+                            <span class="shape-icon">➡️</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
             
             <div class="border-tool">
                 <button class="toolbar-button" id="colorBtn" title="Color - Select drawing color">
@@ -1570,10 +1664,15 @@
         const copyImageBtn = document.getElementById('copyImageBtn');
         const copyPathBtn = document.getElementById('copyPathBtn');
         const saveBtn = document.getElementById('saveBtn');
-        const rectBtn = document.getElementById('rectBtn');
-        const lineBtn = document.getElementById('lineBtn');
-        const arrowBtn = document.getElementById('arrowBtn');
+        const shapesBtn = document.getElementById('shapesBtn');
+        const shapesDropdown = document.getElementById('shapesDropdown');
+        const shapesTool = shapesBtn?.parentElement;
         const textBtn = document.getElementById('textBtn');
+        
+        // Shape indicators
+        const rectIndicator = document.getElementById('rectIndicator');
+        const lineIndicator = document.getElementById('lineIndicator');
+        const arrowIndicator = document.getElementById('arrowIndicator');
         const colorBtn = document.getElementById('colorBtn');
         const borderTool = document.querySelector('.border-tool');
         const borderColorDropdown = document.getElementById('borderColorDropdown');
@@ -1761,15 +1860,56 @@
             copyImageBtn?.addEventListener('click', () => handleAction('copy-image'));
             copyPathBtn?.addEventListener('click', () => handleAction('copy-path'));
             saveBtn?.addEventListener('click', () => handleAction('save'));
-            // Drawing tool functionality
-            rectBtn?.addEventListener('click', () => {
-                setDrawingMode('rect');
+            // Shapes dropdown functionality
+            shapesBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                shapesTool.classList.toggle('show-dropdown');
+                shapesDropdown.classList.toggle('show');
             });
-            lineBtn?.addEventListener('click', () => {
-                setDrawingMode('line');
-            });
-            arrowBtn?.addEventListener('click', () => {
-                setDrawingMode('arrow');
+            
+            // Handle shape option clicks
+            shapesDropdown?.addEventListener('click', (e) => {
+                if (e.target.closest('.shape-option')) {
+                    e.stopPropagation();
+                    const shapeOption = e.target.closest('.shape-option');
+                    const shapeType = shapeOption.dataset.shape;
+                    
+                    // Remove active class from all options
+                    shapesDropdown.querySelectorAll('.shape-option').forEach(option => {
+                        option.classList.remove('active');
+                    });
+                    
+                    // Add active class to selected option
+                    shapeOption.classList.add('active');
+                    
+                    // Hide all indicators first
+                    rectIndicator.style.display = 'none';
+                    lineIndicator.style.display = 'none';
+                    arrowIndicator.style.display = 'none';
+                    
+                    // Show indicator for selected shape
+                    if (shapeType === 'rect') {
+                        rectIndicator.style.display = 'block';
+                    } else if (shapeType === 'line') {
+                        lineIndicator.style.display = 'block';
+                    } else if (shapeType === 'arrow') {
+                        arrowIndicator.style.display = 'block';
+                    }
+                    
+                    // Set drawing mode
+                    setDrawingMode(shapeType);
+                    
+                    // Hide dropdown
+                    shapesTool.classList.remove('show-dropdown');
+                    shapesDropdown.classList.remove('show');
+                    
+                    const shapeNames = {
+                        'rect': 'Rectangle',
+                        'line': 'Line', 
+                        'arrow': 'Arrow'
+                    };
+                    showStatus(`${shapeNames[shapeType]} mode selected.`);
+                }
             });
             textBtn?.addEventListener('click', () => {
                 setDrawingMode('text');
@@ -2198,7 +2338,7 @@
                 // Close dropdowns when clicking anywhere else, including the canvas/screenshot area
                 if (!borderTool?.contains(e.target) && !widthTool?.contains(e.target) && 
                     !fontSizeTool?.contains(e.target) && !fontFamilyTool?.contains(e.target) &&
-                    !textStyleTool?.contains(e.target) &&
+                    !textStyleTool?.contains(e.target) && !shapesTool?.contains(e.target) &&
                     !bgColorTool?.contains(e.target) && !bgOpacityTool?.contains(e.target) && 
                     !bgRadiusTool?.contains(e.target)) {
                     
@@ -2213,6 +2353,8 @@
                     fontFamilyDropdown?.classList.remove('show');
                     textStyleTool?.classList.remove('show-dropdown');
                     textStyleDropdown?.classList.remove('show');
+                    shapesTool?.classList.remove('show-dropdown');
+                    shapesDropdown?.classList.remove('show');
                     
                     // Close background tool dropdowns
                     bgColorTool?.classList.remove('show-dropdown');
@@ -2786,9 +2928,7 @@
 
         function setDrawingMode(mode) {
             // Clear previous mode
-            rectBtn?.classList.remove('active');
-            lineBtn?.classList.remove('active');
-            arrowBtn?.classList.remove('active');
+            shapesBtn?.classList.remove('active');
             textBtn?.classList.remove('active');
             
             // Clear any selected drawings when entering drawing mode
@@ -2816,13 +2956,13 @@
                 redrawCanvas(); // Redraw to clear selection handles
                 
                 if (mode === 'rect') {
-                    rectBtn.classList.add('active');
+                    shapesBtn.classList.add('active');
                     showStatus('Rectangle mode active! Click and drag to draw rectangles. Ctrl+Z to undo. Escape to exit.');
                 } else if (mode === 'line') {
-                    lineBtn.classList.add('active');
+                    shapesBtn.classList.add('active');
                     showStatus('Line mode active! Click and drag to draw lines. Ctrl+Z to undo. Escape to exit.');
                 } else if (mode === 'arrow') {
-                    arrowBtn.classList.add('active');
+                    shapesBtn.classList.add('active');
                     showStatus('Arrow mode active! Click where arrow starts, drag to where it points. Ctrl+Z to undo. Escape to exit.');
                 } else if (mode === 'text') {
                     textBtn.classList.add('active');
