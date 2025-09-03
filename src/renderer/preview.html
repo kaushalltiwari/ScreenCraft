@@ -877,22 +877,25 @@
             align-items: center;
             justify-content: center;
             padding: 8px;
-            background: none;
-            border: none;
-            border-radius: var(--border-radius);
+            background: #f8f9fa;
+            border: 1px solid #ccc;
+            border-radius: 4px;
             cursor: pointer;
-            transition: background-color 0.15s ease;
+            transition: all 0.15s ease;
             color: var(--text-primary);
             min-width: 32px;
             height: 32px;
         }
 
         .shape-option:hover {
-            background-color: var(--hover-background);
+            background-color: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateY(-1px);
         }
 
         .shape-option.active {
-            background-color: var(--primary-color);
+            background-color: #0066cc;
+            border-color: #0052a3;
             color: white;
         }
 
