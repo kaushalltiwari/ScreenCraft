@@ -844,20 +844,26 @@
 
         .shapes-dropdown {
             position: absolute;
-            top: 100%;
-            left: 0;
-            background: var(--dropdown-background);
-            border: 1px solid var(--dropdown-border);
-            border-radius: var(--border-radius);
-            box-shadow: var(--dropdown-shadow);
+            top: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             padding: 8px;
             width: auto;
             z-index: 1000;
             display: none;
+            opacity: 0;
+            transform: translateX(-50%) translateY(-4px) scale(0.95);
+            transition: all 0.15s ease;
         }
 
         .shapes-dropdown.show {
             display: block;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
         }
 
         .shape-options {
