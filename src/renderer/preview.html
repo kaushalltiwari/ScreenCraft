@@ -488,6 +488,56 @@
             text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
         }
 
+        /* Background Style Dropdown */
+        .background-style-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 12px;
+            display: none;
+            min-width: 280px;
+            max-width: 320px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+        }
+        
+        .background-style-dropdown.show {
+            display: block;
+            opacity: 1;
+            animation: fadeIn 0.15s ease-out;
+        }
+        
+        .background-controls-unified {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .background-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .section-title {
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         /* Border width dropdown */
         .border-width-dropdown {
             position: absolute;
@@ -750,7 +800,7 @@
         
         .style-options {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
             gap: 4px;
         }
         
@@ -759,20 +809,23 @@
             align-items: center;
             gap: 8px;
             padding: 8px 10px;
-            border: none;
-            background: none;
-            border-radius: 3px;
+            border: 1px solid #ccc;
+            background: #f8f9fa;
+            border-radius: 4px;
             cursor: pointer;
             transition: all 0.15s ease;
             font-size: 14px;
         }
         
         .style-option:hover {
-            background-color: #f0f0f0;
+            background-color: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateY(-1px);
         }
         
         .style-option.active {
             background-color: #0066cc;
+            border-color: #0052a3;
             color: white;
         }
         
@@ -821,6 +874,93 @@
         
         .underline-indicator {
             text-decoration: underline;
+        }
+
+        /* Shapes Dropdown Styles */
+        .shape-indicators {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            display: flex;
+            gap: 1px;
+        }
+        
+        .shape-indicator {
+            font-size: 6px;
+            font-weight: bold;
+            color: #333;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1px 2px;
+            border-radius: 2px;
+            line-height: 1;
+        }
+
+        .shapes-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            padding: 8px;
+            width: auto;
+            z-index: 1000;
+            display: none;
+            opacity: 0;
+            transform: translateX(-50%) translateY(-4px) scale(0.95);
+            transition: all 0.15s ease;
+        }
+
+        .shapes-dropdown.show {
+            display: block;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0) scale(1);
+        }
+
+        .shape-options {
+            display: flex;
+            flex-direction: row;
+            gap: 4px;
+        }
+
+        .shape-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            background: #f8f9fa;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            color: var(--text-primary);
+            min-width: 32px;
+            height: 32px;
+        }
+
+        .shape-option:hover {
+            background-color: #e9ecef;
+            border-color: #adb5bd;
+            transform: translateY(-1px);
+        }
+
+        .shape-option.active {
+            background-color: #0066cc;
+            border-color: #0052a3;
+            color: white;
+        }
+
+        .shape-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .shape-label {
+            font-size: 12px;
+            font-weight: 500;
         }
 
         .opacity-control {
@@ -1143,18 +1283,34 @@
         
         <!-- Group 2: Drawing Tools -->
         <div class="toolbar-group">
-            <button class="toolbar-button" id="rectBtn" title="Rectangle - Draw rectangular borders">
-                <div class="toolbar-icon" style="font-size: 16px;">⬜</div>
-                <div>Rect</div>
-            </button>
-            <button class="toolbar-button" id="lineBtn" title="Line - Draw straight lines">
-                <div class="toolbar-icon" style="font-size: 16px;">📏</div>
-                <div>Line</div>
-            </button>
-            <button class="toolbar-button" id="arrowBtn" title="Arrow - Draw arrows to point to important areas">
-                <div class="toolbar-icon" style="font-size: 16px;">➡️</div>
-                <div>Arrow</div>
-            </button>
+            <!-- Shapes Tool -->
+            <div class="border-tool">
+                <button class="toolbar-button" id="shapesBtn" title="Shapes - Draw rectangles, lines, and arrows">
+                    <div class="toolbar-icon" style="font-size: 16px;">
+                        🔷
+                        <div class="shape-indicators">
+                            <span class="shape-indicator rect-indicator" id="rectIndicator" style="display: none;">⬜</span>
+                            <span class="shape-indicator line-indicator" id="lineIndicator" style="display: none;">📏</span>
+                            <span class="shape-indicator arrow-indicator" id="arrowIndicator" style="display: none;">➡️</span>
+                        </div>
+                    </div>
+                    <div>Shapes</div>
+                    <div class="dropdown-arrow">▼</div>
+                </button>
+                <div class="shapes-dropdown" id="shapesDropdown">
+                    <div class="shape-options">
+                        <button class="shape-option" id="rectOption" data-shape="rect" title="Rectangle - Draw rectangular borders">
+                            <span class="shape-icon">⬜</span>
+                        </button>
+                        <button class="shape-option" id="lineOption" data-shape="line" title="Line - Draw straight lines">
+                            <span class="shape-icon">📏</span>
+                        </button>
+                        <button class="shape-option" id="arrowOption" data-shape="arrow" title="Arrow - Draw arrows to point to important areas">
+                            <span class="shape-icon">➡️</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
             
             <div class="border-tool">
                 <button class="toolbar-button" id="colorBtn" title="Color - Select drawing color">
@@ -1312,35 +1468,30 @@
                     <div class="dropdown-arrow">▼</div>
                 </button>
                 <div class="text-style-dropdown" id="textStyleDropdown">
-                    <div class="dropdown-header">Text Style</div>
                     <div class="style-options">
                         <button class="style-option" id="boldOption" data-style="bold" title="Bold - Make text bold">
                             <span class="style-icon" style="font-weight: bold;">B</span>
-                            <span class="style-label">Bold</span>
                         </button>
                         <button class="style-option" id="italicOption" data-style="italic" title="Italic - Make text italic">
                             <span class="style-icon" style="font-style: italic;">I</span>
-                            <span class="style-label">Italic</span>
                         </button>
                         <button class="style-option" id="underlineOption" data-style="underline" title="Underline - Underline text">
                             <span class="style-icon" style="text-decoration: underline;">U</span>
-                            <span class="style-label">Underline</span>
                         </button>
                     </div>
                 </div>
             </div>
             
-            <!-- Background Color Tool -->
+            <!-- Background Styling Tool -->
             <div class="border-tool">
-                <button class="toolbar-button disabled" id="bgColorBtn" title="Background Color - Change text background color" disabled>
-                    <div class="toolbar-icon" style="font-size: 16px;">🟫</div>
-                    <div style="font-size: 10px;">BG Color</div>
-                    <div class="color-indicator" id="bgColorIndicator" style="background: #ffffff;"></div>
+                <button class="toolbar-button disabled" id="backgroundStyleBtn" title="Background Styling - Configure text background appearance" disabled>
+                    <div class="toolbar-icon" style="font-size: 16px;">📦</div>
+                    <div style="font-size: 10px;">Background</div>
                     <div class="dropdown-arrow">▼</div>
                 </button>
-                <div class="border-color-dropdown" id="bgColorDropdown">
-                    <div class="dropdown-header">Background Color</div>
-                    <div class="background-controls">
+                <div class="background-style-dropdown" id="backgroundStyleDropdown">
+                    <div class="background-controls-unified">
+                        <!-- Enable Background Toggle -->
                         <div class="background-enable-option">
                             <label class="checkbox-container">
                                 <input type="checkbox" id="bgEnableCheckbox">
@@ -1348,59 +1499,53 @@
                                 Enable Background
                             </label>
                         </div>
-                        <div class="background-color-options">
-                            <!-- First Row -->
-                            <div class="color-option" data-color="#ff4444" title="Red" style="background: #ff4444;"></div>
-                            <div class="color-option" data-color="#4488ff" title="Blue" style="background: #4488ff;"></div>
-                            <div class="color-option" data-color="#44ff44" title="Green" style="background: #44ff44;"></div>
-                            <div class="color-option" data-color="#ffaa44" title="Orange" style="background: #ffaa44;"></div>
-                            <div class="color-option" data-color="#aa44ff" title="Purple" style="background: #aa44ff;"></div>
-                            <!-- Second Row -->
-                            <div class="color-option" data-color="#44aaaa" title="Teal" style="background: #44aaaa;"></div>
-                            <div class="color-option" data-color="#333333" title="Dark Gray" style="background: #333333;"></div>
-                            <div class="color-option" data-color="#ffff44" title="Yellow" style="background: #ffff44;"></div>
-                            <div class="color-option" data-color="#ff44aa" title="Pink" style="background: #ff44aa;"></div>
-                            <div class="color-option" data-color="#000000" title="Black" style="background: #000000;"></div>
-                            <!-- Third Row -->
-                            <div class="color-option white selected" data-color="#ffffff" title="White" style="background: #ffffff; border: 2px solid #ccc;"></div>
+                        
+                        <!-- Background Color Section -->
+                        <div class="background-section">
+                            <div class="section-header">
+                                <span class="section-title">Color</span>
+                                <div class="color-indicator" id="bgColorIndicator" style="background: #ffffff;"></div>
+                            </div>
+                            <div class="background-color-options">
+                                <!-- First Row -->
+                                <div class="color-option" data-color="#ff4444" title="Red" style="background: #ff4444;"></div>
+                                <div class="color-option" data-color="#4488ff" title="Blue" style="background: #4488ff;"></div>
+                                <div class="color-option" data-color="#44ff44" title="Green" style="background: #44ff44;"></div>
+                                <div class="color-option" data-color="#ffaa44" title="Orange" style="background: #ffaa44;"></div>
+                                <div class="color-option" data-color="#aa44ff" title="Purple" style="background: #aa44ff;"></div>
+                                <!-- Second Row -->
+                                <div class="color-option" data-color="#44aaaa" title="Teal" style="background: #44aaaa;"></div>
+                                <div class="color-option" data-color="#333333" title="Dark Gray" style="background: #333333;"></div>
+                                <div class="color-option" data-color="#ffff44" title="Yellow" style="background: #ffff44;"></div>
+                                <div class="color-option" data-color="#ff44aa" title="Pink" style="background: #ff44aa;"></div>
+                                <div class="color-option" data-color="#000000" title="Black" style="background: #000000;"></div>
+                                <!-- Third Row -->
+                                <div class="color-option white selected" data-color="#ffffff" title="White" style="background: #ffffff; border: 2px solid #ccc;"></div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Background Opacity Tool -->
-            <div class="border-tool">
-                <button class="toolbar-button disabled" id="bgOpacityBtn" title="Background Opacity - Adjust transparency" disabled>
-                    <div class="toolbar-icon" style="font-size: 16px;">💧</div>
-                    <div style="font-size: 10px;">Opacity</div>
-                    <div class="value-indicator" id="bgOpacityIndicator">80%</div>
-                    <div class="dropdown-arrow">▼</div>
-                </button>
-                <div class="border-color-dropdown" id="bgOpacityDropdown">
-                    <div class="dropdown-header">Background Opacity</div>
-                    <div class="background-controls">
-                        <div class="opacity-control">
-                            <input type="range" id="backgroundOpacity" class="opacity-slider" min="0" max="100" value="80">
-                            <span class="opacity-value" id="opacityValue">80%</span>
+                        
+                        <!-- Background Opacity Section -->
+                        <div class="background-section">
+                            <div class="section-header">
+                                <span class="section-title">Opacity</span>
+                                <div class="value-indicator" id="bgOpacityIndicator">80%</div>
+                            </div>
+                            <div class="opacity-control">
+                                <input type="range" id="backgroundOpacity" class="opacity-slider" min="0" max="100" value="80">
+                                <span class="opacity-value" id="opacityValue">80%</span>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Background Radius Tool -->
-            <div class="border-tool">
-                <button class="toolbar-button disabled" id="bgRadiusBtn" title="Border Radius - Adjust corner roundness" disabled>
-                    <div class="toolbar-icon" style="font-size: 16px;">📐</div>
-                    <div style="font-size: 10px;">Radius</div>
-                    <div class="value-indicator" id="bgRadiusIndicator">4px</div>
-                    <div class="dropdown-arrow">▼</div>
-                </button>
-                <div class="border-color-dropdown" id="bgRadiusDropdown">
-                    <div class="dropdown-header">Border Radius</div>
-                    <div class="background-controls">
-                        <div class="opacity-control">
-                            <input type="range" id="backgroundRadius" class="opacity-slider" min="0" max="20" value="4">
-                            <span class="opacity-value" id="radiusValue">4px</span>
+                        
+                        <!-- Background Radius Section -->
+                        <div class="background-section">
+                            <div class="section-header">
+                                <span class="section-title">Radius</span>
+                                <div class="value-indicator" id="bgRadiusIndicator">4px</div>
+                            </div>
+                            <div class="opacity-control">
+                                <input type="range" id="backgroundRadius" class="opacity-slider" min="0" max="20" value="4">
+                                <span class="opacity-value" id="radiusValue">4px</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1472,23 +1617,20 @@
         // Text background buttons state management
         function updateTextBackgroundButtonsState() {
             const isTextSelected = selectedDrawing && selectedDrawing.type === 'text';
-            const buttons = [bgColorBtn, bgOpacityBtn, bgRadiusBtn];
             
-            buttons.forEach(btn => {
-                if (!btn) return;
-                
+            if (backgroundStyleBtn) {
                 if (isTextSelected) {
-                    btn.disabled = false;
-                    btn.classList.remove('disabled');
-                    btn.style.opacity = '1';
-                    btn.style.cursor = 'pointer';
+                    backgroundStyleBtn.disabled = false;
+                    backgroundStyleBtn.classList.remove('disabled');
+                    backgroundStyleBtn.style.opacity = '1';
+                    backgroundStyleBtn.style.cursor = 'pointer';
                 } else {
-                    btn.disabled = true;
-                    btn.classList.add('disabled');
-                    btn.style.opacity = '0.5';
-                    btn.style.cursor = 'not-allowed';
+                    backgroundStyleBtn.disabled = true;
+                    backgroundStyleBtn.classList.add('disabled');
+                    backgroundStyleBtn.style.opacity = '0.5';
+                    backgroundStyleBtn.style.cursor = 'not-allowed';
                 }
-            });
+            }
             
             // Update indicators with current values
             if (isTextSelected && selectedDrawing) {
@@ -1517,12 +1659,13 @@
             }
         }
         
-        // Function to update individual dropdown controls with current text settings
+        // Function to update unified dropdown controls with current text settings
         function updateDropdownFromText(textDrawing, dropdown) {
             if (!textDrawing || !dropdown) return;
             
-            // Update color dropdown
-            if (dropdown === bgColorDropdown) {
+            // Update unified background dropdown
+            if (dropdown === backgroundStyleDropdown) {
+                // Update color options
                 const colorOptions = dropdown.querySelectorAll('.color-option');
                 colorOptions.forEach(option => {
                     option.classList.remove('selected');
@@ -1530,23 +1673,34 @@
                         option.classList.add('selected');
                     }
                 });
-            }
-            
-            // Update opacity dropdown
-            if (dropdown === bgOpacityDropdown) {
+                
+                // Update opacity controls
                 if (backgroundOpacity && opacityValue) {
                     const opacity = textDrawing.backgroundOpacity || currentBackgroundOpacity;
                     backgroundOpacity.value = opacity;
                     opacityValue.textContent = opacity + '%';
                 }
-            }
-            
-            // Update radius dropdown
-            if (dropdown === bgRadiusDropdown) {
+                
+                // Update radius controls
                 if (backgroundRadius && radiusValue) {
                     const radius = textDrawing.backgroundRadius || 4;
                     backgroundRadius.value = radius;
                     radiusValue.textContent = radius + 'px';
+                }
+                
+                // Update checkbox state
+                if (bgEnableCheckbox) {
+                    bgEnableCheckbox.checked = textDrawing.hasBackground || false;
+                    
+                    // Enable/disable color options based on checkbox
+                    const colorOptions = dropdown.querySelector('.background-color-options');
+                    if (colorOptions) {
+                        if (bgEnableCheckbox.checked) {
+                            colorOptions.classList.remove('disabled');
+                        } else {
+                            colorOptions.classList.add('disabled');
+                        }
+                    }
                 }
             }
         }
@@ -1570,10 +1724,15 @@
         const copyImageBtn = document.getElementById('copyImageBtn');
         const copyPathBtn = document.getElementById('copyPathBtn');
         const saveBtn = document.getElementById('saveBtn');
-        const rectBtn = document.getElementById('rectBtn');
-        const lineBtn = document.getElementById('lineBtn');
-        const arrowBtn = document.getElementById('arrowBtn');
+        const shapesBtn = document.getElementById('shapesBtn');
+        const shapesDropdown = document.getElementById('shapesDropdown');
+        const shapesTool = shapesBtn?.parentElement;
         const textBtn = document.getElementById('textBtn');
+        
+        // Shape indicators
+        const rectIndicator = document.getElementById('rectIndicator');
+        const lineIndicator = document.getElementById('lineIndicator');
+        const arrowIndicator = document.getElementById('arrowIndicator');
         const colorBtn = document.getElementById('colorBtn');
         const borderTool = document.querySelector('.border-tool');
         const borderColorDropdown = document.getElementById('borderColorDropdown');
@@ -1608,23 +1767,25 @@
         const italicIndicator = document.getElementById('italicIndicator');
         const underlineIndicator = document.getElementById('underlineIndicator');
         
-        // Text background control elements - separate tools
-        const bgColorBtn = document.getElementById('bgColorBtn');
-        const bgOpacityBtn = document.getElementById('bgOpacityBtn');
-        const bgRadiusBtn = document.getElementById('bgRadiusBtn');
-        
-        const bgColorTool = bgColorBtn?.closest('.border-tool');
-        const bgOpacityTool = bgOpacityBtn?.closest('.border-tool');
-        const bgRadiusTool = bgRadiusBtn?.closest('.border-tool');
-        
-        const bgColorDropdown = document.getElementById('bgColorDropdown');
-        const bgOpacityDropdown = document.getElementById('bgOpacityDropdown');
-        const bgRadiusDropdown = document.getElementById('bgRadiusDropdown');
+        // Text background control elements - unified tool
+        const backgroundStyleBtn = document.getElementById('backgroundStyleBtn');
+        const backgroundStyleTool = backgroundStyleBtn?.closest('.border-tool');
+        const backgroundStyleDropdown = document.getElementById('backgroundStyleDropdown');
         
         const bgColorIndicator = document.getElementById('bgColorIndicator');
         const bgOpacityIndicator = document.getElementById('bgOpacityIndicator');
         const bgEnableCheckbox = document.getElementById('bgEnableCheckbox');
         const bgRadiusIndicator = document.getElementById('bgRadiusIndicator');
+        
+        // Ensure background checkbox starts unchecked by default
+        if (bgEnableCheckbox) {
+            bgEnableCheckbox.checked = false;
+            // Also ensure the color options are disabled initially
+            const colorOptions = document.querySelector('.background-color-options');
+            if (colorOptions) {
+                colorOptions.classList.add('disabled');
+            }
+        }
         
         const backgroundOpacity = document.getElementById('backgroundOpacity');
         const backgroundRadius = document.getElementById('backgroundRadius');
@@ -1751,85 +1912,78 @@
             copyImageBtn?.addEventListener('click', () => handleAction('copy-image'));
             copyPathBtn?.addEventListener('click', () => handleAction('copy-path'));
             saveBtn?.addEventListener('click', () => handleAction('save'));
-            // Drawing tool functionality
-            rectBtn?.addEventListener('click', () => {
-                setDrawingMode('rect');
+            // Shapes dropdown functionality
+            shapesBtn?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                shapesTool.classList.toggle('show-dropdown');
+                shapesDropdown.classList.toggle('show');
             });
-            lineBtn?.addEventListener('click', () => {
-                setDrawingMode('line');
-            });
-            arrowBtn?.addEventListener('click', () => {
-                setDrawingMode('arrow');
+            
+            // Handle shape option clicks
+            shapesDropdown?.addEventListener('click', (e) => {
+                if (e.target.closest('.shape-option')) {
+                    e.stopPropagation();
+                    const shapeOption = e.target.closest('.shape-option');
+                    const shapeType = shapeOption.dataset.shape;
+                    
+                    // Remove active class from all options
+                    shapesDropdown.querySelectorAll('.shape-option').forEach(option => {
+                        option.classList.remove('active');
+                    });
+                    
+                    // Add active class to selected option
+                    shapeOption.classList.add('active');
+                    
+                    // Hide all indicators first
+                    rectIndicator.style.display = 'none';
+                    lineIndicator.style.display = 'none';
+                    arrowIndicator.style.display = 'none';
+                    
+                    // Show indicator for selected shape
+                    if (shapeType === 'rect') {
+                        rectIndicator.style.display = 'block';
+                    } else if (shapeType === 'line') {
+                        lineIndicator.style.display = 'block';
+                    } else if (shapeType === 'arrow') {
+                        arrowIndicator.style.display = 'block';
+                    }
+                    
+                    // Set drawing mode
+                    setDrawingMode(shapeType);
+                    
+                    // Hide dropdown
+                    shapesTool.classList.remove('show-dropdown');
+                    shapesDropdown.classList.remove('show');
+                    
+                    const shapeNames = {
+                        'rect': 'Rectangle',
+                        'line': 'Line', 
+                        'arrow': 'Arrow'
+                    };
+                    showStatus(`${shapeNames[shapeType]} mode selected.`);
+                }
             });
             textBtn?.addEventListener('click', () => {
                 setDrawingMode('text');
             });
             
-            // Background Color tool functionality
-            bgColorBtn?.addEventListener('click', (e) => {
+            // Background Styling tool functionality
+            backgroundStyleBtn?.addEventListener('click', (e) => {
                 if (selectedDrawing && selectedDrawing.type === 'text') {
                     e.stopPropagation();
                     
-                    // Close other background dropdowns first
-                    bgOpacityTool?.classList.remove('show-dropdown');
-                    bgOpacityDropdown?.classList.remove('show');
-                    bgRadiusTool?.classList.remove('show-dropdown');
-                    bgRadiusDropdown?.classList.remove('show');
-                    
-                    bgColorTool?.classList.toggle('show-dropdown');
-                    bgColorDropdown?.classList.toggle('show');
+                    backgroundStyleTool?.classList.toggle('show-dropdown');
+                    backgroundStyleDropdown?.classList.toggle('show');
                     
                     // Update dropdown with current text background settings
-                    updateDropdownFromText(selectedDrawing, bgColorDropdown);
+                    updateDropdownFromText(selectedDrawing, backgroundStyleDropdown);
                 } else {
-                    showStatus('Please select a text element first to configure background color.');
-                }
-            });
-
-            // Background Opacity tool functionality  
-            bgOpacityBtn?.addEventListener('click', (e) => {
-                if (selectedDrawing && selectedDrawing.type === 'text') {
-                    e.stopPropagation();
-                    
-                    // Close other background dropdowns first
-                    bgColorTool?.classList.remove('show-dropdown');
-                    bgColorDropdown?.classList.remove('show');
-                    bgRadiusTool?.classList.remove('show-dropdown');
-                    bgRadiusDropdown?.classList.remove('show');
-                    
-                    bgOpacityTool?.classList.toggle('show-dropdown');
-                    bgOpacityDropdown?.classList.toggle('show');
-                    
-                    // Update dropdown with current text background settings
-                    updateDropdownFromText(selectedDrawing, bgOpacityDropdown);
-                } else {
-                    showStatus('Please select a text element first to configure background opacity.');
-                }
-            });
-
-            // Background Radius tool functionality
-            bgRadiusBtn?.addEventListener('click', (e) => {
-                if (selectedDrawing && selectedDrawing.type === 'text') {
-                    e.stopPropagation();
-                    
-                    // Close other background dropdowns first
-                    bgColorTool?.classList.remove('show-dropdown');
-                    bgColorDropdown?.classList.remove('show');
-                    bgOpacityTool?.classList.remove('show-dropdown');
-                    bgOpacityDropdown?.classList.remove('show');
-                    
-                    bgRadiusTool?.classList.toggle('show-dropdown');
-                    bgRadiusDropdown?.classList.toggle('show');
-                    
-                    // Update dropdown with current text background settings
-                    updateDropdownFromText(selectedDrawing, bgRadiusDropdown);
-                } else {
-                    showStatus('Please select a text element first to configure border radius.');
+                    showStatus('Please select a text element first to configure background styling.');
                 }
             });
 
             // Handle background color selection
-            bgColorDropdown?.addEventListener('click', (e) => {
+            backgroundStyleDropdown?.addEventListener('click', (e) => {
                 if (e.target.closest('.color-option') && selectedDrawing && selectedDrawing.type === 'text') {
                     e.stopPropagation();
                     
@@ -1842,7 +1996,7 @@
                     const colorOption = e.target.closest('.color-option');
                     
                     // Remove selected from all color options
-                    bgColorDropdown.querySelectorAll('.color-option').forEach(option => {
+                    backgroundStyleDropdown.querySelectorAll('.color-option').forEach(option => {
                         option.classList.remove('selected');
                     });
                     
@@ -2188,9 +2342,8 @@
                 // Close dropdowns when clicking anywhere else, including the canvas/screenshot area
                 if (!borderTool?.contains(e.target) && !widthTool?.contains(e.target) && 
                     !fontSizeTool?.contains(e.target) && !fontFamilyTool?.contains(e.target) &&
-                    !textStyleTool?.contains(e.target) &&
-                    !bgColorTool?.contains(e.target) && !bgOpacityTool?.contains(e.target) && 
-                    !bgRadiusTool?.contains(e.target)) {
+                    !textStyleTool?.contains(e.target) && !shapesTool?.contains(e.target) &&
+                    !backgroundStyleTool?.contains(e.target)) {
                     
                     // Close all dropdowns
                     borderTool?.classList.remove('show-dropdown');
@@ -2203,14 +2356,12 @@
                     fontFamilyDropdown?.classList.remove('show');
                     textStyleTool?.classList.remove('show-dropdown');
                     textStyleDropdown?.classList.remove('show');
+                    shapesTool?.classList.remove('show-dropdown');
+                    shapesDropdown?.classList.remove('show');
                     
-                    // Close background tool dropdowns
-                    bgColorTool?.classList.remove('show-dropdown');
-                    bgColorDropdown?.classList.remove('show');
-                    bgOpacityTool?.classList.remove('show-dropdown');
-                    bgOpacityDropdown?.classList.remove('show');
-                    bgRadiusTool?.classList.remove('show-dropdown');
-                    bgRadiusDropdown?.classList.remove('show');
+                    // Close background tool dropdown
+                    backgroundStyleTool?.classList.remove('show-dropdown');
+                    backgroundStyleDropdown?.classList.remove('show');
                 }
             });
 
@@ -2776,9 +2927,7 @@
 
         function setDrawingMode(mode) {
             // Clear previous mode
-            rectBtn?.classList.remove('active');
-            lineBtn?.classList.remove('active');
-            arrowBtn?.classList.remove('active');
+            shapesBtn?.classList.remove('active');
             textBtn?.classList.remove('active');
             
             // Clear any selected drawings when entering drawing mode
@@ -2806,13 +2955,13 @@
                 redrawCanvas(); // Redraw to clear selection handles
                 
                 if (mode === 'rect') {
-                    rectBtn.classList.add('active');
+                    shapesBtn.classList.add('active');
                     showStatus('Rectangle mode active! Click and drag to draw rectangles. Ctrl+Z to undo. Escape to exit.');
                 } else if (mode === 'line') {
-                    lineBtn.classList.add('active');
+                    shapesBtn.classList.add('active');
                     showStatus('Line mode active! Click and drag to draw lines. Ctrl+Z to undo. Escape to exit.');
                 } else if (mode === 'arrow') {
-                    arrowBtn.classList.add('active');
+                    shapesBtn.classList.add('active');
                     showStatus('Arrow mode active! Click where arrow starts, drag to where it points. Ctrl+Z to undo. Escape to exit.');
                 } else if (mode === 'text') {
                     textBtn.classList.add('active');
@@ -3559,6 +3708,17 @@
             // Prevent multiple text editors
             if (activeTextEditor) {
                 finishTextEditing();
+            }
+            
+            // Reset background to disabled for new text
+            currentBackgroundEnabled = false;
+            if (bgEnableCheckbox) {
+                bgEnableCheckbox.checked = false;
+                // Also disable the color options
+                const colorOptions = document.querySelector('.background-color-options');
+                if (colorOptions) {
+                    colorOptions.classList.add('disabled');
+                }
             }
             
             // Store the text box area for drawing
