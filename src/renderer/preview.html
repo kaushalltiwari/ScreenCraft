@@ -1626,6 +1626,16 @@
         const bgEnableCheckbox = document.getElementById('bgEnableCheckbox');
         const bgRadiusIndicator = document.getElementById('bgRadiusIndicator');
         
+        // Ensure background checkbox starts unchecked by default
+        if (bgEnableCheckbox) {
+            bgEnableCheckbox.checked = false;
+            // Also ensure the color options are disabled initially
+            const colorOptions = document.querySelector('.background-color-options');
+            if (colorOptions) {
+                colorOptions.classList.add('disabled');
+            }
+        }
+        
         const backgroundOpacity = document.getElementById('backgroundOpacity');
         const backgroundRadius = document.getElementById('backgroundRadius');
         const opacityValue = document.getElementById('opacityValue');
@@ -3559,6 +3569,17 @@
             // Prevent multiple text editors
             if (activeTextEditor) {
                 finishTextEditing();
+            }
+            
+            // Reset background to disabled for new text
+            currentBackgroundEnabled = false;
+            if (bgEnableCheckbox) {
+                bgEnableCheckbox.checked = false;
+                // Also disable the color options
+                const colorOptions = document.querySelector('.background-color-options');
+                if (colorOptions) {
+                    colorOptions.classList.add('disabled');
+                }
             }
             
             // Store the text box area for drawing
