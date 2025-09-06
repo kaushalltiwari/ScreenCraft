@@ -3,6 +3,10 @@
  * Tests interactions between different UI components and their integration with the annotation system
  */
 
+// Fix for JSDOM TextEncoder issue - must come before JSDOM import
+global.TextEncoder = global.TextEncoder || require('util').TextEncoder;
+global.TextDecoder = global.TextDecoder || require('util').TextDecoder;
+
 // Mock DOM environment for UI testing
 const { JSDOM } = require('jsdom');
 
@@ -130,7 +134,10 @@ describe('UI Components Integration Tests', () => {
       }))
     };
 
-    document.getElementById('annotationCanvas').getContext = mockCanvas.getContext;
+    const canvasElement = document.getElementById('annotationCanvas');
+    if (canvasElement) {
+      canvasElement.getContext = mockCanvas.getContext;
+    }
 
     // UI Components controller mock
     uiComponents = {

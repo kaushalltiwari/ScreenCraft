@@ -1,6 +1,10 @@
 // Global test setup file
 const path = require('path');
 
+// Fix for JSDOM TextEncoder issue
+global.TextEncoder = global.TextEncoder || require('util').TextEncoder;
+global.TextDecoder = global.TextDecoder || require('util').TextDecoder;
+
 // Mock Electron modules globally
 jest.mock('electron', () => ({
   app: {
@@ -41,7 +45,9 @@ jest.mock('electron', () => ({
   },
   nativeTheme: {
     shouldUseDarkColors: false,
-    on: jest.fn()
+    on: jest.fn(),
+    removeListener: jest.fn(),
+    removeAllListeners: jest.fn()
   },
   desktopCapturer: {
     getSources: jest.fn(() => Promise.resolve([
@@ -130,8 +136,9 @@ jest.mock('temp', () => ({
 }));
 
 // Mock uuid
+let uuidCounter = 0;
 jest.mock('uuid', () => ({
-  v4: jest.fn(() => 'test-uuid-1234')
+  v4: jest.fn(() => `test-uuid-${++uuidCounter}`)
 }));
 
 // Mock jimp
@@ -185,7 +192,18 @@ global.createMockCanvasContext = () => ({
   drawImage: jest.fn(),
   getImageData: jest.fn(() => ({ data: new Array(1000).fill(255) })),
   putImageData: jest.fn(),
-  canvas: { width: 1920, height: 1080 }
+  moveTo: jest.fn(),
+  lineTo: jest.fn(),
+  canvas: { width: 1920, height: 1080 },
+  // Add properties that can be set
+  set fillStyle(value) { this._fillStyle = value; },
+  get fillStyle() { return this._fillStyle || '#000000'; },
+  set strokeStyle(value) { this._strokeStyle = value; },
+  get strokeStyle() { return this._strokeStyle || '#000000'; },
+  set lineWidth(value) { this._lineWidth = value; },
+  get lineWidth() { return this._lineWidth || 1; },
+  set font(value) { this._font = value; },
+  get font() { return this._font || '16px Arial'; }
 });
 
 global.createMockCanvas = () => ({
