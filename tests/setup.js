@@ -165,6 +165,57 @@ global.createMockScreenshotData = (overrides = {}) => ({
   ...overrides
 });
 
+// Enhanced DOM mock utilities for UI tests
+global.createMockCanvasContext = () => ({
+  fillRect: jest.fn(),
+  strokeRect: jest.fn(),
+  arc: jest.fn(),
+  beginPath: jest.fn(),
+  closePath: jest.fn(),
+  stroke: jest.fn(),
+  fill: jest.fn(),
+  fillText: jest.fn(),
+  measureText: jest.fn(() => ({ width: 100 })),
+  save: jest.fn(),
+  restore: jest.fn(),
+  translate: jest.fn(),
+  scale: jest.fn(),
+  setLineDash: jest.fn(),
+  clearRect: jest.fn(),
+  drawImage: jest.fn(),
+  getImageData: jest.fn(() => ({ data: new Array(1000).fill(255) })),
+  putImageData: jest.fn(),
+  canvas: { width: 1920, height: 1080 }
+});
+
+global.createMockCanvas = () => ({
+  getContext: jest.fn(() => global.createMockCanvasContext()),
+  width: 1920,
+  height: 1080,
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+  dispatchEvent: jest.fn(),
+  style: {},
+  getBoundingClientRect: jest.fn(() => ({
+    left: 0, top: 0, right: 1920, bottom: 1080, width: 1920, height: 1080
+  }))
+});
+
+// Performance testing utilities
+global.measurePerformance = (fn) => {
+  const start = performance.now();
+  const result = fn();
+  const end = performance.now();
+  return { result, time: end - start };
+};
+
+global.measureAsyncPerformance = async (fn) => {
+  const start = performance.now();
+  const result = await fn();
+  const end = performance.now();
+  return { result, time: end - start };
+};
+
 // Console override for cleaner test output
 const originalConsole = console;
 global.console = {

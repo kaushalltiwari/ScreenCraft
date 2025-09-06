@@ -7,41 +7,49 @@ module.exports = {
     '**/tests/**/*.test.js',
     '**/tests/**/*.spec.js'
   ],
-  
-  // Coverage configuration - Only include files we actually test
-  collectCoverageFrom: [
-    'src/shared/ValidationUtils.js',
-    'src/shared/ErrorHandler.js', 
-    'src/main/ConfigManager.js',
-    '!**/node_modules/**'
+
+  // Test projects for different types of tests
+  projects: [
+    {
+      displayName: 'unit',
+      testMatch: ['<rootDir>/tests/unit/**/*.test.js'],
+      testEnvironment: 'node'
+    },
+    {
+      displayName: 'integration', 
+      testMatch: ['<rootDir>/tests/integration/**/*.test.js'],
+      testEnvironment: 'jsdom'
+    },
+    {
+      displayName: 'e2e',
+      testMatch: ['<rootDir>/tests/e2e/**/*.test.js'],
+      testEnvironment: 'node'
+    },
+    {
+      displayName: 'performance',
+      testMatch: ['<rootDir>/tests/performance/**/*.test.js'],
+      testEnvironment: 'node',
+      testTimeout: 30000
+    }
   ],
   
-  // Coverage thresholds - Set realistic targets for files we actually test
+  // Coverage configuration - Updated for new features
+  collectCoverageFrom: [
+    'src/renderer/**/*.js',
+    'src/main/**/*.js',
+    'src/shared/**/*.js',
+    '!src/renderer/preview.html',
+    '!**/node_modules/**',
+    '!**/tests/**'
+  ],
+  
+  // Coverage thresholds - Updated for comprehensive test suite
   coverageThreshold: {
     global: {
-      branches: 35,
-      functions: 15,
-      lines: 20,
-      statements: 20
-    },
-    // Specific thresholds for well-tested files
-    'src/shared/ValidationUtils.js': {
-      branches: 75,
-      functions: 70,
+      branches: 70,
+      functions: 75,
       lines: 80,
       statements: 80
-    },
-    'src/shared/ErrorHandler.js': {
-      branches: 60,
-      functions: 75,
-      lines: 75,
-      statements: 75
-    },
-    'src/main/ConfigManager.js': {
-      branches: 100,
-      functions: 100,
-      lines: 100,
-      statements: 100
     }
   },
   
