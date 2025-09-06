@@ -271,8 +271,8 @@ describe('FileManager', () => {
       };
 
       const filename1 = generateFilename();
-      // Small delay to ensure different timestamp
-      await new Promise(resolve => setTimeout(resolve, 1));
+      // Delay to ensure different timestamp and UUID
+      await new Promise(resolve => setTimeout(resolve, 10));
       const filename2 = generateFilename();
       
       expect(filename1).toContain('screenshot-');

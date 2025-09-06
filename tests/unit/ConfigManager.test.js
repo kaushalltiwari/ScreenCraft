@@ -15,6 +15,13 @@ jest.mock('electron', () => ({
   }
 }));
 
+jest.mock('electron-log', () => ({
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn()
+}));
+
 const ConfigManager = require('../../src/main/ConfigManager');
 const { app } = require('electron');
 
