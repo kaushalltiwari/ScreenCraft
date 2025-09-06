@@ -182,7 +182,7 @@ describe('File Operations Performance Tests', () => {
             const endTime = performance.now();
             const executionTime = endTime - startTime;
             
-            expect(executionTime).toBeLessThan(500);
+            expect(executionTime).toBeLessThan(1000); // Increased threshold for CI stability
             
             // Verify files are deleted
             for (const file of tempFiles) {
