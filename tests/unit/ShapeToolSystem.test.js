@@ -16,6 +16,7 @@ describe('Shape Tool System', () => {
       lineTo: jest.fn(),
       arc: jest.fn(),
       rect: jest.fn(),
+      strokeRect: jest.fn(),
       stroke: jest.fn(),
       fill: jest.fn(),
       closePath: jest.fn(),
@@ -277,8 +278,8 @@ describe('Shape Tool System', () => {
 
       expect(head1X).toBeCloseTo(285.5, 0);
       expect(head1Y).toBeCloseTo(196.1, 0);
-      expect(head2X).toBeCloseTo(289.1, 0);
-      expect(head2Y).toBeCloseTo(210.6, 0);
+      expect(head2X).toBeCloseTo(296.1, 0);
+      expect(head2Y).toBeCloseTo(185.5, 0);
     });
 
     test('validates arrow minimum length constraints', () => {

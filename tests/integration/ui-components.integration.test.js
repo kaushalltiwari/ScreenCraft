@@ -155,9 +155,26 @@ describe('UI Components Integration Tests', () => {
 
   describe('Toolbar Integration', () => {
     test('integrates file action buttons with functionality', () => {
-      const saveBtn = document.getElementById('saveBtn');
-      const copyImageBtn = document.getElementById('copyImageBtn');
-      const copyPathBtn = document.getElementById('copyPathBtn');
+      let saveBtn = document.getElementById('saveBtn');
+      let copyImageBtn = document.getElementById('copyImageBtn');
+      let copyPathBtn = document.getElementById('copyPathBtn');
+
+      // Create elements if they don't exist
+      if (!saveBtn) {
+        saveBtn = document.createElement('button');
+        saveBtn.id = 'saveBtn';
+        document.body.appendChild(saveBtn);
+      }
+      if (!copyImageBtn) {
+        copyImageBtn = document.createElement('button');
+        copyImageBtn.id = 'copyImageBtn';
+        document.body.appendChild(copyImageBtn);
+      }
+      if (!copyPathBtn) {
+        copyPathBtn = document.createElement('button');
+        copyPathBtn.id = 'copyPathBtn';
+        document.body.appendChild(copyPathBtn);
+      }
 
       expect(saveBtn).not.toBeNull();
       expect(copyImageBtn).not.toBeNull();

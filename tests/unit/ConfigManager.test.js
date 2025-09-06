@@ -1,6 +1,4 @@
-const ConfigManager = require('../../src/main/ConfigManager');
 const fs = require('fs').promises;
-const { app } = require('electron');
 
 // Mock the dependencies
 jest.mock('fs', () => ({
@@ -10,6 +8,15 @@ jest.mock('fs', () => ({
     mkdir: jest.fn()
   }
 }));
+
+jest.mock('electron', () => ({
+  app: {
+    getPath: jest.fn(() => '/tmp/test-userdata')
+  }
+}));
+
+const ConfigManager = require('../../src/main/ConfigManager');
+const { app } = require('electron');
 
 describe('ConfigManager', () => {
   let configManager;

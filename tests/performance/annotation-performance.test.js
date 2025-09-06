@@ -201,7 +201,7 @@ describe('Annotation Performance Tests', () => {
             // Simulate building undo stack
             for (let i = 0; i < 100; i++) {
                 undoStack.push({
-                    imageData: new Array(1920 * 1080 * 4).fill(255),
+                    imageData: new Array(100 * 100 * 4).fill(255),
                     timestamp: Date.now()
                 });
             }
@@ -245,8 +245,8 @@ describe('Annotation Performance Tests', () => {
             const endMemory = process.memoryUsage().heapUsed;
             const memoryIncrease = endMemory - startMemory;
             
-            // Memory increase should be reasonable (less than 5MB for 100 objects)
-            expect(memoryIncrease).toBeLessThan(5 * 1024 * 1024);
+            // Memory increase should be reasonable (less than 1MB for 100 objects)
+            expect(memoryIncrease).toBeLessThan(1 * 1024 * 1024);
             expect(annotations.length).toBe(100);
         });
 
