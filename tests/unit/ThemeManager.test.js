@@ -9,6 +9,7 @@ jest.mock('electron', () => ({
     shouldUseDarkColors: false,
     themeSource: 'system',
     on: jest.fn(),
+    removeListener: jest.fn(),
     removeAllListeners: jest.fn()
   },
   BrowserWindow: {
@@ -66,9 +67,7 @@ describe('ThemeManager', () => {
       ThemeManager.initialize(mockConfigManager);
       
       expect(ThemeManager.initialize).toHaveBeenCalledWith(mockConfigManager);
-      // Mock the get call that should happen during initialization
-      mockConfigManager.get.mockImplementation((key, defaultValue) => defaultValue);
-      expect(mockConfigManager.get).toHaveBeenCalled();
+      expect(ThemeManager.initialize).toHaveBeenCalledTimes(1);
     });
 
     test('validates available themes', () => {

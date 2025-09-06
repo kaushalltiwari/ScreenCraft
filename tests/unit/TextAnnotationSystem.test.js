@@ -329,7 +329,7 @@ describe('Text Annotation System', () => {
     test('validates text content and handles empty text', () => {
       const validateText = (text) => {
         return {
-          isValid: text && text.trim().length > 0,
+          isValid: !!(text && text.trim().length > 0),
           isEmpty: !text || text.trim().length === 0,
           length: text ? text.length : 0
         };

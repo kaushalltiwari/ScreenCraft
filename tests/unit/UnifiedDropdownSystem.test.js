@@ -31,7 +31,7 @@ describe('Unified Dropdown System', () => {
       })),
       
       querySelector: jest.fn((selector) => {
-        if (selector.includes('dropdown')) {
+        if (selector === '#valid-dropdown') {
           return {
             classList: {
               add: jest.fn(),
@@ -621,7 +621,7 @@ describe('Unified Dropdown System', () => {
       };
 
       expect(safeDropdownOperation('nonexistent-dropdown')).toBe(false);
-      expect(safeDropdownOperation('valid-dropdown')).toBe(false); // Mock returns null
+      expect(safeDropdownOperation('valid-dropdown')).toBe(true); // Mock querySelector returns element
     });
 
     test('validates color values before applying', () => {

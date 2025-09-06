@@ -247,4 +247,6 @@ global.console = {
 // Reset mocks before each test
 beforeEach(() => {
   jest.clearAllMocks();
+  // Reset UUID counter to ensure unique values across tests
+  uuidCounter = 0;
 });

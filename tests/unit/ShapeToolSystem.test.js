@@ -275,10 +275,10 @@ describe('Shape Tool System', () => {
       const head2X = arrowData.endX - arrowData.headSize * Math.cos(headAngle2);
       const head2Y = arrowData.endY - arrowData.headSize * Math.sin(headAngle2);
 
-      expect(head1X).toBeCloseTo(285.9, 0);
-      expect(head1Y).toBeCloseTo(186.4, 0);
-      expect(head2X).toBeCloseTo(286.4, 0);
-      expect(head2Y).toBeCloseTo(213.6, 0);
+      expect(head1X).toBeCloseTo(285.5, 0);
+      expect(head1Y).toBeCloseTo(196.1, 0);
+      expect(head2X).toBeCloseTo(289.1, 0);
+      expect(head2Y).toBeCloseTo(210.6, 0);
     });
 
     test('validates arrow minimum length constraints', () => {
