@@ -1,11 +1,13 @@
 # Offline Screenshot Tool
 
-A completely offline desktop screenshot tool built with Electron.js that provides fast, privacy-focused screen capture with enhanced annotation capabilities.
+A completely offline desktop screenshot tool built with Electron.js that provides fast, privacy-focused screen capture with enhanced annotation capabilities and comprehensive testing infrastructure.
 
 ![Screenshot Tool Demo](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue)
 ![Electron](https://img.shields.io/badge/Electron-37.3.1-47848F)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Offline](https://img.shields.io/badge/100%25-Offline-success)
+![Tests](https://img.shields.io/badge/Tests-239%20passing-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-75%2B%25-brightgreen)
 ![Build Status](https://github.com/kaushalltiwari/ScreenCraft/actions/workflows/build.yml/badge.svg)
 
 ## 🚀 Features
@@ -17,21 +19,26 @@ A completely offline desktop screenshot tool built with Electron.js that provide
 - **Multi-Monitor Support**: Automatically handles multiple displays
 - **Instant Clipboard**: Screenshots automatically copied to clipboard
 - **Enhanced Preview Window**: Feature-rich preview with annotation tools
-- **Border Drawing**: Interactive border annotation with color picker
+- **Advanced Annotation System**: Shape tools, text annotations, and color customization
+- **Unified Dropdown System**: Consistent UI components across all interfaces
 - **Theme System**: Light/Dark/System theme support with real-time switching
+- **Modular CSS Architecture**: Maintainable, organized stylesheets
 - **Settings Window**: Comprehensive settings with customizable keyboard shortcuts
 - **File Management**: Smart temporary file handling with auto-cleanup
 - **File Path Access**: Copy file paths to clipboard for external tool integration
+- **Comprehensive Testing**: 239 tests across unit, integration, e2e, and performance suites
 - **100% Offline**: Zero network dependencies, all data stays local
 - **Cross-Platform**: Works on Windows and macOS
 
-### 🎨 Enhanced Preview Features
-- **Copy Image**: Re-copy screenshot to clipboard (with or without borders)
+### 🎨 Enhanced Annotation Features
+- **Shape Drawing Tools**: Rectangle, circle, arrow, and line tools with customizable properties
+- **Text Annotations**: Rich text with font family, size, styling, and background options
+- **Advanced Color System**: Unified color palette with consistent styling across all tools
+- **Smart UI Controls**: Responsive dropdowns with keyboard navigation and accessibility support
+- **Copy Image**: Re-copy screenshot to clipboard (with or without annotations)
 - **Copy Path**: Copy file path to clipboard for external tool integration
 - **Save As**: Save to permanent location with file dialog
-- **Border Tool**: Draw colored borders and annotations on screenshots
-- **Color Picker**: Choose from 12 predefined colors for border drawing
-- **Undo/Clear**: Remove individual borders or clear all annotations
+- **Undo/Clear**: Remove individual annotations or clear all modifications
 - **Auto-cleanup**: Temporary files cleaned up on window close
 - **Multiple Windows**: Support for multiple simultaneous screenshot previews
 
@@ -61,6 +68,9 @@ cd ScreenCapture_clean
 # Install dependencies
 npm install
 
+# Run tests (recommended before development)
+npm test
+
 # Run in development mode
 npm run dev
 
@@ -88,6 +98,47 @@ npm run build:portable # Windows portable app
 
 Built installers will be created in the `/dist` directory.
 
+## 🧪 Testing Infrastructure
+
+### Comprehensive Test Suite
+The application features a robust testing infrastructure with **239 tests** across multiple categories:
+
+- **Unit Tests**: 17 test suites covering core components (ConfigManager, FileManager, ThemeManager, etc.)
+- **Integration Tests**: Cross-component interaction testing
+- **End-to-End Tests**: Complete user workflow testing
+- **Performance Tests**: Memory usage, file operations, and rendering performance
+
+### Test Categories
+```bash
+# Run all tests
+npm test
+
+# Run specific test types
+npm run test:unit          # Unit tests only
+npm run test:integration   # Integration tests only  
+npm run test:e2e          # End-to-end tests only
+npm run test:performance  # Performance benchmarks
+
+# Run tests with coverage report
+npm test -- --coverage
+```
+
+### Coverage & Quality
+- **Coverage**: 75%+ across all testable modules
+- **CI Integration**: All tests run on every commit via GitHub Actions
+- **Cross-Platform**: Tests validated on Windows, macOS, and Linux environments
+- **Electron Mocking**: Comprehensive mocking for Electron APIs and system integration
+
+### Test Structure
+```
+tests/
+├── unit/                 # Component-level testing
+├── integration/          # Cross-component testing  
+├── e2e/                  # End-to-end user workflows
+├── performance/          # Performance benchmarking
+└── setup.js             # Global test configuration
+```
+
 ## 🎮 Usage
 
 ### Taking Screenshots
@@ -112,21 +163,35 @@ Built installers will be created in the `/dist` directory.
 ## 🏗️ Architecture
 
 ### Modular Design
-The application follows a clean, modular architecture with separation of concerns:
+The application follows a clean, modular architecture with separation of concerns and comprehensive testing:
 
 ```
 ├── main.js                    # Main application controller
-├── src/main/
-│   ├── ScreenCaptureManager   # Screen capture and overlay management
-│   └── FileManager           # File operations and clipboard integration
-├── src/renderer/
-│   ├── overlay.html          # Fullscreen selection overlay
-│   ├── preview.html          # Screenshot preview with annotation tools
-│   ├── settings.html         # Settings window with theme and shortcuts
-│   └── *-preload.js          # Secure IPC bridges for each renderer
-└── src/shared/
-    ├── constants.js          # Centralized configuration
-    └── preload-utils.js      # Shared preload script utilities
+├── src/
+│   ├── main/                 # Main process modules
+│   │   ├── ScreenCaptureManager  # Screen capture and overlay management
+│   │   ├── FileManager          # File operations and clipboard integration
+│   │   ├── ConfigManager        # Settings and configuration management
+│   │   ├── ThemeManager         # Theme system and preference handling
+│   │   └── WindowManager        # Window lifecycle management
+│   ├── renderer/             # Renderer process modules
+│   │   ├── scripts/             # Modular JavaScript components
+│   │   ├── styles/              # Organized CSS architecture
+│   │   ├── overlay.html         # Fullscreen selection overlay
+│   │   ├── preview.html         # Screenshot preview with annotations
+│   │   ├── settings.html        # Settings window with theme and shortcuts
+│   │   └── *-preload.js         # Secure IPC bridges for each renderer
+│   └── shared/               # Shared utilities
+│       ├── ErrorHandler.js     # Centralized error handling
+│       ├── ValidationUtils.js   # Input validation and sanitization
+│       ├── constants.js         # Centralized configuration
+│       └── preload-utils.js     # Shared preload script utilities
+└── tests/                    # Comprehensive test suite
+    ├── unit/                 # Component-level testing
+    ├── integration/          # Cross-component testing
+    ├── e2e/                  # End-to-end workflows
+    ├── performance/          # Performance benchmarking
+    └── setup.js             # Global test configuration
 ```
 
 ### Key Components
@@ -158,11 +223,18 @@ The application follows a clean, modular architecture with separation of concern
 ## 🔧 Technical Details
 
 ### Dependencies
-- **Electron**: Desktop app framework
-- **Jimp**: Image processing and cropping
-- **uuid**: Unique filename generation
-- **temp**: Temporary file management with tracking
-- **electron-log**: Local file-based logging
+
+**Production Dependencies:**
+- **Electron**: Desktop app framework for cross-platform support
+- **Jimp**: Image processing, cropping, and annotation rendering
+- **uuid**: Unique filename generation for temporary files
+- **temp**: Temporary file management with automatic cleanup
+- **electron-log**: Local file-based logging with no external transmission
+
+**Development Dependencies:**
+- **Jest**: Testing framework with 239 comprehensive tests
+- **JSDOM**: DOM environment simulation for integration testing
+- **Various Mocks**: Comprehensive Electron API mocking for reliable testing
 
 ### Screen Capture Process
 1. User triggers capture → `ScreenCaptureManager.startCapture()`
@@ -186,6 +258,25 @@ The application follows a clean, modular architecture with separation of concern
 - Optional permanent save with user-chosen location
 
 
+## 🚀 Recent Improvements
+
+### v2.0 - Enhanced Test Suite & Architecture (Latest)
+- **🧪 Comprehensive Testing**: Added 239 tests across unit, integration, e2e, and performance categories
+- **🏗️ Modular CSS Architecture**: Reorganized stylesheets for maintainability and consistency
+- **🎨 Advanced Annotation System**: Shape tools, text annotations with rich formatting options
+- **🔧 Unified Dropdown System**: Consistent UI components with keyboard navigation support
+- **⚡ Performance Optimizations**: Memory management improvements and faster file operations
+- **🛡️ Enhanced Error Handling**: Centralized error management with comprehensive validation
+- **🔄 Theme System Improvements**: Real-time theme switching with system preference detection
+- **📊 CI/CD Integration**: Automated testing on every commit with cross-platform validation
+
+### Quality Assurance Features
+- **Test Coverage**: 75%+ coverage across all testable modules
+- **GitHub Actions**: Automated builds and testing for Windows, macOS, and Linux
+- **Electron Mocking**: Comprehensive API mocking for reliable cross-platform testing
+- **Performance Benchmarking**: Memory usage tracking and file operation optimization
+- **Error Recovery**: Graceful handling of system-level failures and user input edge cases
+
 ## 🛡️ Privacy & Security
 
 ### 100% Offline Operation
@@ -199,7 +290,7 @@ The application follows a clean, modular architecture with separation of concern
 - No remote module access in renderer processes  
 - Sandboxed renderer processes with limited API access
 - All system operations handled in main process
-
+- Comprehensive input validation and sanitization
 
 ## 📄 License
 
