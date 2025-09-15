@@ -1,5 +1,7 @@
 # Offline Screenshot Tool
 
+![ScreenCraft](assets/poster.png)
+
 A completely offline desktop screenshot tool built with Electron.js that provides fast, privacy-focused screen capture with enhanced annotation capabilities and comprehensive testing infrastructure.
 
 ![Screenshot Tool Demo](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS-blue)
