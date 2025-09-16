@@ -176,18 +176,20 @@ The application follows a clean, modular architecture with separation of concern
 ├── main.js                    # Main application controller
 ├── src/
 │   ├── main/                 # Main process modules
-│   │   ├── ScreenCaptureManager  # Screen capture and overlay management
-│   │   ├── FileManager          # File operations and clipboard integration
-│   │   ├── ConfigManager        # Settings and configuration management
-│   │   ├── ThemeManager         # Theme system and preference handling
-│   │   └── WindowManager        # Window lifecycle management
+│   │   ├── ConfigManager.js     # Settings and configuration management
+│   │   ├── FileManager.js       # File operations and clipboard integration
+│   │   ├── IPCHandler.js        # IPC communication handlers
+│   │   ├── ScreenCaptureManager.js # Screen capture and overlay management
+│   │   ├── ThemeManager.js      # Theme system and preference handling
+│   │   ├── TrayManager.js       # System tray integration
+│   │   └── WindowManager.js     # Window lifecycle management
 │   ├── renderer/             # Renderer process modules
-│   │   ├── scripts/             # Modular JavaScript components
-│   │   ├── styles/              # Organized CSS architecture
 │   │   ├── overlay.html         # Fullscreen selection overlay
 │   │   ├── preview.html         # Screenshot preview with annotations
 │   │   ├── settings.html        # Settings window with theme and shortcuts
-│   │   └── *-preload.js         # Secure IPC bridges for each renderer
+│   │   ├── overlay-preload.js   # Overlay window IPC bridge
+│   │   ├── preview-preload.js   # Preview window IPC bridge
+│   │   └── settings-preload.js  # Settings window IPC bridge
 │   └── shared/               # Shared utilities
 │       ├── ErrorHandler.js     # Centralized error handling
 │       ├── ValidationUtils.js   # Input validation and sanitization
